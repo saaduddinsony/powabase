@@ -37,14 +37,34 @@
   --chart-blue: 217 91% 65%;
   --chart-warning: hsl(var(--warning-default));
   --chart-destructive: hsl(var(--destructive-default));
-  --sidebar-background: var(--background-dash-sidebar);
+  --sidebar-background: 0deg 0% 3%;
   --sidebar-foreground: var(--foreground-default);
   --sidebar-primary: var(--foreground-default);
   --sidebar-primary-foreground: var(--warning-default);
   --sidebar-accent: var(--background-selection);
   --sidebar-accent-foreground: var(--foreground-default);
-  --sidebar-border: var(--border-default);
+  --sidebar-border: 0deg 0% 12%;
   --sidebar-ring: 217.2 91.2% 59.8%;
+
+  // Bencho design system: pure black canvas & elevated dark containers
+  --background-default: 0deg 0% 0%;
+  --background-dash-canvas: 0deg 0% 0%;
+  --background-dash-sidebar: 0deg 0% 3%;
+  --background-surface-100: 0deg 0% 6%;
+  --background-surface-200: 0deg 0% 8%;
+  --background-surface-300: 0deg 0% 11%;
+  --background-dialog-default: 0deg 0% 5%;
+  --background-overlay-default: 0deg 0% 6%;
+  --background-alternative-default: 0deg 0% 4%;
+  --border-default: 0deg 0% 13%;
+  --border-muted: 0deg 0% 10%;
+  --border-secondary: 0deg 0% 11%;
+  --border-strong: 0deg 0% 16%;
+  --border-stronger: 0deg 0% 25%;
+  --foreground-default: 0deg 0% 100%;
+  --foreground-light: 0deg 0% 82%;
+  --foreground-lighter: 0deg 0% 60%;
+  --foreground-muted: 0deg 0% 42%;
 }
 
 html,
@@ -453,3 +473,30 @@ div[data-radix-portal]:not(.portal--toast) {
   strong { @apply font-semibold; }
   em { @apply italic; }
 }
+
+/* =========================================================================
+   Bencho Design System: Pill buttons, 24-28px cards, flat monochrome
+   ========================================================================= */
+
+// Pill buttons throughout interactive elements
+button:not([role='tab']):not([role='switch']):not([role='menuitem']):not([class*='rounded-none']):not([class*='h-full']),
+.btn {
+  border-radius: 9999px;
+}
+
+// Flat card elevation and clean rounded 24px containers
+.card,
+.section-block,
+div[class*='rounded-xl'],
+div[class*='rounded-2xl'] {
+  border-radius: 24px !important;
+  box-shadow: none !important;
+}
+
+// Crisp flat theme without diffuse drop shadows
+.shadow-sm,
+.shadow-md,
+.shadow-lg {
+  box-shadow: none !important;
+}
+
