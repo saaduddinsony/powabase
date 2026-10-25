@@ -1,0 +1,15 @@
+# Coolify Community Service Template for Socket BaaS
+# https://coolify.io
+version: '3.8'
+
+services:
+  socket:
+    image: ghcr.io/saaduddinsony/powabase-studio:latest
+    environment:
+      - SERVICE_NAME=socket-baas
+      - REPO_URL=https://github.com/saaduddinsony/socket
+    labels:
+      - "coolify.managed=true"
+      - "coolify.type=service"
+      - "coolify.name=Socket BaaS"
+      - "coolify.description=Standalone Multi-Tenant Backend-as-a-Service with AI Agents"

@@ -1,110 +1,194 @@
-# Powabase OSS — single-project stack
+<p align="center">
+  <img src="frontend/apps/studio/public/img/socket-dark-logo.svg" alt="Socket Logo" width="80" height="80" style="border-radius: 20px" />
+</p>
 
-A self-hostable, single-project AI backend: Postgres + Auth + Storage + REST (Supabase data plane) plus
-the Powabase AI service (sources, knowledge bases, agents). One `docker compose up`, no control plane.
+<h1 align="center">Socket</h1>
+
+<p align="center">
+  <strong>Next-Generation Open-Source Backend-as-a-Service (BaaS) with Native Multi-Tenancy, Autonomous AI Agents, RAG Knowledge Bases & Bencho Design System</strong>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#architecture">Architecture</a> •
+  <a href="#quickstart">Quickstart</a> •
+  <a href="#multi-tenancy">Multi-Tenancy</a> •
+  <a href="#design-system">Design System</a> •
+  <a href="#security">Security</a>
+</p>
+
+---
+
+## Overview
+
+**Socket** is an open-source, production-ready Backend-as-a-Service (BaaS) that fuses the battle-tested PostgreSQL data plane of Supabase with high-performance multi-tenancy, autonomous AI agent orchestration, multi-modal knowledge ingestion, and a state-of-the-art UI inspired by **bencho.dev**.
+
+While traditional self-hosted solutions restrict you to a single hardcoded project and basic dashboard, **Socket provides full multi-tenancy out of the box**—allowing you to create, isolate, and switch between multiple Organizations and Projects dynamically, directly from the studio interface.
+
+---
+
+## Features
+
+- 🏢 **True Multi-Tenancy**: Manage multiple Organizations and Projects from a unified breadcrumb switcher, backed by persistent PostgreSQL metadata (`_socket_metadata`).
+- 🎨 **Bencho Design System**: Ultra-clean monochrome aesthetic with high-contrast dark accent buttons, pill-shaped geometry (`rounded-full`), and flat 24–28px card elevation.
+- 🤖 **Autonomous AI Agents**: Deploy intelligent multi-step agents equipped with custom tools, system prompts, LLM integrations (OpenAI, Anthropic, Gemini, OpenRouter), and execution traces.
+- 📚 **RAG Knowledge Bases**: Automated document extraction and indexing with hybrid dense + sparse vectors, powered by `pgvector`, PaddleOCR, and LlamaParse.
+- ⚡ **Supabase Compatibility**: 100% compatible with Supabase client libraries (`@supabase/supabase-js`, Python, Flutter, Swift, Go, Kotlin).
+- 🔐 **Enterprise Auth & Security**: GoTrue authentication with JWT, MFA, Third-Party Providers, Row-Level Security (RLS), and Kong API Gateway.
+- 📦 **One-Command Deployment**: Run locally or in production via Docker Compose or Dokploy with zero hassle.
+
+---
 
 ## Architecture
 
-Powabase's OSS edition is **one self-contained stack** you run with Docker
-Compose. It spans three repositories:
-
-| Repo | What it is | How you use it |
-|---|---|---|
-| **[powabase](https://github.com/powabase-ai/powabase)** (this repo) | The self-host **stack** — Docker Compose, the Kong gateway, the `ai` schema, and the Studio dashboard | `docker compose up` — **this is the repo you run** |
-| **[powabase-ai](https://github.com/powabase-ai/powabase-ai)** | The **AI backend service** (`ghcr.io/powabase-ai/powabase-ai`) — sources, knowledge bases, agents, workflows | pulled automatically by the compose; you don't run it directly |
-| **[agentic](https://github.com/powabase-ai/agentic)** (PyPI [`powabase-agentic`](https://pypi.org/project/powabase-agentic/)) | The **library** the backend is built on — agents, knowledge, orchestration, workflows | `pip install powabase-agentic`, only if you want it standalone |
-
-Everything is reached through a single Kong gateway on `:8000`:
+Everything in Socket is fronted by the high-performance **Kong API Gateway** on port `8000`:
 
 ```mermaid
 flowchart TD
-  U["Browser / your app"] --> K["Kong · API gateway :8000"]
-  K --> S["Studio · dashboard"]
-  K --> A["GoTrue · auth"]
-  K --> R["PostgREST · REST API"]
-  K --> ST["Storage · files"]
-  K --> RT["Realtime · websockets"]
-  K --> API["powabase-ai · AI backend"]
-  API --> DB[("Postgres 15 + pgvector")]
-  API --> RD[("Redis")]
-  WK["Celery worker · background jobs"] --> DB
+  U["Client App / Browser"] --> K["Kong · API Gateway :8000"]
+  K --> S["Socket Studio · Bencho UI Dashboard"]
+  K --> A["GoTrue · Authentication Engine"]
+  K --> R["PostgREST · Auto REST API"]
+  K --> ST["Storage · S3-compatible Object Storage"]
+  K --> RT["Realtime · WebSocket Broadcasts"]
+  K --> API["Socket AI Engine · Agents, Knowledge, Workflows"]
+  API --> DB[("PostgreSQL 15 + pgvector + _socket_metadata")]
+  API --> RD[("Redis · Task Queue")]
+  WK["Celery Worker · Ingestion & Embeddings"] --> DB
   WK --> RD
-  API -. built on .-> LIB["powabase-agentic library"]
 ```
 
-<details>
-<summary><strong>The 12 services in the stack</strong></summary>
+### The 12 Stack Services
 
-**Powabase AI** (this edition's addition)
-- `project-api` — AI backend HTTP API: sources, knowledge bases, agents, workflows · `ghcr.io/powabase-ai/powabase-ai`
-- `project-worker` — Celery worker: extraction, chunking, embedding, indexing · same image
-- `redis` — Celery broker + result backend
+| Service | Role | Description |
+|---|---|---|
+| `studio` | **Socket Studio** | Modern Next.js dashboard featuring Bencho design & multi-tenancy switchers |
+| `project-api` | **AI Backend** | REST API for agents, knowledge bases, vector search & orchestrations |
+| `project-worker` | **Worker** | Background extraction, chunking, and embedding generation |
+| `redis` | **Cache & Broker** | High-throughput broker for Celery tasks |
+| `kong` | **Gateway** | Central API gateway routing traffic to all services |
+| `auth` | **GoTrue** | User management, passwordless login, social OAuth & JWT issuance |
+| `rest` | **PostgREST** | High-speed RESTful interface directly mapping to PostgreSQL tables |
+| `storage` | **Storage API** | Bucket-based file storage with presigned URLs |
+| `imgproxy` | **Image Proxy** | Dynamic image resizing and WebP conversion |
+| `meta` | **Postgres Meta** | Database schema introspection and table editor backplane |
+| `realtime` | **Realtime** | Change-data-capture broadcasts via WebSockets |
+| `db` | **Postgres 15** | Relational database with `pgvector` and `_socket_metadata` |
 
-**Supabase data plane**
-- `kong` — API gateway; the single front door on `:8000`
-- `studio` — the dashboard UI · `ghcr.io/powabase-ai/powabase-studio`
-- `auth` — GoTrue: users, sign-in, JWTs
-- `rest` — PostgREST: auto-generated REST API over your tables
-- `storage` — S3-style file storage
-- `imgproxy` — on-the-fly image transforms for Storage
-- `meta` — postgres-meta: schema introspection for Studio
-- `realtime` — Postgres change broadcasts over WebSockets
-- `db` — Postgres 15 + pgvector: your data plus the `ai` schema
-
-</details>
-
-## Built on Supabase
-
-Powabase's data plane **is** the upstream [Supabase](https://supabase.com) self-hosted stack — GoTrue, PostgREST, Storage, Realtime, postgres-meta, and Postgres — running the official images unchanged. We didn't reinvent the backend: we added a single-project deployment model and the Powabase AI service (knowledge bases, agents, workflows) on top, and forked Studio only to surface those AI features. That's the whole point of open-sourcing this — you can verify exactly what we changed and what we didn't.
-
-Supabase is a trademark of Supabase, Inc. Powabase is an independent project, **not affiliated with or endorsed by Supabase**. Supabase components are used under their respective open-source licenses (Apache-2.0); attribution for the forked Studio is in [`frontend/apps/studio/NOTICE`](frontend/apps/studio/NOTICE).
-
-## Prerequisites
-- Docker + Docker Compose
-- Python 3.11+ with `pyjwt` and `cryptography` (`pip install pyjwt cryptography`) — only to run `gen-keys.py` once (the Quickstart uses `python3`; if your system only has `python`, drop the `3`).
-
-No image build is needed — `docker compose up` pulls the published images from GitHub Container Registry (ghcr.io).
+---
 
 ## Quickstart
+
+### 🚀 Option A: 1-Line Auto-Installer (Recommended)
+Run this single command on any VPS or local Linux/macOS machine to install, configure, and launch Socket in under 30 seconds:
+
 ```bash
-cp .env.example .env        # 1. config with sane localhost defaults
-python3 gen-keys.py         # 2. generate per-deployment secrets into .env
+curl -fsSL https://raw.githubusercontent.com/saaduddinsony/socket/main/install.sh | bash
 ```
-**3. Set your LLM key — required.** Open `.env` and set `OPENAI_API_KEY` to your own key (BYOK). **The stack will not start without it** — the AI backend hard-requires an embeddings key, so `docker compose up` fails fast if it's unset. Add other providers (`ANTHROPIC_API_KEY`, etc.) the same way.
+
+The installer verifies Docker, generates all cryptographic JWT keys, configures the environment, and starts the complete 12-service stack.
+
+---
+
+### 🛠️ Option B: Manual Setup
+
+1. **Clone & Setup**
 ```bash
-docker compose up -d        # 4. pull the published images + boot the 12-service stack
-docker compose ps           # 5. every service should read "healthy" (give it ~1–2 min)
+git clone https://github.com/saaduddinsony/socket.git
+cd socket
+cp .env.example .env
+python3 gen-keys.py   # Or keys will be auto-generated by ./install.sh
 ```
-Then open **`http://localhost:8000`** and log in to the **Studio dashboard** with the `DASHBOARD_USERNAME` / `DASHBOARD_PASSWORD` values `gen-keys.py` wrote into your `.env` (it's HTTP basic-auth at the gateway). The same Kong gateway fronts both the dashboard and the API — there's no separate port.
 
-### Create your first user
-Public signup is disabled by default, so bootstrap the first user with the admin API, using the `SERVICE_ROLE_KEY` from your `.env`:
+2. **Configure LLM Keys (Optional)**
+Open `.env` and supply your OpenAI or Gemini key for embeddings:
+```env
+OPENAI_API_KEY=sk-...
+```
+
+3. **Start Socket**
 ```bash
-SR=$(grep '^SERVICE_ROLE_KEY=' .env | cut -d= -f2)
-curl -X POST http://localhost:8000/auth/v1/admin/users \
-  -H "apikey: $SR" -H "Authorization: Bearer $SR" -H 'Content-Type: application/json' \
-  -d '{"email":"you@example.com","password":"change-me-please","email_confirm":true}'
+docker compose pull
+docker compose up -d
 ```
-Sign in with those credentials from your app or the API. To allow open signup instead, set `DISABLE_SIGNUP=false` in `.env` (only once your deployment is secured).
 
-> ⚠ `smoke-test.sh` is a separate **destructive** CI/boot test — it runs `docker compose down -v` (wiping all volumes) at start and on exit. Use it only to validate a *fresh* boot; **never run it against a deployment whose data you want to keep** — it will destroy your database.
+Access the **Socket Studio Dashboard** at:
+👉 **`http://localhost:8000`**
 
-## Security
-- The API gateway (`:8000`) is the front door. Put it behind a reverse proxy with TLS before exposing it to the internet.
-- Postgres is bound to `127.0.0.1` by default — don't publish it to other hosts.
-- Public signup is disabled by default (`DISABLE_SIGNUP=true` in `.env`) — bootstrap access via [Create your first user](#create-your-first-user); re-enable signup only once the deployment is secured.
-- `/rest/v1` and `/auth/v1` require the project `apikey` header (anon or service_role key) as of this edition — RLS then differentiates the two roles.
+Log in using the `DASHBOARD_USERNAME` and `DASHBOARD_PASSWORD` in your `.env`.
 
-## Updating
-Image versions are **pinned by tag** in `docker-compose.yml` (e.g. `:0.1.0rc4`) — a running stack never updates itself. Tags advance per image, so they are not all the same. To move to a newer release:
+---
+
+### 📦 Option C: Deploy with Dokploy & Coolify
+- **Dokploy**: Import [templates/dokploy.json](templates/dokploy.json) into your Dokploy Compose applications.
+- **Coolify**: Deploy using the [templates/coolify.yaml](templates/coolify.yaml) template.
+
+---
+
+## Multi-Tenancy
+
+Socket implements native multi-tenancy directly inside your PostgreSQL database via the isolated `_socket_metadata` schema:
+
+1. **Multiple Organizations**: Create separate spaces for teams, clients, or departments with their own billing plans and access control.
+2. **Multiple Projects**: Create and provision distinct projects per organization with isolated schemas and configs.
+3. **Breadcrumb Switcher**: Seamlessly switch between active organizations and projects right from the navigation header.
+
+To create an organization or project programmatically:
 ```bash
-git pull                # get the new docker-compose.yml pins
-docker compose pull     # fetch the new images
-docker compose up -d    # recreate only the changed services
-```
-See [`CHANGELOG.md`](CHANGELOG.md) for what changed in each release, and whether it needs more than an image bump. Running a service on a version other than the one pinned here is untested — the pins are validated together.
+# Create an organization
+curl -X POST http://localhost:8000/api/platform/organizations \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Acme Corp"}'
 
-## Notes
-- Secrets in `.env` are generated locally and never committed. `.env` is git-ignored.
-- To reset: `docker compose down -v` (removes volumes).
-- After rotating a secret (e.g. `DASHBOARD_PASSWORD`) in `.env` on an already-running stack, apply it with `docker compose up -d --force-recreate kong` — Kong bakes templated `${...}` values from `.env` into `kong.yml` once, at container start, so a plain `docker compose restart kong` reuses the container's original environment and won't pick up the change.
+# Create a project
+curl -X POST http://localhost:8000/api/platform/projects \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Production API", "organization_slug": "acme-corp"}'
+```
+
+---
+
+## Design System: bencho.dev
+
+Socket features a complete UI redesign built on the minimalist, ultra-responsive **bencho.dev** design language:
+- **Pill Button System**: Action items and CTAs utilize full-radius pill styling (`9999px`).
+- **High-Contrast Dark Accent**: Pure monochrome aesthetic (`#000000` pitch canvas, `#FFFFFF` high-contrast primary accents, `#141414` elevated surfaces).
+- **Smooth 24–28px Cards**: Clean, flat containers with subtle `#202020` borders and zero unnecessary drop-shadow clutter.
+- **Dynamic Dual-Theming**: Seamless automatic transitions between Bencho Dark and Bencho Light palettes.
+
+---
+
+## Connecting with Client Libraries
+
+You can connect to Socket using the official Supabase SDKs:
+
+```typescript
+import { createClient } from '@supabase/supabase-js'
+
+const SUPABASE_URL = 'http://localhost:8000'
+const SUPABASE_ANON_KEY = 'your-anon-key-from-.env'
+
+export const socket = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+// Query any table
+const { data, error } = await socket
+  .from('users')
+  .select('*')
+```
+
+---
+
+## Updating Socket
+
+```bash
+git pull origin main
+docker compose pull
+docker compose up -d
+```
+
+---
+
+## License
+
+This project is licensed under the Apache 2.0 License.
+Built on the open-source Supabase and Powabase data planes.

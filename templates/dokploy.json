@@ -1,0 +1,24 @@
+{
+  "name": "Socket BaaS",
+  "version": "1.0.0",
+  "description": "Next-Generation Standalone Open-Source BaaS with Native Multi-Tenancy, Autonomous AI Agents, and Bencho Design System.",
+  "repository": "https://github.com/saaduddinsony/socket",
+  "logo": "https://raw.githubusercontent.com/saaduddinsony/socket/main/frontend/apps/studio/public/img/socket-dark-logo.svg",
+  "composePath": "docker-compose.yml",
+  "envPath": ".env.example",
+  "ports": [
+    {
+      "port": 8000,
+      "description": "Kong API Gateway / Studio Dashboard"
+    },
+    {
+      "port": 5432,
+      "description": "PostgreSQL Direct Database Access"
+    }
+  ],
+  "recommendedSpecs": {
+    "cpu": "2 cores",
+    "ram": "4GB",
+    "disk": "20GB"
+  }
+}
