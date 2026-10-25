@@ -36,12 +36,12 @@ const Error500: NextPage = () => {
                 <Image
                   src={
                     resolvedTheme?.includes('dark')
-                      ? `${router.basePath}/img/powabase-dark.svg`
-                      : `${router.basePath}/img/powabase-light.svg`
+                      ? `${router.basePath}/img/socket-light-logo.svg`
+                      : `${router.basePath}/img/socket-dark-logo.svg`
                   }
-                  alt=""
+                  alt="Socket"
                   height={24}
-                  width={120}
+                  width={24}
                 />
               </Link>
             </div>

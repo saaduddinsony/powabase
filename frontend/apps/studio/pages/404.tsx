@@ -27,12 +27,12 @@ const Error404: NextPage = ({}) => {
                 <Image
                   src={
                     resolvedTheme?.includes('dark')
-                      ? `${BASE_PATH}/img/powabase-dark.svg`
-                      : `${BASE_PATH}/img/powabase-light.svg`
+                      ? `${BASE_PATH}/img/socket-light-logo.svg`
+                      : `${BASE_PATH}/img/socket-dark-logo.svg`
                   }
-                  alt="supabase"
+                  alt="Socket"
                   height={24}
-                  width={120}
+                  width={24}
                 />
               </Link>
             </div>

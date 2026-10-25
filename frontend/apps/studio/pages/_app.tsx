@@ -150,9 +150,17 @@ function CustomApp({ Component, pageProps }: AppPropsWithLayout) {
               >
                 <ProfileProvider>
                   <Head>
-                    <title>{appTitle ?? 'Socket'}</title>
+                    <title>{appTitle ? `${appTitle} | Socket` : 'Socket — Open-Source Backend-as-a-Service'}</title>
+                    <meta name="description" content="Socket — Standalone Open-Source Backend-as-a-Service (BaaS) with Native Multi-Tenancy, Autonomous AI Agents, RAG Knowledge Bases, and Bencho Design System." />
+                    <meta property="og:title" content={appTitle ? `${appTitle} | Socket` : 'Socket — Open-Source Backend-as-a-Service'} />
+                    <meta property="og:description" content="Standalone Open-Source Backend-as-a-Service (BaaS) with Native Multi-Tenancy, Autonomous AI Agents, RAG Knowledge Bases, and Bencho Design System." />
+                    <meta property="og:image" content={`${BASE_PATH}/img/socket-light-logo.svg`} />
+                    <meta property="og:type" content="website" />
+                    <meta name="twitter:card" content="summary_large_image" />
+                    <meta name="twitter:title" content={appTitle ? `${appTitle} | Socket` : 'Socket — Open-Source Backend-as-a-Service'} />
+                    <meta name="twitter:description" content="Standalone Open-Source Backend-as-a-Service (BaaS) with Native Multi-Tenancy, Autonomous AI Agents, RAG Knowledge Bases, and Bencho Design System." />
+                    <meta name="twitter:image" content={`${BASE_PATH}/img/socket-light-logo.svg`} />
                     <meta name="viewport" content="initial-scale=1.0, width=device-width" />
-                    <meta property="og:image" content={`${BASE_PATH}/img/socket-logo.svg`} />
                     <meta name="googlebot" content="notranslate" />
                     {/* [Alaister]: This has to be an inline style tag here and not a separate component due to next/font */}
                     <style

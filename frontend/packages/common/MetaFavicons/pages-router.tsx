@@ -47,7 +47,7 @@ const MetaFaviconsPagesRouter = ({
       {/* prettier-ignore */}
       <link rel="apple-touch-icon-precomposed" sizes="152x152" href={`${basePath}${route}/apple-icon-152x152.png`}/>
       {/* prettier-ignore */}
-      <link rel="icon" type="image/png" href={`${basePath}${route}/favicon-16x16.png`} sizes="16x16"/>
+      <link rel="icon" type="image/svg+xml" href={`${basePath}/img/socket-light-logo.svg`} />
       {/* prettier-ignore */}
       <link rel="icon" type="image/png" href={`${basePath}${route}/favicon-32x32.png`} sizes="32x32"/>
       {/* prettier-ignore */}
