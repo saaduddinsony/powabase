@@ -60,6 +60,11 @@ export async function ensureMetadataSchema(): Promise<void> {
     INSERT INTO _socket_metadata.projects (id, ref, name, organization_id, cloud_provider, status, region)
     VALUES (1, 'default', 'Default Project', 1, 'localhost', 'ACTIVE_HEALTHY', 'local')
     ON CONFLICT (ref) DO NOTHING;
+
+    SELECT setval(pg_get_serial_sequence('_socket_metadata.organizations', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organizations;
+    SELECT setval(pg_get_serial_sequence('_socket_metadata.projects', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.projects;
+    GRANT ALL ON ALL SEQUENCES IN SCHEMA _socket_metadata TO postgres, authenticated, service_role, anon;
+    GRANT ALL ON ALL TABLES IN SCHEMA _socket_metadata TO postgres, authenticated, service_role, anon;
   `
 
   try {
