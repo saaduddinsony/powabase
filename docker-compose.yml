@@ -174,16 +174,6 @@ services:
   studio:
     container_name: default-studio
     restart: unless-stopped
-    # Published self-host image. The build-time NEXT_PUBLIC_* args that used to
-    # live here (IS_PLATFORM=false, SITE_URL, DISABLED_FEATURES) are baked into
-    build:
-      context: frontend
-      dockerfile: apps/studio/Dockerfile
-      target: production
-      args:
-        NEXT_PUBLIC_IS_PLATFORM: "false"
-        NEXT_PUBLIC_SITE_URL: http://localhost:8000
-        NEXT_PUBLIC_DISABLED_FEATURES: "billing:all,billing:plan_picker,credits:enabled,ai:project_copilot"
     image: ghcr.io/saaduddinsony/powabase-studio:latest
     environment:
       NEXT_PUBLIC_IS_PLATFORM: "false"
