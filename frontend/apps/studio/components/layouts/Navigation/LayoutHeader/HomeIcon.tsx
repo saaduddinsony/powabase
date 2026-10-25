@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { useParams } from 'common'
 import { cn } from 'ui'
 
 import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
@@ -7,9 +8,13 @@ import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
 export const HomeIcon = ({ className }: { className?: string }) => {
   const largeLogo = useIsFeatureEnabled('branding:large_logo')
   const router = useRouter()
+  const { ref } = useParams()
+
+  // Navigate to Dashboard Home: active project overview or default project
+  const homeHref = ref ? `/project/${ref}` : '/project/default'
 
   return (
-    <Link href="/organizations" className={cn('items-center justify-center flex-shrink-0 flex', className)}>
+    <Link href={homeHref} className={cn('items-center justify-center flex-shrink-0 flex', className)}>
       {/* Light logo on dark background */}
       <img
         alt="Socket"
