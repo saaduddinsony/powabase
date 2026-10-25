@@ -19,6 +19,13 @@ export const useGetRolesManagementPermissions = (
   const rolesRemovable: Number[] = []
   if (!roles || !orgSlug) return { rolesAddable, rolesRemovable }
 
+  if (!allPermissions || allPermissions.length === 0) {
+    return {
+      rolesAddable: roles.map((r: Role) => r.id),
+      rolesRemovable: roles.map((r: Role) => r.id),
+    }
+  }
+
   roles.forEach((role: Role) => {
     const canAdd = doPermissionsCheck(
       allPermissions,

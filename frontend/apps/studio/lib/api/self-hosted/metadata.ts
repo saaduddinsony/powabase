@@ -27,6 +27,30 @@ export interface SocketProject {
   service_role_key?: string
 }
 
+export interface SocketMember {
+  id: number
+  organization_id: number
+  primary_email: string
+  username: string
+  role_id: number
+  project_scoped_roles: string[]
+  mfa_enabled: boolean
+  gotrue_id: string
+  created_at: string
+}
+
+export interface SocketInvitation {
+  id: number
+  organization_id: number
+  invited_email: string
+  role_id: number
+  role_scoped_projects: string[]
+  token: string
+  invited_at: string
+  expires_at: string
+  status: string
+}
+
 let isInitialized = false
 
 function base64url(input: Buffer | string): string {
@@ -80,6 +104,31 @@ export async function ensureMetadataSchema(): Promise<void> {
       inserted_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS _socket_metadata.organization_members (
+      id SERIAL PRIMARY KEY,
+      organization_id INTEGER REFERENCES _socket_metadata.organizations(id) ON DELETE CASCADE,
+      primary_email TEXT NOT NULL,
+      username TEXT,
+      role_id INTEGER DEFAULT 1,
+      project_scoped_roles JSONB DEFAULT '[]'::jsonb,
+      mfa_enabled BOOLEAN DEFAULT FALSE,
+      gotrue_id TEXT DEFAULT '00000000-0000-0000-0000-000000000001',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(organization_id, primary_email)
+    );
+
+    CREATE TABLE IF NOT EXISTS _socket_metadata.organization_invitations (
+      id SERIAL PRIMARY KEY,
+      organization_id INTEGER REFERENCES _socket_metadata.organizations(id) ON DELETE CASCADE,
+      invited_email TEXT NOT NULL,
+      role_id INTEGER DEFAULT 3,
+      role_scoped_projects JSONB DEFAULT '[]'::jsonb,
+      token TEXT UNIQUE NOT NULL,
+      invited_at TIMESTAMPTZ DEFAULT NOW(),
+      expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '7 days'),
+      status TEXT DEFAULT 'pending'
+    );
+
     ALTER TABLE _socket_metadata.projects ADD COLUMN IF NOT EXISTS db_schema TEXT DEFAULT 'public';
     ALTER TABLE _socket_metadata.projects ADD COLUMN IF NOT EXISTS jwt_secret TEXT;
     ALTER TABLE _socket_metadata.projects ADD COLUMN IF NOT EXISTS anon_key TEXT;
@@ -99,8 +148,18 @@ export async function ensureMetadataSchema(): Promise<void> {
     SET db_schema = 'public'
     WHERE ref = 'default' AND (db_schema IS NULL OR db_schema = '');
 
+    INSERT INTO _socket_metadata.organization_members (
+      organization_id, primary_email, username, role_id, mfa_enabled, gotrue_id
+    )
+    SELECT 1, 'admin@socket.dev', 'admin', 1, false, '00000000-0000-0000-0000-000000000001'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM _socket_metadata.organization_members WHERE organization_id = 1
+    );
+
     SELECT setval(pg_get_serial_sequence('_socket_metadata.organizations', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organizations;
     SELECT setval(pg_get_serial_sequence('_socket_metadata.projects', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.projects;
+    SELECT setval(pg_get_serial_sequence('_socket_metadata.organization_members', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organization_members;
+    SELECT setval(pg_get_serial_sequence('_socket_metadata.organization_invitations', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organization_invitations;
     GRANT ALL ON ALL SEQUENCES IN SCHEMA _socket_metadata TO postgres, authenticated, service_role, anon;
     GRANT ALL ON ALL TABLES IN SCHEMA _socket_metadata TO postgres, authenticated, service_role, anon;
   `
@@ -459,3 +518,225 @@ export async function deleteSocketProject(ref: string): Promise<boolean> {
 
   return true
 }
+
+export async function getSocketOrganizationMembers(slug: string): Promise<SocketMember[]> {
+  await ensureMetadataSchema()
+
+  const org = await getSocketOrganizationBySlug(slug)
+  if (!org) return []
+
+  const { data, error } = await executeQuery<SocketMember>({
+    query: `
+      SELECT id, organization_id, primary_email, username, role_id,
+             coalesce(project_scoped_roles, '[]'::jsonb) as project_scoped_roles,
+             mfa_enabled, gotrue_id, created_at
+      FROM _socket_metadata.organization_members
+      WHERE organization_id = $1
+      ORDER BY id ASC
+    `,
+    parameters: [org.id],
+  })
+
+  if (error || !data) {
+    console.error('Failed to query organization members:', error)
+    return []
+  }
+
+  return data
+}
+
+export async function getSocketOrganizationInvitations(slug: string): Promise<SocketInvitation[]> {
+  await ensureMetadataSchema()
+
+  const org = await getSocketOrganizationBySlug(slug)
+  if (!org) return []
+
+  const { data, error } = await executeQuery<SocketInvitation>({
+    query: `
+      SELECT id, organization_id, invited_email, role_id,
+             coalesce(role_scoped_projects, '[]'::jsonb) as role_scoped_projects,
+             token, invited_at, expires_at, status
+      FROM _socket_metadata.organization_invitations
+      WHERE organization_id = $1 AND status = 'pending' AND expires_at > NOW()
+      ORDER BY id DESC
+    `,
+    parameters: [org.id],
+  })
+
+  if (error || !data) {
+    console.error('Failed to query organization invitations:', error)
+    return []
+  }
+
+  return data
+}
+
+export async function createSocketOrganizationInvitation(
+  slug: string,
+  email: string,
+  roleId: number,
+  roleScopedProjects: string[] = []
+): Promise<SocketInvitation> {
+  await ensureMetadataSchema()
+
+  const org = await getSocketOrganizationBySlug(slug)
+  if (!org) {
+    throw new Error('Organization not found')
+  }
+
+  const token = crypto.randomBytes(24).toString('hex')
+  const cleanEmail = email.trim().toLowerCase()
+
+  const { data, error } = await executeQuery<SocketInvitation>({
+    query: `
+      INSERT INTO _socket_metadata.organization_invitations (
+        organization_id, invited_email, role_id, role_scoped_projects, token
+      )
+      VALUES ($1, $2, $3, $4::jsonb, $5)
+      RETURNING id, organization_id, invited_email, role_id, role_scoped_projects, token, invited_at, expires_at, status
+    `,
+    parameters: [org.id, cleanEmail, roleId, JSON.stringify(roleScopedProjects), token],
+  })
+
+  if (error || !data || data.length === 0) {
+    throw new Error(error?.message || 'Failed to create invitation')
+  }
+
+  return data[0]
+}
+
+export async function deleteSocketOrganizationInvitation(id: number): Promise<boolean> {
+  await ensureMetadataSchema()
+
+  const { error } = await executeQuery({
+    query: `DELETE FROM _socket_metadata.organization_invitations WHERE id = $1`,
+    parameters: [id],
+  })
+
+  if (error) {
+    throw new Error(error.message || 'Failed to delete invitation')
+  }
+
+  return true
+}
+
+export async function deleteSocketOrganizationMember(slug: string, gotrueIdOrId: string | number): Promise<boolean> {
+  await ensureMetadataSchema()
+
+  const org = await getSocketOrganizationBySlug(slug)
+  if (!org) {
+    throw new Error('Organization not found')
+  }
+
+  const isNumeric = typeof gotrueIdOrId === 'number' || /^\d+$/.test(String(gotrueIdOrId))
+
+  const { error } = await executeQuery({
+    query: isNumeric
+      ? `DELETE FROM _socket_metadata.organization_members WHERE organization_id = $1 AND id = $2`
+      : `DELETE FROM _socket_metadata.organization_members WHERE organization_id = $1 AND (gotrue_id = $2 OR primary_email = $2)`,
+    parameters: [org.id, gotrueIdOrId],
+  })
+
+  if (error) {
+    throw new Error(error.message || 'Failed to delete member')
+  }
+
+  return true
+}
+
+export async function getSocketInvitationByToken(token: string) {
+  await ensureMetadataSchema()
+
+  const { data, error } = await executeQuery<{
+    id: number
+    organization_id: number
+    organization_name: string
+    organization_slug: string
+    invited_email: string
+    role_id: number
+    token: string
+    invited_at: string
+    expires_at: string
+    status: string
+  }>({
+    query: `
+      SELECT i.id, i.organization_id, o.name as organization_name, o.slug as organization_slug,
+             i.invited_email, i.role_id, i.token, i.invited_at, i.expires_at, i.status
+      FROM _socket_metadata.organization_invitations i
+      JOIN _socket_metadata.organizations o ON o.id = i.organization_id
+      WHERE i.token = $1
+    `,
+    parameters: [token],
+  })
+
+  if (error || !data || data.length === 0) {
+    return { token_does_not_exist: true }
+  }
+
+  const invite = data[0]
+  const isExpired = new Date(invite.expires_at) < new Date() || invite.status !== 'pending'
+  if (isExpired) {
+    return { expired_token: true }
+  }
+
+  const roleNames: Record<number, string> = {
+    1: 'Owner',
+    2: 'Administrator',
+    3: 'Developer',
+    4: 'Read-only',
+  }
+
+  return {
+    token_does_not_exist: false,
+    expired_token: false,
+    email_match: true,
+    organization_name: invite.organization_name,
+    organization_slug: invite.organization_slug,
+    role_name: roleNames[invite.role_id] || 'Developer',
+    invited_email: invite.invited_email,
+  }
+}
+
+export async function acceptSocketInvitation(token: string, userEmail?: string, userId?: string) {
+  await ensureMetadataSchema()
+
+  const { data, error } = await executeQuery<SocketInvitation>({
+    query: `SELECT * FROM _socket_metadata.organization_invitations WHERE token = $1`,
+    parameters: [token],
+  })
+
+  if (error || !data || data.length === 0) {
+    throw new Error('Invitation not found')
+  }
+
+  const invite = data[0]
+  if (invite.status !== 'pending' || new Date(invite.expires_at) < new Date()) {
+    throw new Error('Invitation has expired or already been accepted')
+  }
+
+  const email = userEmail || invite.invited_email
+  const gotrueId = userId || `user-${Date.now()}`
+  const username = email.split('@')[0]
+
+  // Add to members
+  await executeQuery({
+    query: `
+      INSERT INTO _socket_metadata.organization_members (
+        organization_id, primary_email, username, role_id, gotrue_id
+      )
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (organization_id, primary_email)
+      DO UPDATE SET role_id = EXCLUDED.role_id, gotrue_id = EXCLUDED.gotrue_id
+    `,
+    parameters: [invite.organization_id, email, username, invite.role_id, gotrueId],
+  })
+
+  // Mark invite as accepted
+  await executeQuery({
+    query: `UPDATE _socket_metadata.organization_invitations SET status = 'accepted' WHERE id = $1`,
+    parameters: [invite.id],
+  })
+
+  return { success: true }
+}
+

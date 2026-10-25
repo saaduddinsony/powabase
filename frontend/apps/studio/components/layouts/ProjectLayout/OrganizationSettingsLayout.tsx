@@ -28,8 +28,11 @@ export const generateOrganizationSettingsMenuItems = ({
     label: 'General',
     href: `/org/${slug}/general`,
   },
-  // Hidden — no backend support:
-  // Security (cloud IAM), OAuth Apps, SSO, Webhooks, Audit Logs, Legal Documents, Team, Billing, Usage
+  {
+    key: 'team',
+    label: 'Team',
+    href: `/org/${slug}/team`,
+  },
 ]
 
 export const generateOrganizationSettingsSections = ({
@@ -44,8 +47,11 @@ export const generateOrganizationSettingsSections = ({
       label: 'General',
       href: `/org/${slug}/general`,
     },
-    // Hidden — no backend support:
-    // Security, SSO, OAuth Apps, Webhooks, Audit Logs, Legal Documents
+    {
+      key: 'team',
+      label: 'Team',
+      href: `/org/${slug}/team`,
+    },
   ]
 
   return [

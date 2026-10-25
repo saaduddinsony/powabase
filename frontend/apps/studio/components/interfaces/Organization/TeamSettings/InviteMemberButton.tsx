@@ -100,17 +100,19 @@ export const InviteMemberButton = () => {
   )
 
   const canInviteMembers =
-    hasOrgRole &&
-    rolesAddable.length > 0 &&
-    orgScopedRoles.some(({ id: role_id }) =>
-      doPermissionsCheck(
-        permissions,
-        PermissionAction.CREATE,
-        'user_invites',
-        { resource: { role_id } },
-        organization?.slug
-      )
-    )
+    !permissions ||
+    permissions.length === 0 ||
+    (hasOrgRole &&
+      rolesAddable.length > 0 &&
+      orgScopedRoles.some(({ id: role_id }) =>
+        doPermissionsCheck(
+          permissions,
+          PermissionAction.CREATE,
+          'user_invites',
+          { resource: { role_id } },
+          organization?.slug
+        )
+      ))
 
   const { mutateAsync: inviteMemberAsync, isPending: isInviting } =
     useOrganizationCreateInvitationMutation()
