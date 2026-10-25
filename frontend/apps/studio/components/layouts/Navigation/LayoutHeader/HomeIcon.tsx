@@ -12,8 +12,13 @@ export const HomeIcon = ({ className }: { className?: string }) => {
     <Link href="/organizations" className={cn('items-center justify-center flex-shrink-0 flex', className)}>
       <img
         alt="Socket"
-        src={`${router.basePath}/img/socket-logo.svg`}
-        className={largeLogo ? 'h-[20px]' : 'h-[18px]'}
+        src={`${router.basePath}/img/socket-dark-logo.svg`}
+        className={cn('dark:block hidden rounded-md object-contain', largeLogo ? 'h-[24px] w-[24px]' : 'h-[22px] w-[22px]')}
+      />
+      <img
+        alt="Socket"
+        src={`${router.basePath}/img/socket-light-logo.svg`}
+        className={cn('dark:hidden block rounded-md object-contain', largeLogo ? 'h-[24px] w-[24px]' : 'h-[22px] w-[22px]')}
       />
     </Link>
   )
