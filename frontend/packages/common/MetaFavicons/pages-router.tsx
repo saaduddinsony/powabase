@@ -3,7 +3,7 @@
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 
-export const DEFAULT_FAVICON_THEME_COLOR = '1E1E1E'
+export const DEFAULT_FAVICON_THEME_COLOR = '000000'
 export const DEFAULT_FAVICON_ROUTE = '/favicon'
 
 const MetaFaviconsPagesRouter = ({
@@ -47,7 +47,7 @@ const MetaFaviconsPagesRouter = ({
       {/* prettier-ignore */}
       <link rel="apple-touch-icon-precomposed" sizes="152x152" href={`${basePath}${route}/apple-icon-152x152.png`}/>
       {/* prettier-ignore */}
-      <link rel="icon" type="image/svg+xml" href={`${basePath}/img/socket-light-logo.svg`} />
+      <link rel="icon" type="image/svg+xml" href={`${basePath}${route}/favicon.svg`} />
       {/* prettier-ignore */}
       <link rel="icon" type="image/png" href={`${basePath}${route}/favicon-32x32.png`} sizes="32x32"/>
       {/* prettier-ignore */}

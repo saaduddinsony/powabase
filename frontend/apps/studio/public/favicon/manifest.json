@@ -1,11 +1,11 @@
 {
-  "name": "Powabase Studio",
-  "short_name": "Powabase",
+  "name": "Socket Studio",
+  "short_name": "Socket",
   "description": "The AI Backend-as-a-Service Platform.",
   "display_override": ["minimal-ui"],
   "display": "standalone",
-  "theme_color": "#6D28D9",
-  "background_color": "#1C1C1C",
+  "theme_color": "#000000",
+  "background_color": "#000000",
   "scope": "/",
   "start_url": "/",
   "icons": [
