@@ -23,14 +23,19 @@ const useIsomorphicUseQueryState = (defaultSchema: string) => {
 export const useQuerySchemaState = () => {
   const { ref } = useParams()
 
+  const projectDefaultSchema = useMemo(() => {
+    if (!ref || ref === 'default') return 'public'
+    return `project_${ref.toLowerCase().replace(/[^a-z0-9_]/g, '_')}`
+  }, [ref])
+
   const defaultSchema =
     typeof window !== 'undefined' && !!window.localStorage && ref && ref.length > 0
-      ? window.localStorage.getItem(LOCAL_STORAGE_KEYS.LAST_SELECTED_SCHEMA(ref)) || 'public'
-      : 'public'
+      ? window.localStorage.getItem(LOCAL_STORAGE_KEYS.LAST_SELECTED_SCHEMA(ref)) || projectDefaultSchema
+      : projectDefaultSchema
 
   // cache the original default schema so that it's not changed by another tab and cause issues in the app (saving a
   // table on the wrong schema)
-  const originalDefaultSchema = useMemo(() => defaultSchema, [ref])
+  const originalDefaultSchema = useMemo(() => defaultSchema, [ref, defaultSchema])
   const [schema, setSelectedSchema] = useIsomorphicUseQueryState(originalDefaultSchema)
 
   useEffect(() => {

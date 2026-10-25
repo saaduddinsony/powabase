@@ -340,6 +340,7 @@ export async function createSocketProject({
     ALTER DEFAULT PRIVILEGES IN SCHEMA "${dbSchema}" GRANT ALL ON TABLES TO postgres, authenticated, service_role, anon;
     ALTER DEFAULT PRIVILEGES IN SCHEMA "${dbSchema}" GRANT ALL ON SEQUENCES TO postgres, authenticated, service_role, anon;
     ALTER DEFAULT PRIVILEGES IN SCHEMA "${dbSchema}" GRANT ALL ON ROUTINES TO postgres, authenticated, service_role, anon;
+    NOTIFY pgrst, 'reload schema';
   `
   try {
     await executeQuery({ query: provisionSchemaSql })
@@ -401,7 +402,7 @@ export async function deleteSocketProject(ref: string): Promise<boolean> {
     const safeSchema = project.db_schema.replace(/[^a-zA-Z0-9_]/g, '')
     if (safeSchema.startsWith('project_')) {
       try {
-        await executeQuery({ query: `DROP SCHEMA IF EXISTS "${safeSchema}" CASCADE;` })
+        await executeQuery({ query: `DROP SCHEMA IF EXISTS "${safeSchema}" CASCADE; NOTIFY pgrst, 'reload schema';` })
       } catch (dropErr) {
         console.warn(`Could not drop isolated schema ${safeSchema}:`, dropErr)
       }
