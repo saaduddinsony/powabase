@@ -19,7 +19,7 @@ const OnboardingPage: NextPageWithLayout = () => {
   const { appTitle } = useCustomContent(['app:title'])
   const pageTitle = buildStudioPageTitle({
     section: 'Welcome',
-    brand: appTitle || 'Powabase',
+    brand: appTitle || 'Socket',
   })
 
   const gate = useSignupSurveyGate()
@@ -47,7 +47,7 @@ const OnboardingPage: NextPageWithLayout = () => {
     <>
       <Head>
         <title>{pageTitle}</title>
-        <meta name="description" content="Powabase" />
+        <meta name="description" content="Socket" />
       </Head>
 
       {(gate.state === 'loading' || schemaQuery.isLoading) && (

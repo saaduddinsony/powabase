@@ -32,7 +32,8 @@ export const OrganizationDropdown = ({
     isError,
   } = useOrganizationsQuery()
 
-  const organizationCreationEnabled = useIsFeatureEnabled('organizations:create')
+  const isCreationDisabled = useIsFeatureEnabled('organizations:create') === false
+  const organizationCreationEnabled = !isCreationDisabled
 
   const slug = selectedOrganization?.slug
   const orgName = selectedOrganization?.name

@@ -11,8 +11,8 @@ export const HomeIcon = ({ className }: { className?: string }) => {
   return (
     <Link href="/organizations" className={cn('items-center justify-center flex-shrink-0 flex', className)}>
       <img
-        alt="Powabase"
-        src={`${router.basePath}/img/powabase-logo.svg`}
+        alt="Socket"
+        src={`${router.basePath}/img/socket-logo.svg`}
         className={largeLogo ? 'h-[20px]' : 'h-[18px]'}
       />
     </Link>

@@ -33,7 +33,7 @@ const Wizard: NextPageWithLayout = () => {
   const { appTitle } = useCustomContent(['app:title'])
   const pageTitle = buildStudioPageTitle({
     section: 'New Project',
-    brand: appTitle || 'Powabase',
+    brand: appTitle || 'Socket',
   })
 
   const { data: currentOrg } = useSelectedOrganizationQuery()

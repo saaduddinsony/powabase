@@ -30,7 +30,7 @@ const GenericOrganizationPage: NextPage = () => {
   const pageTitle = buildStudioPageTitle({
     section: 'Select an organization',
     surface: 'Organizations',
-    brand: appTitle || 'Powabase',
+    brand: appTitle || 'Socket',
   })
 
   return (

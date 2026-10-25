@@ -213,6 +213,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+      DEFAULT_ORGANIZATION_NAME: ${DEFAULT_ORGANIZATION_NAME:-Socket Organization}
+      DEFAULT_PROJECT_NAME: ${DEFAULT_PROJECT_NAME:-Default Project}
+      PROJECT_NAME: ${PROJECT_NAME:-Socket}
     volumes:
       # SQL Editor saved queries (SNIPPETS_MANAGEMENT_FOLDER=/app/snippets, baked
       # into the image) — a named volume so they survive recreate / image bumps.

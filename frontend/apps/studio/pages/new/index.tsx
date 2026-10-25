@@ -39,7 +39,7 @@ const Wizard: NextPageWithLayout = () => {
   const { appTitle } = useCustomContent(['app:title'])
   const pageTitle = buildStudioPageTitle({
     section: 'New Organization',
-    brand: appTitle || 'Powabase',
+    brand: appTitle || 'Socket',
   })
 
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)

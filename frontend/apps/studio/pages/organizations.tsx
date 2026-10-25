@@ -33,7 +33,7 @@ const OrganizationsPage: NextPageWithLayout = () => {
   const orgNotFound = orgNotFoundError === 'org_not_found'
   const pageTitle = buildStudioPageTitle({
     section: 'Organizations',
-    brand: appTitle || 'Powabase',
+    brand: appTitle || 'Socket',
   })
 
   const {
@@ -85,7 +85,7 @@ const OrganizationsPage: NextPageWithLayout = () => {
     <>
       <Head>
         <title>{pageTitle}</title>
-        <meta name="description" content="Powabase" />
+        <meta name="description" content="Socket" />
       </Head>
       <ScaffoldContainer>
         <ScaffoldSection isFullWidth className="flex flex-col gap-y-4">

@@ -135,7 +135,8 @@ export const ProjectDropdown = ({
   )
   const selectedProject = parentProject ?? project
 
-  const projectCreationEnabled = useIsFeatureEnabled('projects:create')
+  const isCreationDisabled = useIsFeatureEnabled('projects:create') === false
+  const projectCreationEnabled = !isCreationDisabled
 
   const [open, setOpen] = useState(false)
   const close = useEmbeddedCloseHandler(embedded, onClose, setOpen)
@@ -180,13 +181,11 @@ export const ProjectDropdown = ({
       <OrganizationProjectSelector {...selectorProps} embedded className={className} fetchOnMount />
     )
 
-  return IS_PLATFORM ? (
+  return (
     <ProjectDropdownPlatformView
       projectRef={project?.ref}
       projectName={selectedProject?.name ?? ''}
       selectorProps={selectorProps}
     />
-  ) : (
-    <ProjectDropdownNonPlatformView projectName={selectedProject?.name ?? ''} />
   )
 }

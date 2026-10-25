@@ -150,9 +150,9 @@ function CustomApp({ Component, pageProps }: AppPropsWithLayout) {
               >
                 <ProfileProvider>
                   <Head>
-                    <title>{appTitle ?? 'Powabase'}</title>
+                    <title>{appTitle ?? 'Socket'}</title>
                     <meta name="viewport" content="initial-scale=1.0, width=device-width" />
-                    <meta property="og:image" content={`${BASE_PATH}/img/powabase-logo.svg`} />
+                    <meta property="og:image" content={`${BASE_PATH}/img/socket-logo.svg`} />
                     <meta name="googlebot" content="notranslate" />
                     {/* [Alaister]: This has to be an inline style tag here and not a separate component due to next/font */}
                     <style
@@ -169,7 +169,7 @@ function CustomApp({ Component, pageProps }: AppPropsWithLayout) {
                       />
                     )}
                   </Head>
-                  <MetaFaviconsPagesRouter applicationName="Powabase" includeManifest />
+                  <MetaFaviconsPagesRouter applicationName="Socket" includeManifest />
                   <TooltipProvider delayDuration={0}>
                     <RouteValidationWrapper>
                       <ThemeProvider

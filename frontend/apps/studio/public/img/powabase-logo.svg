@@ -1,14 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Powabase icon">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Socket Logo">
   <defs>
-    <linearGradient id="badgeGradIcon" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%"  stop-color="#A855F7"/>
-      <stop offset="100%" stop-color="#6D28D9"/>
+    <linearGradient id="socketBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="50%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="socketBoltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
     </linearGradient>
   </defs>
-  <rect width="128" height="128" rx="30" fill="url(#badgeGradIcon)"/>
-  <path fill="#FFFFFF" fill-rule="evenodd" d="
-    M 56 22 L 40 22 L 28 64 L 48 64 L 36 108 L 72 68 L 52 68 Z
-    M 48 22 L 78 22 A 23 23 0 0 1 78 68 L 48 68 Z
-    M 62 36 L 72 36 A 10 10 0 0 1 72 54 L 62 54 Z
-  "/>
+  <rect width="128" height="128" rx="32" fill="url(#socketBadgeGrad)"/>
+  <g transform="translate(20, 20)">
+    <rect x="4" y="4" width="80" height="80" rx="20" fill="#0B0F19" fill-opacity="0.92"/>
+    <rect x="24" y="24" width="10" height="20" rx="5" fill="url(#socketBoltGrad)"/>
+    <rect x="54" y="24" width="10" height="20" rx="5" fill="url(#socketBoltGrad)"/>
+    <circle cx="44" cy="62" r="6" fill="#F8FAFC"/>
+    <path d="M 29 48 C 29 58, 44 52, 44 62 C 44 72, 59 66, 59 74" fill="none" stroke="url(#socketBoltGrad)" stroke-width="4" stroke-linecap="round"/>
+  </g>
 </svg>

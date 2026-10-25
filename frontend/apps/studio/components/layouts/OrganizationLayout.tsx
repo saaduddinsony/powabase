@@ -36,7 +36,7 @@ const OrganizationLayoutContent = ({
     section: title,
     surface: isSettingsSurface ? 'Organization Settings' : undefined,
     org: selectedOrganization?.name,
-    brand: appTitle || 'Powabase',
+    brand: appTitle || 'Socket',
   })
 
   const vercelQuery = useVercelRedirectQuery(

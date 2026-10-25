@@ -140,7 +140,7 @@ export const ProjectLayout = forwardRef<HTMLDivElement, PropsWithChildren<Projec
     const combinedRef = mergeRefs(ref, setMainScrollContainer)
 
     const { appTitle } = useCustomContent(['app:title'])
-    const brandTitle = appTitle || 'Powabase'
+    const brandTitle = appTitle || 'Socket'
 
     const isMobile = useIsMobile()
 
