@@ -300,7 +300,7 @@ export function SettingsForm({ category }: SettingsFormProps) {
             <button
               onClick={handleSave}
               disabled={updateMutation.isPending}
-              className="px-6 py-2 text-sm bg-brand-400 text-white rounded-md hover:bg-brand-500 disabled:opacity-50 transition-colors"
+              className="px-6 py-2 text-sm bg-[#17181A] hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 text-white rounded-full shadow-none disabled:opacity-50 transition-all font-medium"
             >
               {updateMutation.isPending ? "Saving..." : "Save Changes"}
             </button>

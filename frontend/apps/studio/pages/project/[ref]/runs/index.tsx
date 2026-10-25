@@ -2344,7 +2344,7 @@ const RunsPage: NextPageWithLayout = () => {
                   <button
                     type="submit"
                     disabled={!(selectedType === "agent" ? selectedAgentId : selectedOrchId) || !inputMessage.trim() || isStreaming}
-                    className="px-5 py-3 bg-brand-400 hover:bg-brand-500 disabled:bg-surface-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl transition-colors"
+                    className="px-6 py-3 bg-[#17181A] hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:bg-surface-300 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-full shadow-none transition-all"
                   >
                     {isStreaming ? "…" : "Send"}
                   </button>

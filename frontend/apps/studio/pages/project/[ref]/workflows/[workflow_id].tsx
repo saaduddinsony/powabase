@@ -568,10 +568,10 @@ const WorkflowEditorPage: NextPageWithLayout = () => {
               ref={runButtonRef}
               onClick={isListening ? () => { setIsListening(false); setPreArmLatestExecId(null); if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current); } : handleRunClick}
               disabled={executeMutation.isPending || armMutation.isPending}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed transition ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-none ${
                 isListening
-                  ? "bg-amber-600 hover:bg-amber-700"
-                  : "bg-brand-400 hover:bg-brand-500"
+                  ? "bg-amber-600 hover:bg-amber-700 text-white"
+                  : "bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200"
               }`}
             >
               {isListening ? (
@@ -630,7 +630,7 @@ const WorkflowEditorPage: NextPageWithLayout = () => {
                       );
                       handleExecute(vars);
                     }}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md text-white bg-brand-400 hover:bg-brand-500 transition-colors"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium rounded-full text-white bg-[#17181A] hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 transition-all shadow-none"
                   >
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />

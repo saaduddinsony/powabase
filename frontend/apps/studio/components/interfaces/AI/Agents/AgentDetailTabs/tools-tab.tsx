@@ -162,8 +162,8 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
       role="switch"
       aria-checked={checked}
       onClick={onChange}
-      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-        checked ? "bg-brand-500" : "bg-surface-300"
+      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+        checked ? "bg-[#17181A] dark:bg-white" : "bg-surface-300"
       }`}
     >
       <span
@@ -788,7 +788,7 @@ export function ToolsTab({ agentId }: ToolsTabProps) {
                 type="button"
                 onClick={handleCreateTool}
                 disabled={isCreating || !newTool.name.trim() || !toolSchemaValid}
-                className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
+                className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
               >
                 {isCreating ? "Creating..." : "Create"}
               </button>

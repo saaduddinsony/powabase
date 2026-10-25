@@ -23,6 +23,26 @@
   --sidebar-border: var(--border-default);
   --sidebar-ring: 217.2 91.2% 59.8%;
   --header-height: 3rem;
+
+  // Bencho design system: monochrome brand in light mode
+  --brand-default: 0deg 0% 9%;
+  --brand-600: 0deg 0% 0%;
+  --brand-500: 0deg 0% 12%;
+  --brand-400: 0deg 0% 18%;
+  --brand-300: 0deg 0% 85%;
+  --brand-200: 0deg 0% 93%;
+  --brand-link: 0deg 0% 0%;
+}
+
+[data-theme='light'],
+.light {
+  --brand-default: 0deg 0% 9%;
+  --brand-600: 0deg 0% 0%;
+  --brand-500: 0deg 0% 12%;
+  --brand-400: 0deg 0% 18%;
+  --brand-300: 0deg 0% 85%;
+  --brand-200: 0deg 0% 93%;
+  --brand-link: 0deg 0% 0%;
 }
 
 [data-theme='deep-dark'],
@@ -65,6 +85,15 @@
   --foreground-light: 0deg 0% 82%;
   --foreground-lighter: 0deg 0% 60%;
   --foreground-muted: 0deg 0% 42%;
+
+  // Bencho design system: crisp white brand in dark mode
+  --brand-default: 0deg 0% 100%;
+  --brand-600: 0deg 0% 100%;
+  --brand-500: 0deg 0% 90%;
+  --brand-400: 0deg 0% 100%;
+  --brand-300: 0deg 0% 25%;
+  --brand-200: 0deg 0% 15%;
+  --brand-link: 0deg 0% 100%;
 }
 
 html,
@@ -480,8 +509,41 @@ div[data-radix-portal]:not(.portal--toast) {
 
 // Pill buttons throughout interactive elements
 button:not([role='tab']):not([role='switch']):not([role='menuitem']):not([class*='rounded-none']):not([class*='h-full']),
-.btn {
-  border-radius: 9999px;
+.btn,
+button.rounded-lg,
+button.rounded-md,
+button.rounded-xl,
+button.rounded-2xl {
+  border-radius: 9999px !important;
+}
+
+// Brand buttons and primary action CTAs must strictly follow bencho monochrome
+button[class*='bg-brand'],
+button[class*='bg-brand-400'],
+button[class*='bg-brand-500'],
+.bg-brand,
+.bg-brand-400,
+.bg-brand-500 {
+  background-color: #17181a !important;
+  color: #ffffff !important;
+}
+
+:is([data-theme='dark'], .dark) :is(button[class*='bg-brand'], button[class*='bg-brand-400'], button[class*='bg-brand-500'], .bg-brand, .bg-brand-400, .bg-brand-500) {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+button[class*='bg-brand']:hover,
+button[class*='bg-brand-400']:hover,
+button[class*='bg-brand-500']:hover,
+.bg-brand:hover,
+.bg-brand-400:hover,
+.bg-brand-500:hover {
+  background-color: #000000 !important;
+}
+
+:is([data-theme='dark'], .dark) :is(button[class*='bg-brand']:hover, button[class*='bg-brand-400']:hover, button[class*='bg-brand-500']:hover, .bg-brand:hover, .bg-brand-400:hover, .bg-brand-500:hover) {
+  background-color: #e5e5e5 !important;
 }
 
 // Flat card elevation and clean rounded 24px containers
@@ -499,4 +561,5 @@ div[class*='rounded-2xl'] {
 .shadow-lg {
   box-shadow: none !important;
 }
+
 

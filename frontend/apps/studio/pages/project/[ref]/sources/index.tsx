@@ -388,7 +388,7 @@ const SourcesListPage: NextPageWithLayout = () => {
                   <button
                     type="button"
                     data-onboarding-id={ONBOARDING_ANCHORS.sources.newButton}
-                    className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2 flex items-center gap-1.5"
+                    className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2 flex items-center gap-1.5"
                   >
                     <Plus size={14} />
                     New Source
@@ -458,7 +458,7 @@ const SourcesListPage: NextPageWithLayout = () => {
                     </p>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button type="button" className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2 flex items-center gap-1.5">
+                        <button type="button" className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2 flex items-center gap-1.5">
                           <Plus size={14} />
                           New Source
                           <ChevronDown size={14} />
@@ -658,8 +658,8 @@ const SourcesListPage: NextPageWithLayout = () => {
                   className={cn(
                     "w-full px-4 py-2.5 text-sm rounded-lg",
                     "bg-surface-200 border border-default",
-                    "text-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0",
-                    "file:bg-brand-400 file:text-white file:text-sm file:cursor-pointer"
+                    "text-foreground file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0",
+                    "file:bg-[#17181A] file:text-white dark:file:bg-white dark:file:text-black file:text-sm file:cursor-pointer"
                   )}
                   required
                 />
@@ -740,7 +740,7 @@ const SourcesListPage: NextPageWithLayout = () => {
               <button
                 type="submit"
                 disabled={isUploading || uploadFiles.length === 0}
-                className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
+                className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
               >
                 {isUploading ? "Uploading..." : uploadFiles.length > 1 ? `Upload ${uploadFiles.length} files` : "Upload"}
               </button>

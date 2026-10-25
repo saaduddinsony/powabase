@@ -192,7 +192,7 @@ const KnowledgeBasesListPage: NextPageWithLayout = () => {
             type="button"
             data-onboarding-id={ONBOARDING_ANCHORS.knowledgeBases.createButton}
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2 flex items-center gap-1.5"
+            className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2 flex items-center gap-1.5"
           >
             <Plus size={14} />
             Create knowledge base

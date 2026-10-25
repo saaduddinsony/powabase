@@ -271,7 +271,7 @@ export function EntitiesTab({ orchId }: EntitiesTabProps) {
             />
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={handleSaveConfig} className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2">Save</button>
+            <button type="button" onClick={handleSaveConfig} className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2">Save</button>
             <button onClick={() => setConfiguringEntity(null)} className="px-4 py-2 bg-surface-200 text-foreground text-sm rounded-md transition">Cancel</button>
           </div>
         </div>
@@ -300,7 +300,7 @@ export function EntitiesTab({ orchId }: EntitiesTabProps) {
               className="w-full px-3 py-2 bg-surface-200 border border-default rounded-md text-sm text-foreground placeholder-foreground-muted focus:outline-none focus:ring-1 focus:ring-brand-400"
             />
             <div className="flex gap-2">
-              <button type="button" onClick={handleAddAgent} disabled={!selectedAgentId} className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2">Add</button>
+              <button type="button" onClick={handleAddAgent} disabled={!selectedAgentId} className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2">Add</button>
               <button type="button" onClick={() => setShowAddAgent(false)} className="px-4 py-2 bg-surface-200 text-foreground text-sm rounded-md transition">Cancel</button>
             </div>
           </div>
@@ -322,7 +322,7 @@ export function EntitiesTab({ orchId }: EntitiesTabProps) {
               ))}
             </select>
             <div className="flex gap-2">
-              <button type="button" onClick={handleAddTool} disabled={!selectedToolId} className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2">Add</button>
+              <button type="button" onClick={handleAddTool} disabled={!selectedToolId} className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2">Add</button>
               <button type="button" onClick={() => setShowAddTool(false)} className="px-4 py-2 bg-surface-200 text-foreground text-sm rounded-md transition">Cancel</button>
             </div>
           </div>

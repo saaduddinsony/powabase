@@ -177,7 +177,7 @@ export function StorageFilePicker({ open, onSelect, onClose }: StorageFilePicker
             data-select-btn
             disabled={!selectedFile}
             onClick={handleSelect}
-            className="px-4 py-1.5 text-sm rounded bg-brand-400 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+            className="px-4 py-1.5 text-sm rounded-full bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-none"
           >
             Select
           </button>

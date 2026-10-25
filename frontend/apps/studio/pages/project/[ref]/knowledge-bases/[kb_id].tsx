@@ -1551,7 +1551,7 @@ const KnowledgeBaseDetailPage: NextPageWithLayout = () => {
             type="button"
             data-onboarding-id={ONBOARDING_ANCHORS.knowledgeBases.detailAddSources}
             onClick={() => setShowAddSource(true)}
-            className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
+            className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
           >
             Add source
           </button>
@@ -1830,7 +1830,7 @@ const KnowledgeBaseDetailPage: NextPageWithLayout = () => {
             <button
               type="submit"
               disabled={isSearching || !searchQuery.trim()}
-              className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
+              className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
             >
               {isSearching ? "Running..." : "Run query"}
             </button>
@@ -1973,7 +1973,7 @@ const KnowledgeBaseDetailPage: NextPageWithLayout = () => {
                 type="button"
                 onClick={handleAddSources}
                 disabled={isAddingSource || selectedSourceIds.size === 0}
-                className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
+                className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
               >
                 {isAddingSource
                   ? `Adding${addingProgress ? ` ${addingProgress.current}/${addingProgress.total}` : ""}...`
@@ -2629,7 +2629,7 @@ const KnowledgeBaseDetailPage: NextPageWithLayout = () => {
                 <button
                   type="submit"
                   disabled={isUpdating}
-                  className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
+                  className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
                 >
                   {isUpdating ? "Saving..." : "Save"}
                 </button>
@@ -2887,7 +2887,7 @@ const KnowledgeBaseDetailPage: NextPageWithLayout = () => {
                 type="button"
                 onClick={handleSaveEnrichment}
                 disabled={isSavingEnrichment}
-                className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
+                className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
               >
                 {isSavingEnrichment ? "Saving..." : "Save"}
               </button>

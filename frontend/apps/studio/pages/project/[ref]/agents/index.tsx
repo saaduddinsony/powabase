@@ -204,7 +204,7 @@ const AgentsListPage: NextPageWithLayout = () => {
             type="button"
             data-onboarding-id={ONBOARDING_ANCHORS.agents.createButton}
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-brand-400 hover:bg-brand-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2 flex items-center gap-1.5"
+            className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2 flex items-center gap-1.5"
           >
             <Plus size={14} />
             Create agent
@@ -221,7 +221,7 @@ const AgentsListPage: NextPageWithLayout = () => {
         <div className="max-w-5xl mx-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="animate-spin h-8 w-8 border-2 border-brand-400 border-t-transparent rounded-full" />
+              <div className="animate-spin h-8 w-8 border-2 border-foreground border-t-transparent rounded-full" />
             </div>
           ) : items.length === 0 ? (
             <div className="text-center py-16">
