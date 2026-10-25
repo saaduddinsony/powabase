@@ -1,5 +1,4 @@
-# Powabase OSS — single-project data-plane stack. This is the final artifact
-# (docker compose up), NOT a template to copy or render.
+# Socket OSS — Production-Ready Open-Source BaaS Stack with Native Multi-Tenancy
 # Quickstart: cp .env.example .env && python gen-keys.py && docker compose up -d
 # Secrets come from gen-keys.py; bring your own LLM key(s) in .env. See README.md.
 
