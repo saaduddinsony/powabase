@@ -1,6 +1,3 @@
-import { IS_PLATFORM } from 'common'
-import { useRouter } from 'next/router'
-import { useEffect } from 'react'
 import { PageContainer } from 'ui-patterns/PageContainer'
 import {
   PageHeader,
@@ -21,13 +18,6 @@ const ProjectSettings: NextPageWithLayout = () => {
   const { data: project } = useSelectedProjectQuery()
 
   const isBranch = !!project?.parent_project_ref
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!IS_PLATFORM) {
-      router.push(`/project/default/settings/log-drains`)
-    }
-  }, [router])
 
   return (
     <>

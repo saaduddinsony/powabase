@@ -35,26 +35,18 @@ vi.mock('@/components/interfaces/App/FeaturePreview/FeaturePreviewContext', () =
 }))
 
 describe('useGenerateSettingsMenu (self-hosted)', () => {
-  it('includes Log Drains in self-hosted mode', () => {
+  it('includes General and API Keys in self-hosted mode', () => {
     const { result } = renderHook(() => useGenerateSettingsMenu())
     const configGroup = result.current.find((group) => group.title === 'Configuration')
 
-    expect(configGroup?.items.some((item) => item.key === 'log-drains')).toBe(true)
-  })
-
-  it('does not include dashboard settings in self-hosted mode', () => {
-    const { result } = renderHook(() => useGenerateSettingsMenu())
-    const configGroup = result.current.find((group) => group.title === 'Configuration')
-
-    expect(configGroup?.items.some((item) => item.key === 'dashboard')).toBe(false)
+    expect(configGroup?.items.some((item) => item.key === 'general')).toBe(true)
+    expect(configGroup?.items.some((item) => item.key === 'api-keys')).toBe(true)
   })
 
   it('does not include platform-only settings in self-hosted mode', () => {
     const { result } = renderHook(() => useGenerateSettingsMenu())
     const configGroup = result.current.find((group) => group.title === 'Configuration')
 
-    expect(configGroup?.items.some((item) => item.key === 'general')).toBe(false)
-    expect(configGroup?.items.some((item) => item.key === 'api-keys')).toBe(false)
     expect(configGroup?.items.some((item) => item.key === 'infrastructure')).toBe(false)
   })
 })

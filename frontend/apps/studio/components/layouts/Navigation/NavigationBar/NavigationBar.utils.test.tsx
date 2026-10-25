@@ -165,10 +165,10 @@ describe('generateSettingsRoutes', () => {
     expect(settingsRoute?.link).toBe(`/project/${REF}/settings/general`)
   })
 
-  it('links to log-drains settings in self-hosted mode', () => {
+  it('links to general settings in self-hosted mode', () => {
     const routes = generateSettingsRoutes(REF, undefined, { isPlatform: false })
     const settingsRoute = routes.find((r) => r.key === 'settings')
-    expect(settingsRoute?.link).toBe(`/project/${REF}/settings/log-drains`)
+    expect(settingsRoute?.link).toBe(`/project/${REF}/settings/general`)
   })
 
   it('returns a link as false when ref is undefined', () => {

@@ -234,9 +234,7 @@ export const generateSettingsRoutes = (ref?: string, project?: Project, features
         ref &&
         (isProjectBuilding
           ? buildingUrl
-          : isPlatform
-            ? `/project/${ref}/settings/general`
-            : `/project/${ref}/settings/log-drains`),
+          : `/project/${ref}/settings/general`),
       disabled: false,
     },
     {
