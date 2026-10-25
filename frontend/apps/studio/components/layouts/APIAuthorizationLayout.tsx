@@ -31,14 +31,14 @@ export const APIAuthorizationLayout = ({
             <div className="max-w-xl flex justify-between items-center mx-auto py-4">
               <div className="flex justify-start lg:w-0 lg:flex-1 items-center">
                 <Link href="/">
-                  <span className="sr-only">Supabase</span>
+                  <span className="sr-only">Socket</span>
                   <Image
                     src={
                       resolvedTheme?.includes('dark')
-                        ? `${BASE_PATH}/img/powabase-dark.svg`
-                        : `${BASE_PATH}/img/powabase-light.svg`
+                        ? `${BASE_PATH}/img/socket-light-logo.svg`
+                        : `${BASE_PATH}/img/socket-dark-logo.svg`
                     }
-                    alt="Supabase Logo"
+                    alt="Socket Logo"
                     height={20}
                     width={105}
                   />

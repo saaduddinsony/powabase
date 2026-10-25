@@ -195,8 +195,8 @@ const ProjectLinker = ({
         ) : (
           <div className="flex justify-center gap-0 w-full relative">
             <Panel>
-              <div className="bg-white shadow border rounded p-1 w-12 h-12 flex justify-center items-center">
-                <img src={`${BASE_PATH}/img/powabase-logo.svg`} alt="Powabase" className="w-6" />
+              <div className="bg-black shadow border border-border rounded p-1 w-12 h-12 flex justify-center items-center">
+                <img src={`${BASE_PATH}/img/socket-light-logo.svg`} alt="Socket" className="w-8 h-8 object-contain" />
               </div>
 
               <OrganizationProjectSelector
@@ -213,11 +213,11 @@ const ProjectLinker = ({
                   return (
                     <div className={cn('w-full flex items-center justify-between')}>
                       <div className="flex items-center gap-x-2">
-                        <div className="bg-white shadow border rounded p-1 w-6 h-6 flex justify-center items-center">
+                        <div className="bg-black shadow border border-border rounded p-1 w-6 h-6 flex justify-center items-center">
                           <img
-                            src={`${BASE_PATH}/img/powabase-logo.svg`}
-                            alt="Powabase"
-                            className="w-4"
+                            src={`${BASE_PATH}/img/socket-light-logo.svg`}
+                            alt="Socket"
+                            className="w-4 h-4 object-contain"
                           />
                         </div>
                         <p>{project.name}</p>
@@ -245,16 +245,16 @@ const ProjectLinker = ({
                       }
                     >
                       <div className="flex items-center gap-x-2">
-                        <div className="bg-white shadow border rounded p-1 w-6 h-6 flex justify-center items-center">
+                        <div className="bg-black shadow border border-border rounded p-1 w-6 h-6 flex justify-center items-center">
                           <img
-                            src={`${BASE_PATH}/img/powabase-logo.svg`}
-                            alt="Powabase"
-                            className="w-4"
+                            src={`${BASE_PATH}/img/socket-light-logo.svg`}
+                            alt="Socket"
+                            className="w-4 h-4 object-contain"
                           />
                         </div>
                         {selectedSupabaseProject
                           ? selectedSupabaseProject.name
-                          : 'Choose Powabase Project'}
+                          : 'Choose Socket Project'}
                       </div>
                     </Button>
                   )

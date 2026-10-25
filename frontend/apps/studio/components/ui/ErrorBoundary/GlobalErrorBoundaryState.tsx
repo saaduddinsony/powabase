@@ -35,8 +35,8 @@ export const GlobalErrorBoundaryState = ({ error, resetErrorBoundary }: Fallback
       <header className="h-12 absolute top-0 w-full border-b px-4 flex items-center">
         <Link href="/" className="items-center justify-center">
           <img
-            alt="Powabase"
-            src={`${router.basePath}/img/powabase-logo.svg`}
+            alt="Socket"
+            src={`${router.basePath}/img/socket-light-logo.svg`}
             className={largeLogo ? 'h-[20px]' : 'h-[18px]'}
           />
         </Link>

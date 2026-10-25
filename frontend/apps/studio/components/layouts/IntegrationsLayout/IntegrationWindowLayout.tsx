@@ -60,8 +60,8 @@ const Header = ({ title, integrationIcon }: HeaderProps) => {
       <ScaffoldContainer className={cn('py-3', INTEGRATION_LAYOUT_MAX_WIDTH)}>
         <div className="flex items-center gap-6 w-full">
           <div className="flex gap-2 items-center">
-            <div className="bg-white shadow border rounded p-1 w-8 h-8 flex justify-center items-center">
-              <img src={`${BASE_PATH}/img/powabase-logo.svg`} alt="Powabase" className="w-4" />
+            <div className="bg-black shadow border border-border rounded p-1 w-8 h-8 flex justify-center items-center">
+              <img src={`${BASE_PATH}/img/socket-light-logo.svg`} alt="Socket" className="w-5 h-5 object-contain" />
             </div>
             <X className="text-border-stronger" strokeWidth={2} size={16} />
             {integrationIcon}

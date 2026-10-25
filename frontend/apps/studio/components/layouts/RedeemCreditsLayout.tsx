@@ -25,14 +25,14 @@ const RedeemCreditsLayout = ({ children }: PropsWithChildren<RedeemCreditsLayout
             <div className="max-w-xl flex justify-between items-center py-4">
               <div className="flex justify-start lg:w-0 lg:flex-1">
                 <div>
-                  <span className="sr-only">Supabase</span>
+                  <span className="sr-only">Socket</span>
                   <Image
                     src={
                       resolvedTheme?.includes('dark')
-                        ? `${BASE_PATH}/img/powabase-dark.svg`
-                        : `${BASE_PATH}/img/powabase-light.svg`
+                        ? `${BASE_PATH}/img/socket-light-logo.svg`
+                        : `${BASE_PATH}/img/socket-dark-logo.svg`
                     }
-                    alt="Powabase Logo"
+                    alt="Socket Logo"
                     height={20}
                     width={105}
                   />

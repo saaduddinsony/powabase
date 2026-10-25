@@ -114,10 +114,10 @@ const SignInLayout = ({
                   <img
                     src={
                       resolvedTheme?.includes('dark')
-                        ? `${BASE_PATH}/img/powabase-dark.svg`
-                        : `${BASE_PATH}/img/powabase-light.svg`
+                        ? `${BASE_PATH}/img/socket-light-logo.svg`
+                        : `${BASE_PATH}/img/socket-dark-logo.svg`
                     }
-                    alt="Powabase Logo"
+                    alt="Socket Logo"
                     className={largeLogo ? 'h-[48px]' : 'h-[24px]'}
                   />
                 </Link>

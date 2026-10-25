@@ -118,8 +118,17 @@ function SupportFormWrapper({ children }: PropsWithChildren) {
 function SupportFormHeader() {
   return (
     <div className="flex items-center space-x-3">
-      <SVG src={`${BASE_PATH}/img/powabase-logo.svg`} className="h-4 w-4" />
-      <h3 className="m-0 text-lg">Powabase support</h3>
+      <img
+        alt="Socket"
+        src={`${BASE_PATH}/img/socket-light-logo.svg`}
+        className="h-5 w-5 dark:block hidden rounded object-contain"
+      />
+      <img
+        alt="Socket"
+        src={`${BASE_PATH}/img/socket-dark-logo.svg`}
+        className="h-5 w-5 dark:hidden block rounded object-contain"
+      />
+      <h3 className="m-0 text-lg font-semibold text-foreground">Socket support</h3>
     </div>
   )
 }
@@ -144,16 +153,16 @@ function SupportFormDirectEmailInfo({ projectRef }: SupportFormDirectEmailInfoPr
             Email:{' '}
             <span className="inline-flex items-center gap-x-1">
               <a
-                href={`mailto:hello@powabase.ai?subject=${encodeURIComponent('Support Request')}${hasProjectRef ? `${encodeURIComponent(' for Project ID: ')}${encodeURIComponent(projectRef)}` : ''}&body=${encodeURIComponent('Here is a detailed description of the problem I am experiencing and any other information that might be helpful...')}`}
+                href={`mailto:support@socket.dev?subject=${encodeURIComponent('Support Request')}${hasProjectRef ? `${encodeURIComponent(' for Project ID: ')}${encodeURIComponent(projectRef)}` : ''}&body=${encodeURIComponent('Here is a detailed description of the problem I am experiencing and any other information that might be helpful...')}`}
                 className="hover:text-foreground transition-colors duration-100"
               >
                 <code className="text-code-inline !text-foreground-light underline decoration-foreground-lighter/50 hover:decoration-foreground-lighter/80 transition-colors duration-100">
-                  hello@powabase.ai
+                  support@socket.dev
                 </code>
               </a>
               <CopyButton
                 type="text"
-                text="hello@powabase.ai"
+                text="support@socket.dev"
                 iconOnly
                 onClick={() => toast.success('Copied email address to clipboard')}
               />

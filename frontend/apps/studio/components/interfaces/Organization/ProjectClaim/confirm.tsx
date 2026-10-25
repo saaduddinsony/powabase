@@ -105,9 +105,9 @@ export const ProjectClaimConfirm = ({
 
             <div className="w-8 h-8">
               <Image
-                src={`${BASE_PATH}/img/powabase-logo.svg`}
-                alt="Supabase Logo"
-                className="w-full h-full"
+                src={`${BASE_PATH}/img/socket-light-logo.svg`}
+                alt="Socket Logo"
+                className="w-full h-full object-contain"
                 width={100}
                 height={100}
               />

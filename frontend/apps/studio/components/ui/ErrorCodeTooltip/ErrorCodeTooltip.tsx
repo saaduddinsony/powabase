@@ -106,10 +106,10 @@ export const ErrorCodeTooltip = ({ errorCode, service, children }: ErrorCodeTool
                 <Image
                   src={
                     resolvedTheme?.includes('dark')
-                      ? `${BASE_PATH}/img/powabase-dark.svg`
-                      : `${BASE_PATH}/img/powabase-light.svg`
+                      ? `${BASE_PATH}/img/socket-light-logo.svg`
+                      : `${BASE_PATH}/img/socket-dark-logo.svg`
                   }
-                  alt="Powabase"
+                  alt="Socket"
                   height={14}
                   width={72}
                 />
