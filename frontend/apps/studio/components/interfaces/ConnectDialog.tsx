@@ -47,22 +47,57 @@ export const ConnectDialog = () => {
   const { data: project } = useSelectedProjectQuery()
   const { data: organization } = useSelectedOrganizationQuery()
 
-  const projectSlug = (project as any)?.slug
-  const orgSlug = organization?.slug
+  const projectRef = (project as any)?.ref || (project as any)?.slug
+  const orgSlug = organization?.slug || 'default'
 
   const { data, isLoading, error } = useQuery<ProjectConnectionInfo>({
-    queryKey: ['project-connection', orgSlug, projectSlug],
+    queryKey: ['project-connection', orgSlug, projectRef],
     queryFn: async () => {
-      if (!orgSlug || !projectSlug) throw new Error('Missing org or project')
-      const result = await fetchGet<ProjectConnectionInfo>(
-        `${API_URL}/organizations/${orgSlug}/projects/${projectSlug}/connection`
-      )
-      if ('error' in (result as any) && (result as any).error) {
-        throw new Error((result as any).message ?? 'Failed to load connection info')
+      if (!projectRef) throw new Error('Missing project')
+
+      try {
+        const result = await fetchGet<ProjectConnectionInfo>(
+          `${API_URL}/organizations/${orgSlug}/projects/${projectRef}/connection`
+        )
+        if (result && !('error' in (result as any) && (result as any).error)) {
+          return result as ProjectConnectionInfo
+        }
+      } catch (err) {
+        // Continue to fallback
       }
-      return result as ProjectConnectionInfo
+
+      try {
+        const result = await fetchGet<ProjectConnectionInfo>(
+          `${API_URL}/projects/${projectRef}/connection`
+        )
+        if (result && !('error' in (result as any) && (result as any).error)) {
+          return result as ProjectConnectionInfo
+        }
+      } catch (err) {
+        // Continue to fallback
+      }
+
+      // Direct fallback from selected project data in memory
+      const p = (project as any) || {}
+      const keys = Array.isArray(p.service_api_keys) ? p.service_api_keys : []
+      const anonKey = p.anon_key || keys.find((k: any) => k.tags === 'anon')?.api_key || ''
+      const serviceKey =
+        p.service_role_key || keys.find((k: any) => k.tags === 'service_role')?.api_key || ''
+      const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
+      const origin =
+        typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000'
+      const apiUrl = p.restUrl ? p.restUrl.replace(/\/rest\/v1\/?$/, '') : origin
+
+      return {
+        kong_url: apiUrl,
+        anon_key: anonKey,
+        service_role_key: serviceKey,
+        jwt_secret: p.jwt_secret,
+        postgres_url:
+          p.connectionString || `postgresql://postgres:[YOUR-PASSWORD]@${host}:5432/postgres`,
+      }
     },
-    enabled: showConnect && !!orgSlug && !!projectSlug,
+    enabled: showConnect && !!projectRef,
     staleTime: 5 * 60 * 1000,
   })
 

@@ -35,11 +35,35 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
       return res.status(404).json({ error: { message: 'Project not found' } })
     }
 
+    const dbHost = process.env.POSTGRES_PUBLIC_HOST || process.env.POSTGRES_HOST || 'localhost'
+    const dbPort = process.env.POSTGRES_PORT || '5432'
+    const dbUser = process.env.POSTGRES_USER || 'postgres'
+    const dbPassword = process.env.POSTGRES_PASSWORD || ''
+    const dbName = process.env.POSTGRES_DB || 'postgres'
+    const connectionString = dbPassword
+      ? `postgresql://${dbUser}:${encodeURIComponent(dbPassword)}@${dbHost}:${dbPort}/${dbName}`
+      : `postgresql://${dbUser}:[YOUR-PASSWORD]@${dbHost}:${dbPort}/${dbName}`
+
+    const anonKey = project.anon_key || process.env.SUPABASE_ANON_KEY || ''
+    const serviceKey = project.service_role_key || process.env.SUPABASE_SERVICE_KEY || ''
+
     const response = {
       ...DEFAULT_PROJECT,
       ...project,
-      connectionString: '',
+      connectionString,
       restUrl: PROJECT_REST_URL,
+      service_api_keys: [
+        {
+          api_key: serviceKey,
+          name: 'service_role key',
+          tags: 'service_role',
+        },
+        {
+          api_key: anonKey,
+          name: 'anon key',
+          tags: 'anon',
+        },
+      ],
     }
 
     return res.status(200).json(response)

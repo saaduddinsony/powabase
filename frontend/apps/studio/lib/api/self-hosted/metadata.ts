@@ -269,13 +269,52 @@ export async function getSocketProjectByRef(ref: string): Promise<SocketProject 
         db_schema: 'public',
         anon_key: process.env.SUPABASE_ANON_KEY,
         service_role_key: process.env.SUPABASE_SERVICE_KEY,
+        jwt_secret: process.env.AUTH_JWT_SECRET,
         inserted_at: new Date().toISOString(),
       }
     }
     return null
   }
 
-  return data[0]
+  const project = data[0]
+  if (!project.jwt_secret || !project.anon_key || !project.service_role_key) {
+    const jwtSecret = project.jwt_secret || crypto.randomBytes(32).toString('hex')
+    const now = Math.floor(Date.now() / 1000)
+    const tenYears = 10 * 365 * 24 * 60 * 60
+    const anonKey =
+      project.anon_key ||
+      signHs256Jwt(
+        { role: 'anon', iss: 'supabase', iat: now, exp: now + tenYears },
+        jwtSecret
+      )
+    const serviceRoleKey =
+      project.service_role_key ||
+      signHs256Jwt(
+        { role: 'service_role', iss: 'supabase', iat: now, exp: now + tenYears },
+        jwtSecret
+      )
+    const dbSchema =
+      project.db_schema ||
+      (project.ref === 'default'
+        ? 'public'
+        : `project_${project.ref.replace(/[^a-zA-Z0-9_]/g, '_')}`)
+
+    await executeQuery({
+      query: `
+        UPDATE _socket_metadata.projects
+        SET jwt_secret = $1, anon_key = $2, service_role_key = $3, db_schema = $4
+        WHERE id = $5
+      `,
+      parameters: [jwtSecret, anonKey, serviceRoleKey, dbSchema, project.id],
+    })
+
+    project.jwt_secret = jwtSecret
+    project.anon_key = anonKey
+    project.service_role_key = serviceRoleKey
+    project.db_schema = dbSchema
+  }
+
+  return project
 }
 
 export async function createSocketProject({
