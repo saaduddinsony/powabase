@@ -5,7 +5,7 @@ import { ButtonTooltip } from './ButtonTooltip'
 import { useSendEventMutation } from '@/data/telemetry/send-event-mutation'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 
-const POWABASE_DOCS_URL = 'https://docs.powabase.ai/concepts/platform-overview'
+const SOCKET_DOCS_URL = 'https://github.com/saaduddinsony/socket'
 
 interface APIDocsButtonProps {
   source: string

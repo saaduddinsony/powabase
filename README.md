@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="frontend/apps/studio/public/img/socket-dark-logo.svg" alt="Socket Logo" width="80" height="80" style="border-radius: 20px" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="frontend/apps/studio/public/img/socket-light-logo.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="frontend/apps/studio/public/img/socket-dark-logo.svg" />
+    <img src="frontend/apps/studio/public/img/socket-light-logo.svg" alt="Socket Logo" width="80" height="80" style="border-radius: 20px" />
+  </picture>
 </p>
 
 <h1 align="center">Socket</h1>

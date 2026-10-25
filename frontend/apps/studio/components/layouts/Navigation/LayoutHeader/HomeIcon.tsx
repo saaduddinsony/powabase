@@ -10,14 +10,16 @@ export const HomeIcon = ({ className }: { className?: string }) => {
 
   return (
     <Link href="/organizations" className={cn('items-center justify-center flex-shrink-0 flex', className)}>
-      <img
-        alt="Socket"
-        src={`${router.basePath}/img/socket-dark-logo.svg`}
-        className={cn('dark:block hidden rounded-md object-contain', largeLogo ? 'h-[24px] w-[24px]' : 'h-[22px] w-[22px]')}
-      />
+      {/* Light logo on dark background */}
       <img
         alt="Socket"
         src={`${router.basePath}/img/socket-light-logo.svg`}
+        className={cn('dark:block hidden rounded-md object-contain', largeLogo ? 'h-[24px] w-[24px]' : 'h-[22px] w-[22px]')}
+      />
+      {/* Dark logo on light background */}
+      <img
+        alt="Socket"
+        src={`${router.basePath}/img/socket-dark-logo.svg`}
         className={cn('dark:hidden block rounded-md object-contain', largeLogo ? 'h-[24px] w-[24px]' : 'h-[22px] w-[22px]')}
       />
     </Link>

@@ -223,7 +223,7 @@ export const generateSettingsRoutes = (ref?: string, project?: Project, features
       label: 'API Docs',
       disabled: false,
       icon: <Code size={ICON_SIZE} strokeWidth={ICON_STROKE_WIDTH} />,
-      link: 'https://docs.powabase.ai/concepts/platform-overview',
+      link: 'https://github.com/saaduddinsony/socket',
       linkElement: <a target="_blank" rel="noreferrer" />,
     },
     {

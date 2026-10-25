@@ -100,7 +100,7 @@ export const POSTHOG_URL =
 
 export const USAGE_APPROACHING_THRESHOLD = 0.75
 
-export const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL || 'https://docs.powabase.ai'
+export const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL || 'https://github.com/saaduddinsony/socket'
 
 export const OPT_IN_TAGS = {
   AI_SQL: 'AI_SQL_GENERATOR_OPT_IN',
