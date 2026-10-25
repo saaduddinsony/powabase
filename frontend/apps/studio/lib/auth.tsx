@@ -20,7 +20,7 @@ const AuthErrorToaster = ({ children }: PropsWithChildren) => {
       // Check for unverified GitHub users after a GitHub sign in
       if (error.message === GOTRUE_ERRORS.UNVERIFIED_GITHUB_USER) {
         toast.error(
-          'Please verify your email on GitHub first, then reach out to your Powabase operator to log into the dashboard'
+          'Please verify your email on GitHub first, then reach out to your Socket operator to log into the dashboard'
         )
         return
       }
