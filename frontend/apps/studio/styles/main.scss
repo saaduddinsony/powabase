@@ -503,63 +503,10 @@ div[data-radix-portal]:not(.portal--toast) {
   em { @apply italic; }
 }
 
-/* =========================================================================
-   Bencho Design System: Pill buttons, 24-28px cards, flat monochrome
-   ========================================================================= */
-
-// Pill buttons throughout interactive elements
-button:not([role='tab']):not([role='switch']):not([role='menuitem']):not([class*='rounded-none']):not([class*='h-full']),
-.btn,
-button.rounded-lg,
-button.rounded-md,
-button.rounded-xl,
-button.rounded-2xl {
-  border-radius: 9999px !important;
-}
-
-// Brand buttons and primary action CTAs must strictly follow bencho monochrome
-button[class*='bg-brand'],
-button[class*='bg-brand-400'],
-button[class*='bg-brand-500'],
-.bg-brand,
-.bg-brand-400,
-.bg-brand-500 {
-  background-color: #17181a !important;
-  color: #ffffff !important;
-}
-
-:is([data-theme='dark'], .dark) :is(button[class*='bg-brand'], button[class*='bg-brand-400'], button[class*='bg-brand-500'], .bg-brand, .bg-brand-400, .bg-brand-500) {
-  background-color: #ffffff !important;
-  color: #000000 !important;
-}
-
-button[class*='bg-brand']:hover,
-button[class*='bg-brand-400']:hover,
-button[class*='bg-brand-500']:hover,
-.bg-brand:hover,
-.bg-brand-400:hover,
-.bg-brand-500:hover {
-  background-color: #000000 !important;
-}
-
-:is([data-theme='dark'], .dark) :is(button[class*='bg-brand']:hover, button[class*='bg-brand-400']:hover, button[class*='bg-brand-500']:hover, .bg-brand:hover, .bg-brand-400:hover, .bg-brand-500:hover) {
-  background-color: #e5e5e5 !important;
-}
-
-// Flat card elevation and clean rounded 24px containers
+// Clean card elevation
 .card,
-.section-block,
-div[class*='rounded-xl'],
-div[class*='rounded-2xl'] {
-  border-radius: 24px !important;
-  box-shadow: none !important;
-}
-
-// Crisp flat theme without diffuse drop shadows
-.shadow-sm,
-.shadow-md,
-.shadow-lg {
-  box-shadow: none !important;
+.section-block {
+  border-radius: 12px;
 }
 
 

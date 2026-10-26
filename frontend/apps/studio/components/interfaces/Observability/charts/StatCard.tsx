@@ -41,20 +41,22 @@ export function StatCard({ label, value, tone = "neutral", hint, onClick, isLoad
   const styles = TONE_STYLES[tone]
   const displayValue = isLoading ? "…" : value ?? 0
   const interactive = !!onClick
+  const Component = interactive ? "button" : "div"
+
   return (
-    <button
-      type="button"
+    <Component
+      type={interactive ? "button" : undefined}
       onClick={onClick}
-      disabled={!interactive}
       className={cn(
-        "flex flex-col gap-1 rounded-lg border p-4 text-left transition-colors",
+        "flex flex-col gap-1 rounded-lg border border-default p-4 text-left transition-colors",
         styles.badge,
-        interactive ? "hover:brightness-110 cursor-pointer" : "cursor-default",
+        interactive ? "hover:brightness-105 cursor-pointer" : "cursor-default",
       )}
+      style={{ borderRadius: '8px' }}
     >
       <span className="text-xs uppercase tracking-wider text-foreground-muted">{label}</span>
       <span className={cn("text-2xl font-semibold tabular-nums", styles.value)}>{displayValue}</span>
       {hint && <span className="text-xs text-foreground-muted">{hint}</span>}
-    </button>
+    </Component>
   )
 }
