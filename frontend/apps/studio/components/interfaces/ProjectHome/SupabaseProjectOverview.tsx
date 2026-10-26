@@ -216,7 +216,9 @@ export function SupabaseProjectOverview() {
                     </div>
                     <div className="text-sm font-medium text-foreground truncate mt-0.5 flex items-center gap-1.5">
                       <Badge variant="outline" className="text-[10px] uppercase font-mono px-1.5 py-0">
-                        NANO
+                        {serverResources?.cpu?.cores
+                          ? `${serverResources.cpu.cores} Cores · ${serverResources.memory.totalFormatted}`
+                          : 'DEDICATED'}
                       </Badge>
                     </div>
                   </div>
@@ -253,7 +255,7 @@ export function SupabaseProjectOverview() {
                       RECENT BRANCH
                     </div>
                     <div className="text-sm font-medium text-foreground-lighter truncate mt-0.5">
-                      {isLoadingBranches ? (
+                      {IS_PLATFORM && isLoadingBranches ? (
                         <Skeleton className="h-4 w-16" />
                       ) : (
                         latestNonDefaultBranch?.name ?? 'No branches'
@@ -299,7 +301,7 @@ export function SupabaseProjectOverview() {
                       LAST BACKUP
                     </div>
                     <div className="text-sm font-medium text-foreground truncate mt-0.5">
-                      {isLoadingBackups ? (
+                      {IS_PLATFORM && isLoadingBackups ? (
                         <Skeleton className="h-4 w-20" />
                       ) : latestBackup ? (
                         dayjs(latestBackup.inserted_at).fromNow()
