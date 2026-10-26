@@ -7,6 +7,7 @@ import { GenericSkeletonLoader } from 'ui-patterns'
 
 import DefaultLayout from '@/components/layouts/DefaultLayout'
 import { ProjectLayout } from '@/components/layouts/ProjectLayout'
+import { useInstalledIntegrations } from '@/components/interfaces/Integrations/Landing/useInstalledIntegrations'
 import AlertError from '@/components/ui/AlertError'
 import { ProductMenuItem } from '@/components/ui/ProductMenu/ProductMenuItem'
 import { marketplaceCategoriesQueryOptions } from '@/data/marketplace/integration-categories-query'

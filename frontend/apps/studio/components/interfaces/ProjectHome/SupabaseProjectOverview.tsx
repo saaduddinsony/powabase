@@ -322,25 +322,33 @@ export function SupabaseProjectOverview() {
               >
                 {/* Top Right Canvas Controls */}
                 <div className="flex justify-end z-10">
-                  <div className="inline-flex bg-surface-100 rounded-md border border-default p-0.5 shadow-xs">
-                    <Button
-                      type={canvasMode === 'node' ? 'default' : 'text'}
-                      size="tiny"
-                      className={`h-6.5 w-6.5 p-0 ${canvasMode === 'node' ? 'shadow-xs' : 'text-foreground-lighter hover:text-foreground'}`}
-                      icon={<Network size={14} className={canvasMode === 'node' ? 'text-background' : 'text-foreground-lighter'} />}
+                  <div className="inline-flex items-center bg-surface-100 rounded-md border border-default p-0.5 shadow-xs">
+                    <button
+                      type="button"
                       onClick={() => setCanvasMode('node')}
                       title="Show infrastructure as a diagram"
                       aria-label="Show infrastructure as a diagram"
-                    />
-                    <Button
-                      type={canvasMode === 'map' ? 'default' : 'text'}
-                      size="tiny"
-                      className={`h-6.5 w-6.5 p-0 ${canvasMode === 'map' ? 'shadow-xs' : 'text-foreground-lighter hover:text-foreground'}`}
-                      icon={<Globe2 size={14} className={canvasMode === 'map' ? 'text-background' : 'text-foreground-lighter'} />}
+                      className={`h-6.5 w-6.5 rounded flex items-center justify-center transition-colors ${
+                        canvasMode === 'node'
+                          ? 'bg-surface-200 text-foreground shadow-xs'
+                          : 'text-foreground-lighter hover:text-foreground hover:bg-surface-200/50'
+                      }`}
+                    >
+                      <Network size={14} className={canvasMode === 'node' ? 'text-foreground' : 'text-foreground-lighter'} />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setCanvasMode('map')}
                       title="Show infrastructure on the map"
                       aria-label="Show infrastructure on the map"
-                    />
+                      className={`h-6.5 w-6.5 rounded flex items-center justify-center transition-colors ${
+                        canvasMode === 'map'
+                          ? 'bg-surface-200 text-foreground shadow-xs'
+                          : 'text-foreground-lighter hover:text-foreground hover:bg-surface-200/50'
+                      }`}
+                    >
+                      <Globe2 size={14} className={canvasMode === 'map' ? 'text-foreground' : 'text-foreground-lighter'} />
+                    </button>
                   </div>
                 </div>
 
