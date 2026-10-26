@@ -85,7 +85,7 @@ export const AccountIdentities = () => {
         <PageSectionSummary>
           <PageSectionTitle>Account identities</PageSectionTitle>
           <PageSectionDescription>
-            Manage the providers linked to your Powabase account and update their details.
+            Manage the providers linked to your Socket account and update their details.
           </PageSectionDescription>
         </PageSectionSummary>
       </PageSectionMeta>

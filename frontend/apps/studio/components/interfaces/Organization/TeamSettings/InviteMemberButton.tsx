@@ -47,7 +47,7 @@ import { doPermissionsCheck, useGetPermissions } from '@/hooks/misc/useCheckPerm
 import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { useConfirmOnClose } from '@/hooks/ui/useConfirmOnClose'
-import { DOCS_URL } from '@/lib/constants'
+import { DOCS_URL, IS_PLATFORM } from '@/lib/constants'
 import { useProfile } from '@/lib/profile'
 
 function parseEmails(value: string): string[] {
