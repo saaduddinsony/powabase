@@ -356,6 +356,12 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       nodeVersion: process.version,
       serverTime: new Date().toISOString(),
       deploymentType: 'Dedicated Bare-Metal / VPS',
+      region: 'Southeast Asia (Singapore)',
+      regionCode: 'ap-southeast-1',
+      city: 'Singapore',
+      country: 'Singapore',
+      countryCode: 'SG',
+      coordinates: [103.8, 1.37],
     }
 
     const cpu = {

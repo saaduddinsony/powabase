@@ -211,6 +211,13 @@ export const generateOtherRoutes = (
       icon: <Activity size={ICON_SIZE} strokeWidth={ICON_STROKE_WIDTH} />,
       link: ref && (isProjectBuilding ? buildingUrl : `/project/${ref}/observability`),
     },
+    {
+      key: 'integrations',
+      label: 'Integrations',
+      disabled: !isProjectActive,
+      icon: <Blocks size={ICON_SIZE} strokeWidth={ICON_STROKE_WIDTH} />,
+      link: ref && (isProjectBuilding ? buildingUrl : `/project/${ref}/integrations`),
+    },
   ]
 }
 

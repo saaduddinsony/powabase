@@ -1,11 +1,29 @@
-import { useRouter } from 'next/router'
-import { useEffect } from 'react'
+import { ReactElement } from 'react'
+import { ScaffoldContainer, ScaffoldHeader, ScaffoldTitle, ScaffoldDescription } from '@/components/layouts/Scaffold'
+import { AvailableIntegrations } from '@/components/interfaces/Integrations/Landing/AvailableIntegrations'
+import { InstalledIntegrations } from '@/components/interfaces/Integrations/Landing/InstalledIntegrations'
+import { ProjectIntegrationsLayout } from '@/components/layouts/ProjectIntegrationsLayout'
+import type { NextPageWithLayout } from 'types'
 
-export default function RedirectToProject() {
-  const router = useRouter()
-  const ref = router.query.ref as string
-  useEffect(() => {
-    if (ref) router.replace(`/project/${ref}`)
-  }, [ref, router])
-  return null
+const ProjectIntegrationsPage: NextPageWithLayout = () => {
+  return (
+    <div className="flex flex-col pb-12">
+      <ScaffoldContainer>
+        <ScaffoldHeader className="pt-6">
+          <ScaffoldTitle>Extend your database</ScaffoldTitle>
+          <ScaffoldDescription>
+            Explore native and third-party integrations to add functionality to your Socket project.
+          </ScaffoldDescription>
+        </ScaffoldHeader>
+      </ScaffoldContainer>
+      <InstalledIntegrations />
+      <AvailableIntegrations />
+    </div>
+  )
 }
+
+ProjectIntegrationsPage.getLayout = (page: ReactElement) => (
+  <ProjectIntegrationsLayout>{page}</ProjectIntegrationsLayout>
+)
+
+export default ProjectIntegrationsPage

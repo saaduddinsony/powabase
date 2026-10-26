@@ -321,32 +321,39 @@ export function SupabaseProjectOverview() {
                 }}
               >
                 {/* Top Right Canvas Controls */}
-                <div className="flex justify-end gap-1.5 z-10">
-                  <Button
-                    type={canvasMode === 'node' ? 'default' : 'outline'}
-                    size="tiny"
-                    className="h-7 w-7 p-0 backdrop-blur-sm"
-                    onClick={() => setCanvasMode('node')}
-                    title="View infrastructure topology"
-                  >
-                    <Network size={14} className={canvasMode === 'node' ? 'text-background' : 'text-foreground-lighter'} />
-                  </Button>
-                  <Button
-                    type={canvasMode === 'map' ? 'default' : 'outline'}
-                    size="tiny"
-                    className="h-7 w-7 p-0 backdrop-blur-sm"
-                    onClick={() => setCanvasMode('map')}
-                    title="View regional map"
-                  >
-                    <Globe2 size={14} className={canvasMode === 'map' ? 'text-background' : 'text-foreground-lighter'} />
-                  </Button>
+                <div className="flex justify-end z-10">
+                  <div className="inline-flex bg-surface-100 rounded-md border border-default p-0.5 shadow-xs">
+                    <Button
+                      type={canvasMode === 'node' ? 'default' : 'text'}
+                      size="tiny"
+                      className={`h-6.5 w-6.5 p-0 ${canvasMode === 'node' ? 'shadow-xs' : 'text-foreground-lighter hover:text-foreground'}`}
+                      icon={<Network size={14} className={canvasMode === 'node' ? 'text-background' : 'text-foreground-lighter'} />}
+                      onClick={() => setCanvasMode('node')}
+                      title="Show infrastructure as a diagram"
+                      aria-label="Show infrastructure as a diagram"
+                    />
+                    <Button
+                      type={canvasMode === 'map' ? 'default' : 'text'}
+                      size="tiny"
+                      className={`h-6.5 w-6.5 p-0 ${canvasMode === 'map' ? 'shadow-xs' : 'text-foreground-lighter hover:text-foreground'}`}
+                      icon={<Globe2 size={14} className={canvasMode === 'map' ? 'text-background' : 'text-foreground-lighter'} />}
+                      onClick={() => setCanvasMode('map')}
+                      title="Show infrastructure on the map"
+                      aria-label="Show infrastructure on the map"
+                    />
+                  </div>
                 </div>
 
                 {/* Center Content: Either Primary Database Node or Regional World Map */}
                 {canvasMode === 'map' ? (
                   <RegionalWorldMap
-                    coordinates={[8.6821, 50.1109]}
-                    label={project?.region ? project.region : 'Dedicated Host · Oracle Cloud ARM64'}
+                    coordinates={serverResources?.host?.coordinates || [103.8, 1.37]}
+                    label={
+                      serverResources?.host?.region
+                        ? `${serverResources.host.region} · Dedicated Host`
+                        : 'Southeast Asia (Singapore) · Dedicated Host'
+                    }
+                    regionCode={serverResources?.host?.regionCode || 'ap-southeast-1'}
                   />
                 ) : (
                   <div className="flex items-center justify-center my-auto py-2 z-10">
@@ -364,20 +371,24 @@ export function SupabaseProjectOverview() {
                               Primary Database
                             </div>
                             <div className="text-xs text-foreground-light mt-0.5">
-                              {project?.region ? project.region : 'Dedicated Host'}
+                              {serverResources?.host?.region || 'Southeast Asia (Singapore)'}
                             </div>
                             <div className="text-[11px] text-foreground-lighter font-mono mt-0.5">
-                              {serverResources
-                                ? `${serverResources.host.arch} · ${serverResources.cpu.model}`
-                                : 'ARM64 · Dedicated Host'}
+                              {serverResources?.host?.regionCode || 'ap-southeast-1'} ·{' '}
+                              {serverResources?.cpu?.model?.includes('Neoverse')
+                                ? 'Ampere Altra ARM64'
+                                : serverResources?.cpu?.model || 'ARM64 Dedicated'}
                             </div>
                           </div>
                         </div>
 
-                        {/* Server Host Badge */}
-                        <span className="text-base shrink-0 p-1 rounded-md bg-surface-200 border border-default text-foreground-light" title="Self-Hosted Server Runtime">
-                          🖥️
-                        </span>
+                        {/* Country Flag Badge */}
+                        <img
+                          src="/img/regions/ap-southeast-1.svg"
+                          alt="Singapore"
+                          className="rounded-xs border border-default/80 mt-1 w-8 shadow-xs"
+                          title={serverResources?.host?.country || 'Singapore'}
+                        />
                       </div>
 
                     {/* Mini Resource Metrics Strip */}
