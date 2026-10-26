@@ -45,7 +45,7 @@ export function RegionalWorldMap({
   } | null>(null)
 
   return (
-    <div className="w-full h-full min-h-[300px] relative flex flex-col items-center justify-center select-none overflow-hidden cursor-grab active:cursor-grabbing">
+    <div className="w-full h-full relative flex flex-col items-center justify-center select-none overflow-hidden cursor-grab active:cursor-grabbing">
       <ComposableMap
         projectionConfig={{ scale: 145, center: [14, 15] }}
         width={800}

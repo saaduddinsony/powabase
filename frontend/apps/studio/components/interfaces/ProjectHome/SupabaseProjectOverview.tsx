@@ -314,19 +314,9 @@ export function SupabaseProjectOverview() {
               </div>
 
               {/* Right Column: Interactive Dot-Matrix Canvas with Primary Database Card */}
-              <div
-                className={`lg:col-span-6 relative flex flex-col justify-between rounded-xl border border-default bg-surface-100/40 min-h-[300px] shadow-sm overflow-hidden ${
-                  canvasMode === 'node' ? 'p-5' : 'p-0'
-                }`}
-                style={{
-                  backgroundImage:
-                    canvasMode === 'node'
-                      ? 'radial-gradient(rgba(128, 128, 128, 0.22) 1.5px, transparent 1.5px)'
-                      : undefined,
-                  backgroundSize: '18px 18px',
-                }}
-              >
-                {/* Top Right Canvas Controls */}
+              {/* Right Column: Unified Infrastructure Canvas & World Map */}
+              <div className="lg:col-span-6 relative flex flex-col justify-between rounded-xl border border-default bg-surface-100/40 h-full min-h-[340px] shadow-sm overflow-hidden">
+                {/* Top Right Canvas Mode Toggle Controls */}
                 <div className="absolute top-3.5 right-3.5 z-20">
                   <div className="inline-flex items-center bg-surface-100/90 backdrop-blur-md rounded-lg border border-default p-1 shadow-sm gap-1">
                     <button
@@ -358,19 +348,22 @@ export function SupabaseProjectOverview() {
                   </div>
                 </div>
 
-                {/* Center Content: Either Primary Database Node or Regional World Map */}
-                {canvasMode === 'map' ? (
-                  <RegionalWorldMap
-                    coordinates={serverResources?.host?.coordinates || [103.8, 1.37]}
-                    label={
-                      serverResources?.host?.region
-                        ? `${serverResources.host.region} · Dedicated Host`
-                        : 'Southeast Asia (Singapore) · Dedicated Host'
-                    }
-                    regionCode={serverResources?.host?.regionCode || 'ap-southeast-1'}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center my-auto py-2 z-10">
+                {/* Viewport Area: Both views are absolute positioned inside the exact same frame */}
+                <div className="relative flex-1 w-full min-h-[280px] overflow-hidden">
+                  {/* Diagram / Workflow Node View */}
+                  <div
+                    className={cn(
+                      'absolute inset-0 flex items-center justify-center p-5 transition-opacity duration-200',
+                      canvasMode === 'node'
+                        ? 'opacity-100 pointer-events-auto z-10'
+                        : 'opacity-0 pointer-events-none z-0'
+                    )}
+                    style={{
+                      backgroundImage:
+                        'radial-gradient(rgba(128, 128, 128, 0.22) 1.5px, transparent 1.5px)',
+                      backgroundSize: '18px 18px',
+                    }}
+                  >
                     <Link
                       href={`/project/${projectRef}/infrastructure`}
                       className="w-full max-w-sm rounded-xl border border-default bg-surface-100/95 backdrop-blur-sm p-4 shadow-md hover:border-foreground-muted hover:shadow-lg transition-all"
@@ -405,54 +398,75 @@ export function SupabaseProjectOverview() {
                         />
                       </div>
 
-                    {/* Mini Resource Metrics Strip */}
-                    <div className="mt-3.5 pt-2.5 border-t border-default/70 flex items-center justify-between text-[11px] font-mono text-foreground-light">
-                      <span>
-                        CPU{' '}
-                        <strong className="text-foreground font-semibold">
-                          {serverResources ? `${serverResources.cpu.usagePercent}%` : '—'}
-                        </strong>
-                      </span>
-                      <span>·</span>
-                      <span>
-                        Disk{' '}
-                        <strong className="text-foreground font-semibold">
-                          {serverResources ? `${serverResources.disk.usedPercent}%` : '—'}
-                        </strong>
-                      </span>
-                      <span>·</span>
-                      <span>
-                        RAM{' '}
-                        <strong className="text-foreground font-semibold">
-                          {serverResources ? `${serverResources.memory.usedPercent}%` : '—'}
-                        </strong>
-                      </span>
-                      <span>·</span>
-                      <span>
-                        <strong className="text-foreground font-semibold">
-                          {serverResources?.database
-                            ? `${serverResources.database.activeConnections}/${serverResources.database.maxConnections}`
-                            : '—'}
-                        </strong>{' '}
-                        conns
-                      </span>
-                    </div>
-                  </Link>
-                </div>
-              )}
-
-                {/* Canvas Footer Hint */}
-                {canvasMode === 'node' && (
-                  <div className="flex justify-between items-center text-[11px] text-foreground-lighter z-10">
-                    <span>Socket Bare-Metal / Dedicated Runtime</span>
-                    <Link
-                      href={`/project/${projectRef}/infrastructure`}
-                      className="hover:text-foreground text-brand transition-colors"
-                    >
-                      Manage server &rarr;
+                      {/* Mini Resource Metrics Strip */}
+                      <div className="mt-3.5 pt-2.5 border-t border-default/70 flex items-center justify-between text-[11px] font-mono text-foreground-light">
+                        <span>
+                          CPU{' '}
+                          <strong className="text-foreground font-semibold">
+                            {serverResources ? `${serverResources.cpu.usagePercent}%` : '—'}
+                          </strong>
+                        </span>
+                        <span>·</span>
+                        <span>
+                          Disk{' '}
+                          <strong className="text-foreground font-semibold">
+                            {serverResources ? `${serverResources.disk.usedPercent}%` : '—'}
+                          </strong>
+                        </span>
+                        <span>·</span>
+                        <span>
+                          RAM{' '}
+                          <strong className="text-foreground font-semibold">
+                            {serverResources ? `${serverResources.memory.usedPercent}%` : '—'}
+                          </strong>
+                        </span>
+                        <span>·</span>
+                        <span>
+                          <strong className="text-foreground font-semibold">
+                            {serverResources?.database
+                              ? `${serverResources.database.activeConnections}/${serverResources.database.maxConnections}`
+                              : '—'}
+                          </strong>{' '}
+                          conns
+                        </span>
+                      </div>
                     </Link>
                   </div>
-                )}
+
+                  {/* Globe / Map View */}
+                  <div
+                    className={cn(
+                      'absolute inset-0 w-full h-full transition-opacity duration-200',
+                      canvasMode === 'map'
+                        ? 'opacity-100 pointer-events-auto z-10'
+                        : 'opacity-0 pointer-events-none z-0'
+                    )}
+                  >
+                    <RegionalWorldMap
+                      coordinates={serverResources?.host?.coordinates || [103.8, 1.37]}
+                      label={
+                        serverResources?.host?.region
+                          ? `${serverResources.host.region} · Dedicated Host`
+                          : 'Southeast Asia (Singapore) · Dedicated Host'
+                      }
+                      regionCode={serverResources?.host?.regionCode || 'ap-southeast-1'}
+                    />
+                  </div>
+                </div>
+
+                {/* Permanent Consistent Footer Strip (Identical height & padding in both modes) */}
+                <div className="flex justify-between items-center text-[11px] text-foreground-lighter px-5 py-3 border-t border-default/40 bg-surface-100/60 backdrop-blur-xs z-10 flex-shrink-0">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Socket Bare-Metal / Dedicated Runtime</span>
+                  </span>
+                  <Link
+                    href={`/project/${projectRef}/infrastructure`}
+                    className="hover:text-foreground text-brand transition-colors"
+                  >
+                    Manage server &rarr;
+                  </Link>
+                </div>
               </div>
             </div>
 
