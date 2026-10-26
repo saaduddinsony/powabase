@@ -5,7 +5,7 @@ import { PropsWithChildren } from 'react'
 import { Menu, Separator } from 'ui'
 import { GenericSkeletonLoader } from 'ui-patterns'
 
-import { useInstalledIntegrations } from '@/components/interfaces/Integrations/Landing/useInstalledIntegrations'
+import DefaultLayout from '@/components/layouts/DefaultLayout'
 import { ProjectLayout } from '@/components/layouts/ProjectLayout'
 import AlertError from '@/components/ui/AlertError'
 import { ProductMenuItem } from '@/components/ui/ProductMenu/ProductMenuItem'
@@ -24,20 +24,22 @@ export const ProjectIntegrationsLayout = withAuth(({ children }: PropsWithChildr
   const page = `${segments[3]}${segments[4] ? `/${segments[4]}` : ''}`
 
   return (
-    <ProjectLayout
-      product="Integrations"
-      browserTitle={{ section: 'Integrations' }}
-      isBlocking={false}
-      productMenu={
-        <>
-          <IntegrationCategoriesMenu page={page} />
-          <Separator />
-          <InstalledIntegrationsMenu page={page} />
-        </>
-      }
-    >
-      {children}
-    </ProjectLayout>
+    <DefaultLayout>
+      <ProjectLayout
+        product="Integrations"
+        browserTitle={{ section: 'Integrations' }}
+        isBlocking={false}
+        productMenu={
+          <>
+            <IntegrationCategoriesMenu page={page} />
+            <Separator />
+            <InstalledIntegrationsMenu page={page} />
+          </>
+        }
+      >
+        {children}
+      </ProjectLayout>
+    </DefaultLayout>
   )
 })
 
