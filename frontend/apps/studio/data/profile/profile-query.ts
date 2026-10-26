@@ -15,9 +15,11 @@ export async function getProfile(signal?: AbortSignal) {
   if (error) handleError(error)
 
   if (!IS_PLATFORM) {
+    const rawDisabled = process.env.NEXT_PUBLIC_DISABLED_FEATURES?.split(',').filter(Boolean) ?? []
+    const disabled_features = rawDisabled.filter((f) => f !== 'ai:project_copilot')
     return {
       ...data,
-      disabled_features: process.env.NEXT_PUBLIC_DISABLED_FEATURES?.split(',') ?? [],
+      disabled_features,
     } as Profile
   } else {
     return data as Profile

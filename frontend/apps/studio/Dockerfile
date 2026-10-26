@@ -92,10 +92,8 @@ ARG NEXT_PUBLIC_GOOGLE_ADS_PAID_LABEL=
 # !IS_PLATFORM, merged into profile.disabled_features. Does NOT touch that
 # shared JSON, so this is safe to override per-deployment.
 #
-# The copilot is a hosted feature; self-host builds ship it dark. The published
-# powabase-studio image is built IS_PLATFORM=false, so this value is what
-# getProfile() merges into disabled_features there.
-ARG NEXT_PUBLIC_DISABLED_FEATURES=ai:project_copilot
+# Self-host Socket builds enable Project Copilot with self-hosted LLM keys and accidental deletion safeguards.
+ARG NEXT_PUBLIC_DISABLED_FEATURES=billing:all,billing:plan_picker,credits:enabled
 # Per-project subdomain base: each project is served at `<ref>.${PROJECT_DOMAIN_BASE}`.
 # csp.js reads this while `next build` evaluates next.config.js headers(), so the
 # CSP allow-list for the per-project hosts (Storage uploads, Realtime WS) is fixed

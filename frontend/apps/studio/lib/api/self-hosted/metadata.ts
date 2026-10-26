@@ -184,6 +184,33 @@ export async function ensureMetadataSchema(): Promise<void> {
       user_id TEXT DEFAULT '00000000-0000-0000-0000-000000000001'
     );
 
+    CREATE TABLE IF NOT EXISTS _socket_metadata.copilot_sessions (
+      id TEXT PRIMARY KEY,
+      project_ref TEXT NOT NULL DEFAULT 'default',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS _socket_metadata.copilot_messages (
+      id TEXT PRIMARY KEY,
+      session_id TEXT REFERENCES _socket_metadata.copilot_sessions(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      guide_event JSONB,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS _socket_metadata.copilot_settings (
+      project_ref TEXT PRIMARY KEY,
+      warn_on_delete BOOLEAN DEFAULT TRUE,
+      model TEXT DEFAULT 'auto',
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    INSERT INTO _socket_metadata.copilot_settings (project_ref, warn_on_delete)
+    VALUES ('default', TRUE)
+    ON CONFLICT (project_ref) DO NOTHING;
+
     INSERT INTO _socket_metadata.user_profiles (gotrue_id, primary_email, username, first_name, last_name)
     VALUES ('00000000-0000-0000-0000-000000000001', 'admin@socket.dev', 'admin', 'Socket', 'Admin')
     ON CONFLICT (gotrue_id) DO NOTHING;
@@ -1033,31 +1060,148 @@ export async function deleteSocketPersonalAccessToken(id: number | string): Prom
 export async function getSocketAuditLogs(): Promise<any[]> {
   return [
     {
-      action: 'user.login',
+      action: {
+        name: 'user.login',
+        metadata: [{ method: 'POST', route: '/api/login', status: 200 }],
+      },
       actor: {
         id: '00000000-0000-0000-0000-000000000001',
-        primary_email: 'admin@socket.dev',
-        username: 'admin',
+        type: 'user',
+        metadata: [{ email: 'admin@socket.dev', tokenType: 'session' }],
       },
       occurred_at: new Date().toISOString(),
       target: {
-        type: 'session',
-        description: 'Session authenticated via administrative interface',
+        description: 'Default Project',
+        metadata: {
+          project_ref: 'default',
+          ref: 'default',
+          org_slug: 'default-org-slug',
+          slug: 'default-org-slug',
+        },
       },
     },
     {
-      action: 'project.access',
+      action: {
+        name: 'project.access',
+        metadata: [{ method: 'GET', route: '/project/default', status: 200 }],
+      },
       actor: {
         id: '00000000-0000-0000-0000-000000000001',
-        primary_email: 'admin@socket.dev',
-        username: 'admin',
+        type: 'user',
+        metadata: [{ email: 'admin@socket.dev', tokenType: 'session' }],
       },
       occurred_at: new Date(Date.now() - 3600000).toISOString(),
       target: {
-        type: 'project',
-        description: 'Project default opened in Studio',
+        description: 'Default Project',
+        metadata: {
+          project_ref: 'default',
+          ref: 'default',
+          org_slug: 'default-org-slug',
+          slug: 'default-org-slug',
+        },
       },
     },
   ]
 }
+
+export async function getOrCreateCopilotSession(ref: string = 'default'): Promise<{ id: string; created_at: string }> {
+  await ensureMetadataSchema()
+  const { data } = await executeQuery<{ id: string; created_at: string }>({
+    query: `SELECT id, created_at FROM _socket_metadata.copilot_sessions WHERE project_ref = $1 ORDER BY updated_at DESC LIMIT 1`,
+    parameters: [ref],
+  })
+
+  if (data && data.length > 0) {
+    return data[0]
+  }
+
+  const newId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+  await executeQuery({
+    query: `INSERT INTO _socket_metadata.copilot_sessions (id, project_ref) VALUES ($1, $2)`,
+    parameters: [newId, ref],
+  })
+
+  return { id: newId, created_at: new Date().toISOString() }
+}
+
+export async function deleteCopilotSession(sessionId: string): Promise<boolean> {
+  await ensureMetadataSchema()
+  await executeQuery({
+    query: `DELETE FROM _socket_metadata.copilot_sessions WHERE id = $1`,
+    parameters: [sessionId],
+  })
+  return true
+}
+
+export async function getCopilotMessages(sessionId: string): Promise<any[]> {
+  await ensureMetadataSchema()
+  const { data } = await executeQuery<{
+    id: string
+    role: string
+    content: string
+    guide_event: any
+    created_at: string
+  }>({
+    query: `SELECT id, role, content, guide_event, created_at FROM _socket_metadata.copilot_messages WHERE session_id = $1 ORDER BY created_at ASC`,
+    parameters: [sessionId],
+  })
+  return data ?? []
+}
+
+export async function saveCopilotMessage(
+  sessionId: string,
+  message: { id: string; role: string; content: string; guide_event?: any }
+): Promise<void> {
+  await ensureMetadataSchema()
+  await executeQuery({
+    query: `
+      INSERT INTO _socket_metadata.copilot_messages (id, session_id, role, content, guide_event)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (id) DO UPDATE SET content = $4
+    `,
+    parameters: [message.id, sessionId, message.role, message.content, JSON.stringify(message.guide_event ?? null)],
+  })
+
+  await executeQuery({
+    query: `UPDATE _socket_metadata.copilot_sessions SET updated_at = NOW() WHERE id = $1`,
+    parameters: [sessionId],
+  })
+}
+
+export async function getCopilotSettings(ref: string = 'default'): Promise<{ warn_on_delete: boolean; model: string }> {
+  await ensureMetadataSchema()
+  const { data } = await executeQuery<{ warn_on_delete: boolean; model: string }>({
+    query: `SELECT warn_on_delete, model FROM _socket_metadata.copilot_settings WHERE project_ref = $1 LIMIT 1`,
+    parameters: [ref],
+  })
+
+  if (data && data.length > 0) {
+    return {
+      warn_on_delete: data[0].warn_on_delete ?? true,
+      model: data[0].model ?? 'auto',
+    }
+  }
+
+  return { warn_on_delete: true, model: 'auto' }
+}
+
+export async function updateCopilotSettings(
+  ref: string = 'default',
+  settings: { warn_on_delete?: boolean; model?: string }
+): Promise<boolean> {
+  await ensureMetadataSchema()
+  await executeQuery({
+    query: `
+      INSERT INTO _socket_metadata.copilot_settings (project_ref, warn_on_delete, model, updated_at)
+      VALUES ($1, coalesce($2, true), coalesce($3, 'auto'), NOW())
+      ON CONFLICT (project_ref) DO UPDATE
+      SET warn_on_delete = coalesce($2, _socket_metadata.copilot_settings.warn_on_delete),
+          model = coalesce($3, _socket_metadata.copilot_settings.model),
+          updated_at = NOW()
+    `,
+    parameters: [ref, settings.warn_on_delete ?? null, settings.model ?? null],
+  })
+  return true
+}
+
 

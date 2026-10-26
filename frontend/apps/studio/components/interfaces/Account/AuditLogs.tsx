@@ -78,7 +78,7 @@ export const AuditLogs = () => {
     ?.filter((log) => {
       if (filters.projects.length > 0) {
         return filters.projects.includes(
-          log.target.metadata.project_ref || log.target.metadata.ref || ''
+          log?.target?.metadata?.project_ref || log?.target?.metadata?.ref || ''
         )
       } else {
         return log
@@ -231,13 +231,13 @@ export const AuditLogs = () => {
                   body={
                     sortedLogs?.map((log) => {
                       const logProjectRef =
-                        log.target.metadata.project_ref || log.target.metadata.ref
-                      const logOrgSlug = log.target.metadata.org_slug || log.target.metadata.slug
+                        log?.target?.metadata?.project_ref || log?.target?.metadata?.ref
+                      const logOrgSlug = log?.target?.metadata?.org_slug || log?.target?.metadata?.slug
 
                       const project = projects?.find((project) => project.ref === logProjectRef)
                       const organization = organizations?.find((org) => org.slug === logOrgSlug)
 
-                      const hasStatusCode = log.action.metadata[0]?.status !== undefined
+                      const hasStatusCode = log?.action?.metadata?.[0]?.status !== undefined
 
                       return (
                         <Table.tr
@@ -249,11 +249,11 @@ export const AuditLogs = () => {
                             <div className="flex items-center space-x-2">
                               {hasStatusCode && (
                                 <p className="bg-surface-200 rounded px-1 flex items-center justify-center text-xs font-mono border">
-                                  {log.action.metadata[0].status}
+                                  {log?.action?.metadata?.[0]?.status}
                                 </p>
                               )}
-                              <p className="truncate" title={log.action.name}>
-                                {log.action.name}
+                              <p className="truncate" title={log?.action?.name || ''}>
+                                {log?.action?.name || 'Action'}
                               </p>
                             </div>
                           </Table.td>

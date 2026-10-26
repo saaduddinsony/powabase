@@ -21,7 +21,7 @@ export const NewTokenButton = ({ onCreateToken }: NewAccessTokenButtonProps) => 
 
   return (
     <>
-      <div className="flex items-center">
+      <div className="inline-flex items-center -space-x-px">
         <Button
           className="rounded-r-none px-3"
           onClick={() => {
@@ -36,8 +36,8 @@ export const NewTokenButton = ({ onCreateToken }: NewAccessTokenButtonProps) => 
             <Button
               type="primary"
               title="Choose token scope"
-              className="rounded-l-none px-[4px] py-[5px]"
-              icon={<ChevronDown />}
+              className="rounded-l-none px-1.5 border-l border-white/20 dark:border-black/20"
+              icon={<ChevronDown size={14} className="text-white dark:text-black" />}
             />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side="bottom">

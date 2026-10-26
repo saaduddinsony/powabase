@@ -33,8 +33,8 @@ export const ProjectCopilotWelcomeBody = ({
     <div className="flex flex-col gap-y-4">
       <div className="flex flex-col gap-y-1">
         <p className="text-sm text-foreground">
-          👋 Welcome to your Powabase project. I&apos;m your Project Copilot — I can walk you
-          through the app and answer questions from the docs.
+          👋 Welcome to your Socket project. I&apos;m your Project Copilot — I can walk you
+          through the app, write queries, manage tables, and execute actions on your behalf.
         </p>
       </div>
 

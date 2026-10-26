@@ -167,7 +167,7 @@ const IconContainerVariants = cva('inline-flex items-center justify-center shrin
       xxxlarge: '[&_svg]:h-[42px] [&_svg]:w-[42px]',
     },
     type: {
-      primary: 'text-brand-600',
+      primary: 'text-current',
       default: 'text-foreground-lighter',
       secondary: 'text-border-muted',
       alternative: 'text-foreground-lighter',
@@ -185,7 +185,7 @@ export type LoadingVariantProps = VariantProps<typeof loadingVariants>
 const loadingVariants = cva('', {
   variants: {
     type: {
-      primary: 'text-brand-600',
+      primary: 'text-current',
       default: 'text-foreground-lighter',
       secondary: 'text-border-muted',
       alternative: 'text-foreground-lighter',

@@ -24,6 +24,7 @@ import { useSidebarManagerSnapshot } from '@/state/sidebar-manager-state'
 import { docsNoticeCopy, isDocsNotice } from './docs-notice-copy'
 import { looksLikeGuideLaunchClaim } from './launch-claim'
 import { ProjectCopilotWelcomeBody } from './ProjectCopilotWelcome'
+import { InteractiveCopilotAvatar } from './InteractiveCopilotAvatar'
 
 /** Inline notice shown for a pre-stream turn failure (402/409/503/other). */
 interface TurnNotice {
@@ -412,7 +413,7 @@ export const ProjectCopilotPanel = () => {
     <div className="flex flex-col h-full bg-studio" role="complementary" aria-label="Project Copilot">
       <div className="flex items-center justify-between px-4 h-12 border-b border-default flex-shrink-0">
         <div className="flex items-center gap-x-2">
-          <Sparkles size={16} className="text-brand" />
+          <InteractiveCopilotAvatar size="small" isAwake={true} />
           <h2 className="text-sm font-medium">Project Copilot</h2>
         </div>
         <div className="flex items-center gap-x-0.5">
@@ -487,7 +488,12 @@ export const ProjectCopilotPanel = () => {
                     {m.content}
                   </p>
                 ) : (
-                  <MarkdownText className="text-sm text-foreground">{m.content}</MarkdownText>
+                  <div className="flex items-start gap-x-2.5">
+                    <InteractiveCopilotAvatar size="tiny" isAwake={true} className="mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <MarkdownText className="text-sm text-foreground">{m.content}</MarkdownText>
+                    </div>
+                  </div>
                 )}
                 {seq && (
                   <Button
@@ -522,7 +528,10 @@ export const ProjectCopilotPanel = () => {
                 </p>
               </div>
             )}
-            <p className="text-xs text-foreground-lighter">{statusTool || 'Thinking…'}</p>
+            <div className="flex items-center gap-x-2">
+              <InteractiveCopilotAvatar size="tiny" isAwake={true} />
+              <p className="text-xs text-foreground-lighter">{statusTool || 'Thinking…'}</p>
+            </div>
           </div>
         )}
 
