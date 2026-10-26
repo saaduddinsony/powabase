@@ -319,8 +319,20 @@ const WorkflowsListPage: NextPageWithLayout = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery.trim(), 300);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [sortIdx, setSortIdx] = useState(0);
   const sort = SORT_OPTIONS[sortIdx];
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedBlueprint, setSelectedBlueprint] = useState<WorkflowBlueprint["id"]>("blank");
@@ -461,29 +473,49 @@ const WorkflowsListPage: NextPageWithLayout = () => {
       <div className="px-6 py-4 shrink-0">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="relative w-64">
+            {/* Pill Search Box matching screenshot */}
+            <div className="relative w-64 sm:w-72">
               <Search
-                size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted"
+                size={15}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground-lighter pointer-events-none"
               />
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name..."
+                placeholder="Search"
                 aria-label="Search workflows"
                 className={cn(
-                  "w-full h-8 pl-9 pr-3 text-sm rounded-md",
-                  "bg-surface-200 border border-default text-foreground",
-                  "focus:outline-none focus:ring-1 focus:ring-brand-400",
+                  "w-full h-9 pl-9 pr-12 text-xs rounded-full",
+                  "bg-white dark:bg-[#16171a] border border-neutral-200/90 dark:border-neutral-800 text-foreground",
+                  "placeholder:text-foreground-lighter/70 shadow-2xs transition-all",
+                  "focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500",
                 )}
               />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-lighter hover:text-foreground p-0.5"
+                >
+                  <X size={13} />
+                </button>
+              ) : (
+                <kbd className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] font-mono text-foreground-lighter/60 select-none pointer-events-none">
+                  ⌘K
+                </kbd>
+              )}
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm" className="gap-1.5">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-9 px-3.5 rounded-full bg-white dark:bg-[#16171a] border border-neutral-200/90 dark:border-neutral-800 hover:bg-surface-200 text-xs font-medium gap-1.5 shadow-2xs transition"
+                >
                   {sort.label}
-                  <ChevronRight size={14} className="rotate-90" />
+                  <ChevronRight size={13} className="rotate-90 text-foreground-lighter" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
@@ -506,7 +538,7 @@ const WorkflowsListPage: NextPageWithLayout = () => {
               setShowCreateModal(true);
             }}
             data-onboarding-id={ONBOARDING_ANCHORS.workflows.createButton}
-            className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2 flex items-center gap-1.5"
+            className="h-9 px-4 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-xs font-semibold rounded-full shadow-2xs whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2 flex items-center gap-1.5"
           >
             <Plus size={14} />
             Create workflow
