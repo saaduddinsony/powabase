@@ -25,7 +25,18 @@ import { getDefaultConfig, blockRegistry, type InputMapping } from "@/data/ai-wo
 import { evaluateCondition } from "./condition-utils";
 import { WorkflowContext } from "./WorkflowContext";
 import { useWorkflowHistory } from "./useWorkflowHistory";
-import { Undo2, Redo2 } from "lucide-react";
+import {
+  Undo2,
+  Redo2,
+  Plus,
+  Minus,
+  Maximize2,
+  Map,
+  Grid,
+  Hand,
+  MousePointer,
+  Layers,
+} from "lucide-react";
 
 const nodeTypes = { block: BlockNode };
 
@@ -120,6 +131,11 @@ function WorkflowCanvasInner({
   const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
   const updateNodeInternals = useUpdateNodeInternals();
   const blockCountRef = useRef(initialNodes.length);
+  const [currentZoom, setCurrentZoom] = useState(100);
+  const [showMiniMap, setShowMiniMap] = useState(true);
+  const [gridVariant, setGridVariant] = useState<BackgroundVariant>(BackgroundVariant.Dots);
+  const [panMode, setPanMode] = useState<boolean>(true);
+  const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(true);
 
   const { pushSnapshot, undo, redo, canUndo, canRedo, isUndoRedoRef } =
     useWorkflowHistory(initialNodes, initialEdges, setNodes, setEdges);
@@ -502,10 +518,29 @@ function WorkflowCanvasInner({
 
   return (
     <WorkflowContext.Provider value={workflowCtx}>
-    <div className="flex h-full w-full">
-      <BlockPalette onAddBlock={handleAddBlock} existingBlockTypes={existingBlockTypes} />
+    <div className="flex h-full w-full relative overflow-hidden select-none">
+      {/* Collapsible Palette */}
+      {isPaletteOpen ? (
+        <div className="relative shrink-0 flex h-full z-10">
+          <BlockPalette
+            onAddBlock={handleAddBlock}
+            existingBlockTypes={existingBlockTypes}
+            onClose={() => setIsPaletteOpen(false)}
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsPaletteOpen(true)}
+          className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-default bg-surface-100/90 backdrop-blur-md shadow-md text-foreground text-xs font-medium hover:bg-surface-200 transition-all"
+          title="Open Blocks Palette"
+        >
+          <Layers size={14} className="text-brand" />
+          <span>Add Blocks</span>
+        </button>
+      )}
 
-      <div className="flex-1 relative">
+      <div className="flex-1 relative h-full w-full">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -520,8 +555,12 @@ function WorkflowCanvasInner({
           onDragOver={onDragOver}
           onNodeDragStop={() => takeSnapshot()}
           onNodesDelete={() => takeSnapshot()}
+          onMoveEnd={(_event, viewport) => {
+            setCurrentZoom(Math.round(viewport.zoom * 100));
+          }}
           onInit={(instance) => {
             reactFlowInstance.current = instance;
+            setCurrentZoom(Math.round(instance.getZoom() * 100));
 
             // After fitView completes and the viewport settles,
             // remeasure all handle positions so first-drag edges are correct
@@ -539,52 +578,162 @@ function WorkflowCanvasInner({
             },
           }}
           fitView
+          minZoom={0.1}
+          maxZoom={2.5}
+          panOnScroll={true}
+          zoomOnPinch={true}
+          panOnDrag={panMode ? [0, 1, 2] : [1, 2]}
+          selectionOnDrag={!panMode}
+          snapToGrid={true}
+          snapGrid={[16, 16]}
           deleteKeyCode={["Backspace", "Delete"]}
           proOptions={{ hideAttribution: true }}
           className="bg-default"
         >
-          <div className="absolute bottom-4 left-4 z-10 flex gap-1">
+          {/* Floating Infinite Canvas HUD Toolbar */}
+          <div className="absolute bottom-5 left-5 z-20 flex items-center bg-surface-100/95 backdrop-blur-md rounded-xl border border-default p-1 shadow-lg gap-0.5">
+            {/* History: Undo / Redo */}
             <button
+              type="button"
               onClick={undo}
               disabled={!canUndo}
               title="Undo (Ctrl+Z)"
-              className="rounded border border-default bg-surface-100 p-1.5 text-foreground-light hover:bg-surface-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Undo"
+              className="h-7.5 w-7.5 rounded-lg flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 disabled:opacity-30 disabled:cursor-not-allowed transition"
             >
-              <Undo2 size={16} />
+              <Undo2 size={14} />
             </button>
             <button
+              type="button"
               onClick={redo}
               disabled={!canRedo}
               title="Redo (Ctrl+Y)"
-              className="rounded border border-default bg-surface-100 p-1.5 text-foreground-light hover:bg-surface-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              aria-label="Redo"
+              className="h-7.5 w-7.5 rounded-lg flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 disabled:opacity-30 disabled:cursor-not-allowed transition"
             >
-              <Redo2 size={16} />
+              <Redo2 size={14} />
+            </button>
+
+            <div className="h-4 w-px bg-default mx-0.5" />
+
+            {/* Zoom Controls */}
+            <button
+              type="button"
+              onClick={() => reactFlowInstance.current?.zoomOut({ duration: 250 })}
+              title="Zoom Out"
+              aria-label="Zoom Out"
+              className="h-7.5 w-7.5 rounded-lg flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition"
+            >
+              <Minus size={14} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => reactFlowInstance.current?.zoomTo(1, { duration: 250 })}
+              title="Reset Zoom to 100%"
+              aria-label="Reset Zoom to 100%"
+              className="h-7.5 px-2 rounded-lg flex items-center justify-center text-[11px] font-mono font-medium text-foreground hover:bg-surface-200 transition"
+            >
+              {currentZoom}%
+            </button>
+
+            <button
+              type="button"
+              onClick={() => reactFlowInstance.current?.zoomIn({ duration: 250 })}
+              title="Zoom In"
+              aria-label="Zoom In"
+              className="h-7.5 w-7.5 rounded-lg flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition"
+            >
+              <Plus size={14} />
+            </button>
+
+            <div className="h-4 w-px bg-default mx-0.5" />
+
+            {/* Fit View */}
+            <button
+              type="button"
+              onClick={() => reactFlowInstance.current?.fitView({ padding: 0.25, duration: 350 })}
+              title="Fit View to Screen"
+              aria-label="Fit View to Screen"
+              className="h-7.5 w-7.5 rounded-lg flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition"
+            >
+              <Maximize2 size={14} />
+            </button>
+
+            {/* Pan vs Selection Mode */}
+            <button
+              type="button"
+              onClick={() => setPanMode((p) => !p)}
+              title={panMode ? "Pan Mode Active (Click for Box Selection)" : "Box Selection Active (Click for Pan Mode)"}
+              aria-label="Toggle Pan/Select Mode"
+              className={`h-7.5 w-7.5 rounded-lg flex items-center justify-center transition ${
+                panMode ? "bg-surface-200 text-foreground" : "text-foreground-lighter hover:text-foreground hover:bg-surface-200/50"
+              }`}
+            >
+              {panMode ? <Hand size={14} /> : <MousePointer size={14} />}
+            </button>
+
+            {/* Toggle MiniMap */}
+            <button
+              type="button"
+              onClick={() => setShowMiniMap((v) => !v)}
+              title={showMiniMap ? "Hide MiniMap" : "Show MiniMap"}
+              aria-label="Toggle MiniMap"
+              className={`h-7.5 w-7.5 rounded-lg flex items-center justify-center transition ${
+                showMiniMap ? "bg-surface-200 text-brand" : "text-foreground-lighter hover:text-foreground hover:bg-surface-200/50"
+              }`}
+            >
+              <Map size={14} />
+            </button>
+
+            {/* Toggle Grid Variant */}
+            <button
+              type="button"
+              onClick={() =>
+                setGridVariant((prev) =>
+                  prev === BackgroundVariant.Dots ? BackgroundVariant.Lines : BackgroundVariant.Dots
+                )
+              }
+              title="Toggle Grid Style (Dots / Lines)"
+              aria-label="Toggle Grid Style"
+              className="h-7.5 w-7.5 rounded-lg flex items-center justify-center text-foreground-lighter hover:text-foreground hover:bg-surface-200 transition"
+            >
+              <Grid size={14} />
             </button>
           </div>
+
           <Background
-            variant={BackgroundVariant.Dots}
-            gap={20}
-            size={0.8}
+            variant={gridVariant}
+            gap={gridVariant === BackgroundVariant.Lines ? 24 : 20}
+            size={gridVariant === BackgroundVariant.Lines ? 1 : 0.8}
             color="hsl(var(--border-muted))"
           />
-          <MiniMap
-            style={{
-              backgroundColor: 'hsl(var(--background-surface-100))',
-              border: '1px solid hsl(var(--border-default))',
-              borderRadius: 8,
-            }}
-            nodeColor={(node) => {
-              const color = blockRegistry[node.data?.blockType]?.color;
-              const hex: Record<string, string> = {
-                emerald: '#34d399', violet: '#8b5cf6', amber: '#f59e0b',
-                orange: '#f97316', blue: '#3b82f6', teal: '#14b8a6', cyan: '#06b6d4', slate: '#94a3b8',
-              };
-              return hex[color] || '#71717a';
-            }}
-            maskColor="rgb(9 9 11 / 0.7)"
-            pannable
-            zoomable={false}
-          />
+
+          {showMiniMap && (
+            <div className="absolute bottom-5 right-5 z-10 pointer-events-auto">
+              <MiniMap
+                style={{
+                  position: 'relative',
+                  backgroundColor: 'hsl(var(--background-surface-100))',
+                  border: '1px solid hsl(var(--border-default))',
+                  borderRadius: 12,
+                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
+                  margin: 0,
+                }}
+                nodeColor={(node) => {
+                  const color = blockRegistry[node.data?.blockType]?.color;
+                  const hex: Record<string, string> = {
+                    emerald: '#34d399', violet: '#8b5cf6', amber: '#f59e0b',
+                    orange: '#f97316', blue: '#3b82f6', teal: '#14b8a6', cyan: '#06b6d4', slate: '#94a3b8',
+                  };
+                  return hex[color] || '#71717a';
+                }}
+                maskColor="rgb(9 9 11 / 0.65)"
+                pannable
+                zoomable
+              />
+            </div>
+          )}
         </ReactFlow>
       </div>
 

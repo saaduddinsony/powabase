@@ -79,8 +79,8 @@ const WorkflowEditorPage: NextPageWithLayout = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState("");
   const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
-  const [showPanel, setShowPanel] = useState(true);
-  const [showCopilot, setShowCopilot] = useState(true);
+  const [showPanel, setShowPanel] = useState(false);
+  const [showCopilot, setShowCopilot] = useState(false);
   const canvasRef = useRef<WorkflowCanvasHandle>(null);
   const [importCounter, setImportCounter] = useState(0);
 
@@ -555,7 +555,11 @@ const WorkflowEditorPage: NextPageWithLayout = () => {
           </button>
           <button
             onClick={() => setShowPanel((v) => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md text-foreground border border-default hover:bg-surface-200 transition"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md border transition ${
+              showPanel
+                ? "text-brand-600 border-brand-400 bg-brand-400/10"
+                : "text-foreground border-default hover:bg-surface-200"
+            }`}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

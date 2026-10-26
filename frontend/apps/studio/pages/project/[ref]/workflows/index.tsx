@@ -3,7 +3,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/router";
-import { Search, Plus, ChevronRight, Trash2, GitBranch } from "lucide-react";
+import { Search, Plus, ChevronRight, Trash2, GitBranch, Sparkles, ArrowRight, Layers, Bot, Zap } from "lucide-react";
 
 import { useSessionAccessTokenQuery } from "@/data/auth/session-access-token-query";
 import { hasAiAuth } from "@/lib/ai-api";
@@ -273,13 +273,128 @@ const WorkflowsListPage: NextPageWithLayout = () => {
               <div className="animate-spin h-8 w-8 border-2 border-brand-400 border-t-transparent rounded-full" />
             </div>
           ) : items.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-foreground-lighter text-sm">
-                {debouncedSearch
-                  ? `No matches for "${debouncedSearch}"`
-                  : "No workflows yet"}
-              </p>
-            </div>
+            debouncedSearch ? (
+              <div className="text-center py-16">
+                <p className="text-foreground-lighter text-sm">
+                  No matches for "{debouncedSearch}"
+                </p>
+              </div>
+            ) : (
+              <div className="py-6">
+                <div className="rounded-2xl border border-default bg-surface-100/60 backdrop-blur-sm p-8 shadow-sm">
+                  <div className="max-w-2xl mx-auto text-center">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-400/10 border border-brand-400/30 text-brand-600 dark:text-brand-400 text-xs font-medium mb-4">
+                      <Sparkles size={13} />
+                      <span>Infinite Canvas Workflow Engine</span>
+                    </div>
+                    <h2 className="text-2xl font-semibold text-foreground tracking-tight mb-2">
+                      Build Visual AI Workflows
+                    </h2>
+                    <p className="text-sm text-foreground-light leading-relaxed mb-6">
+                      Drag, drop, and connect triggers, LLM agents, knowledge retrieval, and database queries across an unbounded interactive canvas with live execution tracing.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreateName("Untitled Workflow");
+                        setCreateDescription("Visual AI node graph");
+                        setShowCreateModal(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 text-sm font-medium rounded-full shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      <Plus size={16} />
+                      <span>Create Workflow Canvas</span>
+                    </button>
+                  </div>
+
+                  {/* Template Quickstarts */}
+                  <div className="mt-10 pt-8 border-t border-default/70">
+                    <div className="text-xs font-medium text-foreground-lighter uppercase tracking-wider mb-4 text-center">
+                      Or Start with a Workflow Blueprint
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCreateName("AI Knowledge Base Assistant");
+                          setCreateDescription("Starter → Knowledge Base Search → LLM Generation → Response");
+                          setShowCreateModal(true);
+                        }}
+                        className="p-4 rounded-xl border border-default bg-surface-200/40 hover:bg-surface-200 hover:border-foreground-muted transition-all text-left group flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="h-9 w-9 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center mb-3">
+                            <Bot size={18} />
+                          </div>
+                          <div className="font-medium text-sm text-foreground group-hover:text-brand transition-colors">
+                            AI RAG Assistant
+                          </div>
+                          <div className="text-xs text-foreground-lighter mt-1 leading-relaxed">
+                            Retrieve knowledge vectors and generate grounded responses with LLMs.
+                          </div>
+                        </div>
+                        <div className="mt-4 flex items-center gap-1 text-xs text-brand font-medium">
+                          <span>Use blueprint</span>
+                          <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCreateName("Postgres Webhook Dispatcher");
+                          setCreateDescription("Webhook → SQL Query → Branch Condition → Webhook Post");
+                          setShowCreateModal(true);
+                        }}
+                        className="p-4 rounded-xl border border-default bg-surface-200/40 hover:bg-surface-200 hover:border-foreground-muted transition-all text-left group flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="h-9 w-9 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center mb-3">
+                            <Zap size={18} />
+                          </div>
+                          <div className="font-medium text-sm text-foreground group-hover:text-brand transition-colors">
+                            Database Webhook Trigger
+                          </div>
+                          <div className="text-xs text-foreground-lighter mt-1 leading-relaxed">
+                            Listen to database events, filter changes, and trigger external webhooks.
+                          </div>
+                        </div>
+                        <div className="mt-4 flex items-center gap-1 text-xs text-brand font-medium">
+                          <span>Use blueprint</span>
+                          <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCreateName("Multi-Agent Intent Router");
+                          setCreateDescription("Starter → Classifier → Specialized Agent Tool → Terminal Output");
+                          setShowCreateModal(true);
+                        }}
+                        className="p-4 rounded-xl border border-default bg-surface-200/40 hover:bg-surface-200 hover:border-foreground-muted transition-all text-left group flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="h-9 w-9 rounded-lg bg-violet-500/10 text-violet-500 border border-violet-500/20 flex items-center justify-center mb-3">
+                            <Layers size={18} />
+                          </div>
+                          <div className="font-medium text-sm text-foreground group-hover:text-brand transition-colors">
+                            Multi-Agent Router
+                          </div>
+                          <div className="text-xs text-foreground-lighter mt-1 leading-relaxed">
+                            Classify user inquiries and route to specialized agent tools and pipelines.
+                          </div>
+                        </div>
+                        <div className="mt-4 flex items-center gap-1 text-xs text-brand font-medium">
+                          <span>Use blueprint</span>
+                          <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
           ) : (
             <>
               <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>

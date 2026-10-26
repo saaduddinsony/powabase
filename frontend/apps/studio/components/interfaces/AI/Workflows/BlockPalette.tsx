@@ -7,6 +7,7 @@ import {
   Webhook,
   Network,
   HelpCircle,
+  PanelLeftClose,
 } from "lucide-react";
 import {
   PaperPlaneIcon,
@@ -71,15 +72,27 @@ const tileBgMap: Record<string, string> = {
 interface BlockPaletteProps {
   onAddBlock: (blockType: string, config: Record<string, unknown>) => void;
   existingBlockTypes: Set<string>;
+  onClose?: () => void;
 }
 
-export function BlockPalette({ onAddBlock, existingBlockTypes }: BlockPaletteProps) {
+export function BlockPalette({ onAddBlock, existingBlockTypes, onClose }: BlockPaletteProps) {
   return (
     <div className="w-56 bg-surface-100 border-r border-default flex flex-col h-full" style={{ boxShadow: '8px 0 24px rgb(0 0 0 / 0.2)' }}>
-      <div className="px-3 py-3 border-b border-default">
+      <div className="px-3 py-3 border-b border-default flex items-center justify-between">
         <h3 className="text-xs font-medium text-foreground-muted uppercase tracking-wider">
           Blocks
         </h3>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded text-foreground-lighter hover:text-foreground hover:bg-surface-200 transition"
+            title="Collapse Palette"
+            aria-label="Collapse Palette"
+          >
+            <PanelLeftClose size={14} />
+          </button>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {Object.values(blockRegistry).map((blockType) => {
