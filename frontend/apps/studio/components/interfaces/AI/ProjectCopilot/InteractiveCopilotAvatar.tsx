@@ -302,13 +302,13 @@ export const InteractiveCopilotAvatar = ({
         <path
           d={pathD}
           className="transition-colors duration-300"
-          fill={isDarkMode ? '#1e1f23' : '#ffffff'}
-          stroke={isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'}
+          fill={isDarkMode ? '#ffffff' : '#17181a'}
+          stroke={isDarkMode ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.12)'}
           strokeWidth="1.5"
           style={{
             filter: isDarkMode
-              ? 'drop-shadow(0 2px 8px rgba(0,0,0,0.45))'
-              : 'drop-shadow(0 2px 6px rgba(0,0,0,0.06))',
+              ? 'drop-shadow(rgba(0, 0, 0, 0.06) 0px 2px 6px)'
+              : 'drop-shadow(rgba(0, 0, 0, 0.15) 0px 2px 6px)',
           }}
         />
 
@@ -317,7 +317,7 @@ export const InteractiveCopilotAvatar = ({
           {/* Left Eye */}
           <g ref={eyeLeftGroupRef} transform="translate(40.50 50.00)">
             <rect
-              fill={isDarkMode ? '#ffffff' : '#17181a'}
+              fill={isDarkMode ? '#17181a' : '#ffffff'}
               x={-eyeGeo.w / 2}
               y={-eyeGeo.h / 2}
               width={eyeGeo.w}
@@ -330,7 +330,7 @@ export const InteractiveCopilotAvatar = ({
           {/* Right Eye */}
           <g ref={eyeRightGroupRef} transform="translate(59.50 50.00)">
             <rect
-              fill={isDarkMode ? '#ffffff' : '#17181a'}
+              fill={isDarkMode ? '#17181a' : '#ffffff'}
               x={-eyeGeo.w / 2}
               y={-eyeGeo.h / 2}
               width={eyeGeo.w}
