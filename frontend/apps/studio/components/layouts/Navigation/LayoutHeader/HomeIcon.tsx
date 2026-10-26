@@ -21,27 +21,33 @@ export const HomeIcon = ({ className }: { className?: string }) => {
   // Periodic smooth morphing cycle when Copilot is not currently open
   useEffect(() => {
     if (isCopilotOpen) {
+      // Immediately revert to Socket logo and remain still while chat panel is open
       setShowAvatar(false)
       return
     }
 
     let morphTimeout: NodeJS.Timeout
     let switchTimeout: NodeJS.Timeout
+    let resumeTimeout: NodeJS.Timeout
 
     const startCycle = () => {
-      // Stay as logo for 7 seconds, then transform to avatar for 4 seconds
+      // Transform to avatar after 7s logo interval, stay as bot for 4s, then smoothly revert
       switchTimeout = setTimeout(() => {
         setShowAvatar(true)
         morphTimeout = setTimeout(() => {
           setShowAvatar(false)
           startCycle()
-        }, 4500)
+        }, 4200)
       }, 7000)
     }
 
-    startCycle()
+    // On panel close, resume after a gentle split-second pause (800ms)
+    resumeTimeout = setTimeout(() => {
+      startCycle()
+    }, 800)
 
     return () => {
+      clearTimeout(resumeTimeout)
       clearTimeout(switchTimeout)
       clearTimeout(morphTimeout)
     }
@@ -67,10 +73,10 @@ export const HomeIcon = ({ className }: { className?: string }) => {
         onClick={handleAvatarClick}
         title="Project Copilot AI Assistant"
         className={cn(
-          'absolute inset-0 flex items-center justify-center transition-all duration-500 ease-in-out cursor-pointer',
+          'absolute inset-0 flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer',
           showAvatar && !isCopilotOpen
-            ? 'opacity-100 scale-100 pointer-events-auto rotate-0'
-            : 'opacity-0 scale-75 pointer-events-none -rotate-12'
+            ? 'opacity-100 scale-100 pointer-events-auto filter drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]'
+            : 'opacity-0 scale-90 pointer-events-none'
         )}
       >
         <InteractiveCopilotAvatar size="small" isAwake={showAvatar && !isCopilotOpen} />
@@ -80,10 +86,10 @@ export const HomeIcon = ({ className }: { className?: string }) => {
       <Link
         href={homeHref}
         className={cn(
-          'items-center justify-center flex-shrink-0 flex transition-all duration-500 ease-in-out',
+          'items-center justify-center flex-shrink-0 flex transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]',
           showAvatar && !isCopilotOpen
-            ? 'opacity-0 scale-75 pointer-events-none rotate-12'
-            : 'opacity-100 scale-100 pointer-events-auto rotate-0'
+            ? 'opacity-0 scale-90 pointer-events-none'
+            : 'opacity-100 scale-100 pointer-events-auto'
         )}
       >
         {/* Light logo on dark background */}

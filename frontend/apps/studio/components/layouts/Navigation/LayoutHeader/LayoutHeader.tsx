@@ -187,10 +187,14 @@ export const LayoutHeader = ({
           </div>
           <div className="flex items-center gap-x-2">
             {customHeaderComponents && customHeaderComponents}
+            <FeedbackDropdown />
+            {commandMenuEnabled && <CommandMenuTriggerInput />}
+            <HelpButton />
+            {projectRef && <AdvisorButton projectRef={projectRef} />}
+            {projectRef && <InlineEditorButton />}
             {projectRef && <ProjectCopilotButton />}
             <CreditBar />
             <HeaderPlanUpgradeButton />
-            {/* Powabase: removed Feedback, Search, Help, Advisor, Assistant, DevToolbar (Upgrade re-added above as HeaderPlanUpgradeButton) */}
             <UserDropdown triggerClassName="hidden md:flex" />
           </div>
         </div>

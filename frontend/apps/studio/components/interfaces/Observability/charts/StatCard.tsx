@@ -20,19 +20,19 @@ interface StatCardProps {
 // See memory/project_tailwind_radix_remap.md.
 const TONE_STYLES: Record<StatCardTone, { badge: string; value: string }> = {
   ok: {
-    badge: "bg-emerald-400/20 border-emerald-400/40 text-emerald-200",
-    value: "text-emerald-200",
+    badge: "bg-surface-100 border-default hover:border-foreground-muted",
+    value: "text-foreground",
   },
   warn: {
-    badge: "bg-[#f59e0b]/25 border-[#fbbf24]/50 text-[#fef3c7]",
-    value: "text-[#fef3c7]",
+    badge: "bg-surface-100 border-amber-500/30 hover:border-amber-500/50",
+    value: "text-amber-500",
   },
   danger: {
-    badge: "bg-[#ef4444]/25 border-[#f87171]/60 text-[#fee2e2]",
-    value: "text-[#fee2e2]",
+    badge: "bg-surface-100 border-destructive/30 hover:border-destructive/50",
+    value: "text-destructive",
   },
   neutral: {
-    badge: "bg-surface-200 border-default text-foreground-light",
+    badge: "bg-surface-100 border-default hover:border-foreground-muted",
     value: "text-foreground",
   },
 }

@@ -22,6 +22,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Badge, Button, cn, Skeleton } from 'ui'
 
+import dynamic from 'next/dynamic'
 import { ClientLibrary } from '@/components/interfaces/Home/ClientLibrary'
 import { EXAMPLE_PROJECTS } from '@/components/interfaces/Home/Home.constants'
 import { OverviewStats } from '@/components/interfaces/ProjectHome/OverviewStats'
@@ -34,6 +35,11 @@ import { useCustomContent } from '@/hooks/custom-content/useCustomContent'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { EMPTY_ARR } from '@/lib/void'
+
+const RegionalWorldMap = dynamic(
+  () => import('./RegionalWorldMap').then((m) => m.RegionalWorldMap),
+  { ssr: false }
+)
 
 dayjs.extend(relativeTime)
 
@@ -74,6 +80,7 @@ export function SupabaseProjectOverview() {
   const { data: organization } = useSelectedOrganizationQuery()
 
   const [showExplorerCallout, setShowExplorerCallout] = useState(false)
+  const [canvasMode, setCanvasMode] = useState<'node' | 'map'>('node')
 
   useEffect(() => {
     try {
@@ -316,56 +323,62 @@ export function SupabaseProjectOverview() {
                 {/* Top Right Canvas Controls */}
                 <div className="flex justify-end gap-1.5 z-10">
                   <Button
-                    type="outline"
+                    type={canvasMode === 'node' ? 'default' : 'outline'}
                     size="tiny"
-                    className="h-7 w-7 p-0 bg-surface-100/80 backdrop-blur-sm"
-                    onClick={() => router.push(`/project/${projectRef}/settings/infrastructure`)}
+                    className="h-7 w-7 p-0 backdrop-blur-sm"
+                    onClick={() => setCanvasMode('node')}
                     title="View infrastructure topology"
                   >
-                    <Network size={14} className="text-foreground-lighter" />
+                    <Network size={14} className={canvasMode === 'node' ? 'text-background' : 'text-foreground-lighter'} />
                   </Button>
                   <Button
-                    type="outline"
+                    type={canvasMode === 'map' ? 'default' : 'outline'}
                     size="tiny"
-                    className="h-7 w-7 p-0 bg-surface-100/80 backdrop-blur-sm"
-                    onClick={() => router.push(`/project/${projectRef}/settings/infrastructure`)}
+                    className="h-7 w-7 p-0 backdrop-blur-sm"
+                    onClick={() => setCanvasMode('map')}
                     title="View regional map"
                   >
-                    <Globe2 size={14} className="text-foreground-lighter" />
+                    <Globe2 size={14} className={canvasMode === 'map' ? 'text-background' : 'text-foreground-lighter'} />
                   </Button>
                 </div>
 
-                {/* Center Node: Primary Database Node Card */}
-                <div className="flex items-center justify-center my-auto py-2 z-10">
-                  <Link
-                    href={`/project/${projectRef}/infrastructure`}
-                    className="w-full max-w-sm rounded-xl border border-default bg-surface-100/95 backdrop-blur-sm p-4 shadow-md hover:border-foreground-muted hover:shadow-lg transition-all"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0 mt-0.5">
-                          <Database size={18} />
+                {/* Center Content: Either Primary Database Node or Regional World Map */}
+                {canvasMode === 'map' ? (
+                  <RegionalWorldMap
+                    coordinates={[8.6821, 50.1109]}
+                    label={project?.region ? project.region : 'Dedicated Host · Oracle Cloud ARM64'}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center my-auto py-2 z-10">
+                    <Link
+                      href={`/project/${projectRef}/infrastructure`}
+                      className="w-full max-w-sm rounded-xl border border-default bg-surface-100/95 backdrop-blur-sm p-4 shadow-md hover:border-foreground-muted hover:shadow-lg transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0 mt-0.5">
+                            <Database size={18} />
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold text-foreground">
+                              Primary Database
+                            </div>
+                            <div className="text-xs text-foreground-light mt-0.5">
+                              {project?.region ? project.region : 'Dedicated Host'}
+                            </div>
+                            <div className="text-[11px] text-foreground-lighter font-mono mt-0.5">
+                              {serverResources
+                                ? `${serverResources.host.arch} · ${serverResources.cpu.model}`
+                                : 'ARM64 · Dedicated Host'}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">
-                            Primary Database
-                          </div>
-                          <div className="text-xs text-foreground-light mt-0.5">
-                            {project?.region ? project.region : 'Dedicated Host'}
-                          </div>
-                          <div className="text-[11px] text-foreground-lighter font-mono mt-0.5">
-                            {serverResources
-                              ? `${serverResources.host.arch} · ${serverResources.cpu.model}`
-                              : 'ARM64 · Dedicated Host'}
-                          </div>
-                        </div>
-                      </div>
 
-                      {/* Server Host Badge */}
-                      <span className="text-base shrink-0 p-1 rounded-md bg-surface-200 border border-default text-foreground-light" title="Self-Hosted Server Runtime">
-                        🖥️
-                      </span>
-                    </div>
+                        {/* Server Host Badge */}
+                        <span className="text-base shrink-0 p-1 rounded-md bg-surface-200 border border-default text-foreground-light" title="Self-Hosted Server Runtime">
+                          🖥️
+                        </span>
+                      </div>
 
                     {/* Mini Resource Metrics Strip */}
                     <div className="mt-3.5 pt-2.5 border-t border-default/70 flex items-center justify-between text-[11px] font-mono text-foreground-light">
@@ -401,6 +414,7 @@ export function SupabaseProjectOverview() {
                     </div>
                   </Link>
                 </div>
+              )}
 
                 {/* Canvas Footer Hint */}
                 <div className="flex justify-between items-center text-[11px] text-foreground-lighter z-10">
@@ -540,6 +554,7 @@ export function SupabaseProjectOverview() {
                 <div className="mt-3 text-2xl font-semibold text-foreground tracking-tight tabular-nums">
                   {serverResources?.database?.activeConnections ?? 0}
                 </div>
+              </Link>
             </div>
 
             {/* Powabase AI Observability Stats */}
