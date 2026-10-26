@@ -22,6 +22,7 @@ import { useResizeComputeMutation } from '@/data/billing/resize-compute-mutation
 import { useIsBillingUiEnabled } from '@/hooks/misc/useIsBillingUiEnabled'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
+import { ServerResourcesDashboard } from './ServerResourcesDashboard'
 
 const tierById = (id: ComputeTierId) => COMPUTE_TIERS.find((t) => t.id === id)!
 
@@ -57,12 +58,7 @@ export const InfrastructureComputeSection = () => {
     return (
       <ScaffoldContainer>
         <ScaffoldSection isFullWidth>
-          <Alert_Shadcn_>
-            <AlertTitle_Shadcn_>Compute management is unavailable</AlertTitle_Shadcn_>
-            <AlertDescription_Shadcn_>
-              Infrastructure controls are managed by your operator on this deployment.
-            </AlertDescription_Shadcn_>
-          </Alert_Shadcn_>
+          <ServerResourcesDashboard />
         </ScaffoldSection>
       </ScaffoldContainer>
     )
