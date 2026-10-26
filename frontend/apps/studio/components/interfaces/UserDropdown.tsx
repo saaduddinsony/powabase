@@ -56,10 +56,12 @@ export function UserDropdown({
   const isAdmin = whoami?.is_admin ?? false
   const { toggleFeaturePreviewModal } = useFeaturePreviewModal()
 
+  const [mounted, setMounted] = useState(false)
   const [selectedTimezone, setSelectedTimezone] = useState<string>('auto')
   const [detectedTimezone, setDetectedTimezone] = useState<string>('Asia/Dhaka')
 
   useEffect(() => {
+    setMounted(true)
     try {
       const detected = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Dhaka'
       setDetectedTimezone(detected)
@@ -85,8 +87,8 @@ export function UserDropdown({
     <DropdownMenu>
       <DropdownMenuTrigger asChild className={cn('border flex-shrink-0 px-3', triggerClassName)}>
         <ButtonTooltip
-          type="default"
-          className="[&>span]:flex px-0 py-0 rounded-full overflow-hidden h-8 w-8"
+          type="outline"
+          className="[&>span]:flex px-0 py-0 rounded-full overflow-hidden h-8 w-8 hover:bg-surface-200"
           tooltip={{ content: { text: 'Account settings' } }}
         >
           {isLoading ? (
@@ -156,7 +158,7 @@ export function UserDropdown({
         <DropdownMenuGroup>
           <DropdownMenuLabel className="text-xs text-foreground-light font-normal py-1">Theme</DropdownMenuLabel>
           <DropdownMenuRadioGroup
-            value={theme}
+            value={mounted ? theme : undefined}
             onValueChange={(value) => {
               executeThemeTransition(value, setTheme)
             }}

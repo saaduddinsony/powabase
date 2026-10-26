@@ -26,8 +26,10 @@ export const AssistantButton = () => {
       size="tiny"
       id="assistant-trigger"
       className={cn(
-        'rounded-full w-[32px] h-[32px] flex items-center justify-center p-0',
-        isOpen && 'bg-foreground text-background'
+        'rounded-full w-[32px] h-[32px] flex items-center justify-center p-0 group transition-all',
+        isOpen
+          ? 'bg-surface-300 dark:bg-surface-300 border-stronger text-foreground shadow-sm hover:bg-surface-300'
+          : 'hover:bg-surface-200'
       )}
       onClick={() => {
         toggleSidebar(SIDEBAR_KEYS.AI_ASSISTANT)
@@ -47,7 +49,7 @@ export const AssistantButton = () => {
       <AiIconAnimation
         allowHoverEffect={false}
         size={16}
-        className={cn(isOpen && 'text-background')}
+        className={cn(isOpen ? 'text-foreground' : 'text-foreground-lighter group-hover:text-foreground')}
       />
     </ButtonTooltip>
   )

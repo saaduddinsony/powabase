@@ -40,8 +40,10 @@ export const AdvisorButton = ({ projectRef }: { projectRef?: string }) => {
         size="tiny"
         id="advisor-center-trigger"
         className={cn(
-          'rounded-full w-[32px] h-[32px] flex items-center justify-center p-0 group',
-          isOpen && 'bg-foreground text-background'
+          'rounded-full w-[32px] h-[32px] flex items-center justify-center p-0 group transition-all',
+          isOpen
+            ? 'bg-surface-300 dark:bg-surface-300 border-stronger text-foreground shadow-sm hover:bg-surface-300'
+            : 'hover:bg-surface-200'
         )}
         onClick={handleClick}
         tooltip={{
@@ -54,8 +56,10 @@ export const AdvisorButton = ({ projectRef }: { projectRef?: string }) => {
           size={16}
           strokeWidth={1.5}
           className={cn(
-            'text-foreground-light group-hover:text-foreground',
-            isOpen && 'text-background group-hover:text-background'
+            'transition-colors',
+            isOpen
+              ? 'text-foreground'
+              : 'text-foreground-light group-hover:text-foreground'
           )}
         />
       </ButtonTooltip>

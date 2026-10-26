@@ -19,15 +19,18 @@ export const ProfileImage = ({ alt, src, placeholder, className }: ProfileImageP
       src={src}
       width="24"
       height="24"
-      className={cn('aspect-square bg-foreground rounded-full object-cover', className)}
+      className={cn('aspect-square bg-surface-200 dark:bg-surface-300 rounded-full object-cover border border-default', className)}
       onError={() => setHasInvalidImg(true)}
     />
   ) : (
     (placeholder ?? (
       <figure
-        className={cn('bg-foreground rounded-full flex items-center justify-center', className)}
+        className={cn(
+          'bg-surface-200 hover:bg-surface-300 dark:bg-surface-300 rounded-full flex items-center justify-center border border-default transition-colors text-foreground',
+          className
+        )}
       >
-        <User size={18} strokeWidth={1.5} className="text-background" />
+        <User size={16} strokeWidth={1.5} className="text-foreground" />
       </figure>
     ))
   )

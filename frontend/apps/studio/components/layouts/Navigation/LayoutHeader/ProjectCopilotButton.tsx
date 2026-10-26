@@ -20,7 +20,9 @@ export const ProjectCopilotButton = () => {
       id="project-copilot-trigger"
       className={cn(
         'rounded-full w-[32px] h-[32px] flex items-center justify-center p-0 group transition-all',
-        isOpen && 'bg-foreground text-background hover:bg-foreground hover:text-background'
+        isOpen
+          ? 'bg-surface-300 dark:bg-surface-300 border-stronger text-foreground shadow-sm hover:bg-surface-300'
+          : 'hover:bg-surface-200'
       )}
       onClick={() => toggleSidebar(SIDEBAR_KEYS.PROJECT_COPILOT)}
       tooltip={{
@@ -45,7 +47,10 @@ export const ProjectCopilotButton = () => {
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="w-4 h-4 text-foreground-lighter group-hover:text-foreground transition-colors"
+        className={cn(
+          'w-4 h-4 transition-colors',
+          isOpen ? 'text-foreground' : 'text-foreground-lighter group-hover:text-foreground'
+        )}
       >
         <path d="M12 8V4H8" />
         <rect width="16" height="12" x="4" y="8" rx="2" />

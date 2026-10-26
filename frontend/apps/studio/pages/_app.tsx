@@ -50,6 +50,7 @@ import { FeaturePreviewContextProvider } from '@/components/interfaces/App/Featu
 import { FeaturePreviewModal } from '@/components/interfaces/App/FeaturePreview/FeaturePreviewModal'
 import { MonacoThemeProvider } from '@/components/interfaces/App/MonacoThemeProvider'
 import { RouteValidationWrapper } from '@/components/interfaces/App/RouteValidationWrapper'
+import { SystemThemeSync } from '@/components/ui/SystemThemeSync'
 import { MainScrollContainerProvider } from '@/components/layouts/MainScrollContainerContext'
 import { GlobalErrorBoundaryState } from '@/components/ui/ErrorBoundary/GlobalErrorBoundaryState'
 import { useRootQueryClient } from '@/data/query-client'
@@ -186,6 +187,7 @@ function CustomApp({ Component, pageProps }: AppPropsWithLayout) {
                         enableSystem
                         disableTransitionOnChange
                       >
+                        <SystemThemeSync />
                         {/* [Powabase] DevToolbarProvider and DevToolbar removed (Supabase-specific dev tooling) */}
                         <AiAssistantStateContextProvider>
                           <CommandProvider>

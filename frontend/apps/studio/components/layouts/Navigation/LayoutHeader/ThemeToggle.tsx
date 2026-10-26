@@ -40,7 +40,12 @@ export const ThemeToggle = ({ className }: { className?: string }) => {
       onClick={handleToggle}
       tooltip={{
         content: {
-          text: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+          text:
+            theme === 'system'
+              ? `System (${isDark ? 'Dark' : 'Light'}) — Switch to ${isDark ? 'light' : 'dark'}`
+              : isDark
+                ? 'Switch to light mode'
+                : 'Switch to dark mode',
         },
       }}
     >
