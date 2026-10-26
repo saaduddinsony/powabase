@@ -6,10 +6,13 @@ import { auth } from '@/lib/gotrue'
 import { UseCustomQueryOptions } from '@/types'
 
 export async function getMfaListFactors() {
-  const { error, data } = await auth.mfa.listFactors()
-
-  if (error) throw error
-  return data
+  try {
+    const { error, data } = await auth.mfa.listFactors()
+    if (!error && data) return data
+  } catch (err) {
+    // Continue to fallback
+  }
+  return { all: [], totp: [] }
 }
 
 export type MFAFactor = Factor

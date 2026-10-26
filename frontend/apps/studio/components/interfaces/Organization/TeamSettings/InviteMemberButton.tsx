@@ -100,6 +100,7 @@ export const InviteMemberButton = () => {
   )
 
   const canInviteMembers =
+    !IS_PLATFORM ||
     !permissions ||
     permissions.length === 0 ||
     (hasOrgRole &&

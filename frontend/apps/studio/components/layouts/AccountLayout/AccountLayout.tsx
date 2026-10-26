@@ -53,69 +53,46 @@ const AccountLayout = ({ children, title }: PropsWithChildren<AccountLayoutProps
   })
 
   const sections = useMemo(
-    () =>
-      !IS_PLATFORM
-        ? [
-            {
-              key: 'preferences',
-              links: [
-                {
-                  key: 'preferences',
-                  label: 'Preferences',
-                  href: '/account/me',
-                  isActive: currentPath === '/account/me',
-                },
-              ],
-            },
-          ]
-        : [
-            {
-              key: 'account-settings',
-              heading: 'Account Settings',
-              links: [
-                {
-                  key: 'preferences',
-                  label: 'Preferences',
-                  href: '/account/me',
-                  isActive: currentPath === '/account/me',
-                },
-                // Access Tokens hidden — no personal-access-token backend on
-                // Powabase (no /platform/profile/access-tokens endpoints, #681).
-                // Restore together with the /account/tokens redirect below and
-                // AccountLayout.platform.test.tsx.
-                /* {
-                  key: 'access-tokens',
-                  label: 'Access Tokens',
-                  href: '/account/tokens',
-                  isActive:
-                    currentPath === '/account/tokens' || currentPath === '/account/tokens/scoped',
-                }, */
-                ...(showSecuritySettings
-                  ? [
-                      {
-                        key: 'security',
-                        label: 'Security',
-                        href: '/account/security',
-                        isActive: currentPath === '/account/security',
-                      },
-                    ]
-                  : []),
-              ],
-            },
-            {
-              key: 'logs',
-              heading: 'Logs',
-              links: [
-                {
-                  key: 'audit-logs',
-                  label: 'Audit Logs',
-                  href: '/account/audit',
-                  isActive: currentPath === '/account/audit',
-                },
-              ],
-            },
-          ],
-    [currentPath, showSecuritySettings]
+    () => [
+      {
+        key: 'account-settings',
+        heading: 'Account Settings',
+        links: [
+          {
+            key: 'preferences',
+            label: 'Preferences',
+            href: '/account/me',
+            isActive: currentPath === '/account/me',
+          },
+          {
+            key: 'access-tokens',
+            label: 'Access Tokens',
+            href: '/account/tokens',
+            isActive:
+              currentPath === '/account/tokens' || currentPath === '/account/tokens/scoped',
+          },
+          {
+            key: 'security',
+            label: 'Security',
+            href: '/account/security',
+            isActive: currentPath === '/account/security',
+          },
+        ],
+      },
+      {
+        key: 'logs',
+        heading: 'Logs',
+        links: [
+          {
+            key: 'audit-logs',
+            label: 'Audit Logs',
+            href: '/account/audit',
+            isActive: currentPath === '/account/audit',
+          },
+        ],
+      },
+    ],
+    [currentPath]
   )
 
   useLayoutEffect(() => {
@@ -127,23 +104,11 @@ const AccountLayout = ({ children, title }: PropsWithChildren<AccountLayoutProps
     return unregister
   }, [registerOpenMenu, setMobileSheetContent, sections])
 
-  useEffect(() => {
-    if (!IS_PLATFORM && currentPath !== '/account/me') {
-      router.push('/project/default')
-    } else if (IS_PLATFORM && currentPath.startsWith('/account/tokens')) {
-      // Access Tokens hidden on Powabase — no PAT backend (#681). The upstream
-      // pages and stray upstream links to /account/tokens still exist, so also
-      // guard direct navigation. replace (not push): swap the dead URL out of
-      // history so Back exits cleanly.
-      router.replace('/account/me')
-    }
-  }, [currentPath, router])
-
   return (
     <>
       <Head>
         <title>{pageTitle}</title>
-        <meta name="description" content="Powabase" />
+        <meta name="description" content="Socket" />
       </Head>
       <div className={cn('flex flex-col w-screen h-[calc(100vh-48px)]')}>
         <WithSidebar

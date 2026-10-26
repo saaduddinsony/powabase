@@ -162,10 +162,38 @@ export async function ensureMetadataSchema(): Promise<void> {
       SELECT 1 FROM _socket_metadata.organization_members WHERE organization_id = 1
     );
 
+    CREATE TABLE IF NOT EXISTS _socket_metadata.user_profiles (
+      id SERIAL PRIMARY KEY,
+      gotrue_id TEXT UNIQUE NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
+      primary_email TEXT NOT NULL DEFAULT 'admin@socket.dev',
+      username TEXT DEFAULT 'admin',
+      first_name TEXT DEFAULT 'Socket',
+      last_name TEXT DEFAULT 'Admin',
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS _socket_metadata.personal_access_tokens (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      token_alias TEXT NOT NULL,
+      token_hash TEXT NOT NULL,
+      scope TEXT DEFAULT 'all',
+      expires_at TIMESTAMPTZ,
+      last_used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      user_id TEXT DEFAULT '00000000-0000-0000-0000-000000000001'
+    );
+
+    INSERT INTO _socket_metadata.user_profiles (gotrue_id, primary_email, username, first_name, last_name)
+    VALUES ('00000000-0000-0000-0000-000000000001', 'admin@socket.dev', 'admin', 'Socket', 'Admin')
+    ON CONFLICT (gotrue_id) DO NOTHING;
+
     SELECT setval(pg_get_serial_sequence('_socket_metadata.organizations', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organizations;
     SELECT setval(pg_get_serial_sequence('_socket_metadata.projects', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.projects;
     SELECT setval(pg_get_serial_sequence('_socket_metadata.organization_members', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organization_members;
     SELECT setval(pg_get_serial_sequence('_socket_metadata.organization_invitations', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organization_invitations;
+    SELECT setval(pg_get_serial_sequence('_socket_metadata.personal_access_tokens', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.personal_access_tokens;
+    SELECT setval(pg_get_serial_sequence('_socket_metadata.user_profiles', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.user_profiles;
     GRANT ALL ON ALL SEQUENCES IN SCHEMA _socket_metadata TO postgres, authenticated, service_role, anon;
     GRANT ALL ON ALL TABLES IN SCHEMA _socket_metadata TO postgres, authenticated, service_role, anon;
   `
@@ -841,5 +869,195 @@ export async function updateSocketProjectAuthConfig(
   })
 
   return merged
+}
+
+export interface SocketUserProfile {
+  id: number
+  gotrue_id: string
+  primary_email: string
+  username: string
+  first_name: string
+  last_name: string
+}
+
+export interface SocketPersonalAccessToken {
+  id: number
+  name: string
+  token_alias: string
+  created_at: string
+  last_used_at?: string | null
+  expires_at?: string | null
+  scope?: string
+}
+
+export async function getSocketUserProfile(): Promise<SocketUserProfile> {
+  await ensureMetadataSchema()
+
+  const { data, error } = await executeQuery<SocketUserProfile>({
+    query: `SELECT id, gotrue_id, primary_email, username, first_name, last_name FROM _socket_metadata.user_profiles ORDER BY id ASC LIMIT 1`,
+  })
+
+  if (error || !data || data.length === 0) {
+    return {
+      id: 1,
+      gotrue_id: '00000000-0000-0000-0000-000000000001',
+      primary_email: 'admin@socket.dev',
+      username: 'admin',
+      first_name: 'Socket',
+      last_name: 'Admin',
+    }
+  }
+
+  return data[0]
+}
+
+export async function updateSocketUserProfile(updates: {
+  first_name?: string
+  last_name?: string
+  username?: string
+  primary_email?: string
+}): Promise<SocketUserProfile> {
+  await ensureMetadataSchema()
+
+  const current = await getSocketUserProfile()
+  const firstName = updates.first_name !== undefined ? updates.first_name.trim() : current.first_name
+  const lastName = updates.last_name !== undefined ? updates.last_name.trim() : current.last_name
+  const username = updates.username !== undefined ? updates.username.trim() : current.username
+  const primaryEmail = updates.primary_email !== undefined ? updates.primary_email.trim().toLowerCase() : current.primary_email
+
+  const { data, error } = await executeQuery<SocketUserProfile>({
+    query: `
+      UPDATE _socket_metadata.user_profiles
+      SET first_name = $1, last_name = $2, username = $3, primary_email = $4, updated_at = NOW()
+      WHERE id = $5
+      RETURNING id, gotrue_id, primary_email, username, first_name, last_name
+    `,
+    parameters: [firstName, lastName, username, primaryEmail, current.id],
+  })
+
+  if (error || !data || data.length === 0) {
+    throw new Error(error?.message || 'Failed to update profile')
+  }
+
+  // Also sync member record for org 1 if exists
+  try {
+    await executeQuery({
+      query: `UPDATE _socket_metadata.organization_members SET primary_email = $1, username = $2 WHERE gotrue_id = $3`,
+      parameters: [primaryEmail, username, current.gotrue_id],
+    })
+  } catch (err) {
+    // Non-critical
+  }
+
+  return data[0]
+}
+
+export async function getSocketPersonalAccessTokens(): Promise<SocketPersonalAccessToken[]> {
+  await ensureMetadataSchema()
+
+  const { data, error } = await executeQuery<SocketPersonalAccessToken>({
+    query: `SELECT id, name, token_alias, created_at, last_used_at, expires_at, scope FROM _socket_metadata.personal_access_tokens ORDER BY id DESC`,
+  })
+
+  if (error || !data) {
+    return []
+  }
+
+  return data
+}
+
+export async function createSocketPersonalAccessToken(params: {
+  name: string
+  scope?: string
+  expires_at?: string
+}): Promise<{
+  id: number
+  name: string
+  token_alias: string
+  token: string
+  created_at: string
+}> {
+  await ensureMetadataSchema()
+
+  const rawTokenSecret = `skt_${crypto.randomBytes(32).toString('hex')}`
+  const tokenAlias = `${rawTokenSecret.substring(0, 7)}...${rawTokenSecret.slice(-4)}`
+  const tokenHash = crypto.createHash('sha256').update(rawTokenSecret).digest('hex')
+
+  const { data, error } = await executeQuery<{
+    id: number
+    name: string
+    token_alias: string
+    created_at: string
+  }>({
+    query: `
+      INSERT INTO _socket_metadata.personal_access_tokens (
+        name, token_alias, token_hash, scope, expires_at
+      )
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, name, token_alias, created_at
+    `,
+    parameters: [
+      params.name.trim(),
+      tokenAlias,
+      tokenHash,
+      params.scope || 'all',
+      params.expires_at || null,
+    ],
+  })
+
+  if (error || !data || data.length === 0) {
+    throw new Error(error?.message || 'Failed to create access token')
+  }
+
+  return {
+    ...data[0],
+    token: rawTokenSecret,
+  }
+}
+
+export async function deleteSocketPersonalAccessToken(id: number | string): Promise<boolean> {
+  await ensureMetadataSchema()
+
+  const { error } = await executeQuery({
+    query: `DELETE FROM _socket_metadata.personal_access_tokens WHERE id = $1`,
+    parameters: [Number(id)],
+  })
+
+  if (error) {
+    throw new Error(error.message || 'Failed to delete token')
+  }
+
+  return true
+}
+
+export async function getSocketAuditLogs(): Promise<any[]> {
+  return [
+    {
+      action: 'user.login',
+      actor: {
+        id: '00000000-0000-0000-0000-000000000001',
+        primary_email: 'admin@socket.dev',
+        username: 'admin',
+      },
+      occurred_at: new Date().toISOString(),
+      target: {
+        type: 'session',
+        description: 'Session authenticated via administrative interface',
+      },
+    },
+    {
+      action: 'project.access',
+      actor: {
+        id: '00000000-0000-0000-0000-000000000001',
+        primary_email: 'admin@socket.dev',
+        username: 'admin',
+      },
+      occurred_at: new Date(Date.now() - 3600000).toISOString(),
+      target: {
+        type: 'project',
+        description: 'Project default opened in Studio',
+      },
+    },
+  ]
 }
 

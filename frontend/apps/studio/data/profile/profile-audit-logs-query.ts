@@ -46,7 +46,7 @@ export const useProfileAuditLogsQuery = <TData = ProfileAuditLogsData>(
       date_end: iso_timestamp_end,
     }),
     queryFn: ({ signal }) => getProfileAuditLogs(vars, signal),
-    enabled: IS_PLATFORM && options.enabled,
+    enabled: options.enabled ?? true,
     ...options,
   })
 }
