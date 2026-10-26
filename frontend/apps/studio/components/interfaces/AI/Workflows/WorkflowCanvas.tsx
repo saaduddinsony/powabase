@@ -36,6 +36,7 @@ import {
   Hand,
   MousePointer,
   Layers,
+  Sparkles,
 } from "lucide-react";
 
 const nodeTypes = { block: BlockNode };
@@ -106,6 +107,11 @@ interface WorkflowCanvasProps {
    * forward it to the inner component. Using a named prop sidesteps that.
    */
   canvasHandleRef?: React.Ref<WorkflowCanvasHandle>;
+  /** Toggle copilot assistant drawer */
+  onToggleCopilot?: () => void;
+  isCopilotOpen?: boolean;
+  /** Save status for bottom-left indicator */
+  saveStatus?: "saved" | "saving" | "idle";
 }
 
 export function WorkflowCanvas(props: WorkflowCanvasProps) {
@@ -123,6 +129,9 @@ function WorkflowCanvasInner({
   token,
   projectRef,
   canvasHandleRef,
+  onToggleCopilot,
+  isCopilotOpen = false,
+  saveStatus = "idle",
 }: WorkflowCanvasProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -511,33 +520,71 @@ function WorkflowCanvasInner({
     [setNodes, cleanupStaleEdges, refreshNodeLayout],
   );
 
+  const deleteNode = useCallback(
+    (nodeId: string) => {
+      pushSnapshot();
+      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+      setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+      if (selectedNodeId === nodeId) {
+        setSelectedNodeId(null);
+      }
+    },
+    [pushSnapshot, selectedNodeId, setNodes, setEdges],
+  );
+
+  const duplicateNode = useCallback(
+    (nodeId: string) => {
+      const node = nodes.find((n) => n.id === nodeId);
+      if (!node) return;
+      pushSnapshot();
+      const newId = `${node.data.blockType}-${Date.now().toString(36)}`;
+      const newNode: Node = {
+        ...node,
+        id: newId,
+        position: {
+          x: node.position.x + 30,
+          y: node.position.y + 30,
+        },
+        data: {
+          ...node.data,
+          label: node.data.label ? `${node.data.label} (Copy)` : undefined,
+        },
+        selected: true,
+      };
+      setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), newNode]);
+      setSelectedNodeId(newId);
+    },
+    [nodes, pushSnapshot, setNodes],
+  );
+
+  const openConfig = useCallback((nodeId: string) => {
+    setSelectedNodeId(nodeId);
+  }, []);
+
   const workflowCtx = useMemo(
-    () => ({ setNodes, setEdges, updateNodeConfigAndRefresh }),
-    [setNodes, setEdges, updateNodeConfigAndRefresh],
+    () => ({
+      setNodes,
+      setEdges,
+      updateNodeConfigAndRefresh,
+      deleteNode,
+      duplicateNode,
+      openConfig,
+    }),
+    [setNodes, setEdges, updateNodeConfigAndRefresh, deleteNode, duplicateNode, openConfig],
   );
 
   return (
     <WorkflowContext.Provider value={workflowCtx}>
-    <div className="flex h-full w-full relative overflow-hidden select-none">
-      {/* Collapsible Palette */}
-      {isPaletteOpen ? (
-        <div className="relative shrink-0 flex h-full z-10">
+    <div className="flex h-full w-full relative overflow-hidden select-none bg-[#fafafa] dark:bg-[#0c0d0e]">
+      {/* Floating Block Palette Drawer (Unbounded canvas) */}
+      {isPaletteOpen && (
+        <div className="absolute top-4 left-4 bottom-24 z-20 pointer-events-auto transition-all animate-in fade-in duration-200">
           <BlockPalette
             onAddBlock={handleAddBlock}
             existingBlockTypes={existingBlockTypes}
             onClose={() => setIsPaletteOpen(false)}
           />
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setIsPaletteOpen(true)}
-          className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-default bg-surface-100/90 backdrop-blur-md shadow-md text-foreground text-xs font-medium hover:bg-surface-200 transition-all"
-          title="Open Blocks Palette"
-        >
-          <Layers size={14} className="text-brand" />
-          <span>Add Blocks</span>
-        </button>
       )}
 
       <div className="flex-1 relative h-full w-full">
@@ -588,10 +635,59 @@ function WorkflowCanvasInner({
           snapGrid={[16, 16]}
           deleteKeyCode={["Backspace", "Delete"]}
           proOptions={{ hideAttribution: true }}
-          className="bg-default"
+          className="bg-[#fafafa] dark:bg-[#0c0d0e]"
         >
-          {/* Floating Infinite Canvas HUD Toolbar */}
-          <div className="absolute bottom-5 left-5 z-20 flex items-center bg-surface-100/95 backdrop-blur-md rounded-xl border border-default p-1 shadow-lg gap-0.5">
+          {/* Bottom-left: Real-time auto-saved indicator (StackAI style) */}
+          <div className="absolute bottom-6 left-6 z-20 pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 dark:bg-[#141517]/90 backdrop-blur-md border border-neutral-200/80 dark:border-neutral-800 shadow-sm text-xs text-foreground-lighter">
+            {saveStatus === "saving" ? (
+              <>
+                <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                <span>Saving draft...</span>
+              </>
+            ) : (
+              <>
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Auto-saved draft just now</span>
+              </>
+            )}
+          </div>
+
+          {/* Centered Floating HUD Dock (StackAI style) */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center bg-white/95 dark:bg-[#141517]/95 backdrop-blur-md border border-neutral-200/80 dark:border-neutral-800 rounded-2xl px-2.5 py-1.5 shadow-[0_8px_30px_rgb(0_0_0/0.12)] gap-1.5">
+            {/* ✨ Ask AI (StackAI style) */}
+            {onToggleCopilot && (
+              <button
+                type="button"
+                onClick={onToggleCopilot}
+                title="Ask AI Copilot"
+                className={`h-8 px-3 rounded-xl flex items-center gap-1.5 text-xs font-medium transition active:scale-95 ${
+                  isCopilotOpen
+                    ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30"
+                    : "text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                }`}
+              >
+                <Sparkles size={13} className="text-purple-500" />
+                <span>Ask AI</span>
+              </button>
+            )}
+
+            {/* + Add Block (StackAI style) */}
+            <button
+              type="button"
+              onClick={() => setIsPaletteOpen((v) => !v)}
+              title="Add Block to Canvas"
+              className={`h-8 px-3.5 rounded-xl flex items-center gap-1.5 text-xs font-medium transition active:scale-95 shadow-xs ${
+                isPaletteOpen
+                  ? "bg-brand-500 text-white"
+                  : "bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+              }`}
+            >
+              <Plus size={13} strokeWidth={2.5} />
+              <span>Add</span>
+            </button>
+
+            <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-800 mx-0.5" />
+
             {/* History: Undo / Redo */}
             <button
               type="button"
@@ -599,7 +695,7 @@ function WorkflowCanvasInner({
               disabled={!canUndo}
               title="Undo (Ctrl+Z)"
               aria-label="Undo"
-              className="h-7.5 w-7.5 rounded-lg flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 disabled:opacity-30 disabled:cursor-not-allowed transition"
             >
               <Undo2 size={14} />
             </button>
@@ -609,12 +705,12 @@ function WorkflowCanvasInner({
               disabled={!canRedo}
               title="Redo (Ctrl+Y)"
               aria-label="Redo"
-              className="h-7.5 w-7.5 rounded-lg flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 disabled:opacity-30 disabled:cursor-not-allowed transition"
+              className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 disabled:opacity-30 disabled:cursor-not-allowed transition"
             >
               <Redo2 size={14} />
             </button>
 
-            <div className="h-4 w-px bg-default mx-0.5" />
+            <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-800 mx-0.5" />
 
             {/* Zoom Controls */}
             <button
@@ -622,7 +718,7 @@ function WorkflowCanvasInner({
               onClick={() => reactFlowInstance.current?.zoomOut({ duration: 250 })}
               title="Zoom Out"
               aria-label="Zoom Out"
-              className="h-7.5 w-7.5 rounded-lg flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition"
+              className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition"
             >
               <Minus size={14} />
             </button>
@@ -632,7 +728,7 @@ function WorkflowCanvasInner({
               onClick={() => reactFlowInstance.current?.zoomTo(1, { duration: 250 })}
               title="Reset Zoom to 100%"
               aria-label="Reset Zoom to 100%"
-              className="h-7.5 px-2 rounded-lg flex items-center justify-center text-[11px] font-mono font-medium text-foreground hover:bg-surface-200 transition"
+              className="h-8 px-2 rounded-xl flex items-center justify-center text-[11px] font-mono font-medium text-foreground hover:bg-surface-200 transition"
             >
               {currentZoom}%
             </button>
@@ -642,12 +738,12 @@ function WorkflowCanvasInner({
               onClick={() => reactFlowInstance.current?.zoomIn({ duration: 250 })}
               title="Zoom In"
               aria-label="Zoom In"
-              className="h-7.5 w-7.5 rounded-lg flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition"
+              className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition"
             >
               <Plus size={14} />
             </button>
 
-            <div className="h-4 w-px bg-default mx-0.5" />
+            <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-800 mx-0.5" />
 
             {/* Fit View */}
             <button
@@ -655,7 +751,7 @@ function WorkflowCanvasInner({
               onClick={() => reactFlowInstance.current?.fitView({ padding: 0.25, duration: 350 })}
               title="Fit View to Screen"
               aria-label="Fit View to Screen"
-              className="h-7.5 w-7.5 rounded-lg flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition"
+              className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition"
             >
               <Maximize2 size={14} />
             </button>
@@ -666,7 +762,7 @@ function WorkflowCanvasInner({
               onClick={() => setPanMode((p) => !p)}
               title={panMode ? "Pan Mode Active (Click for Box Selection)" : "Box Selection Active (Click for Pan Mode)"}
               aria-label="Toggle Pan/Select Mode"
-              className={`h-7.5 w-7.5 rounded-lg flex items-center justify-center transition ${
+              className={`h-8 w-8 rounded-xl flex items-center justify-center transition ${
                 panMode ? "bg-surface-200 text-foreground" : "text-foreground-lighter hover:text-foreground hover:bg-surface-200/50"
               }`}
             >
@@ -679,7 +775,7 @@ function WorkflowCanvasInner({
               onClick={() => setShowMiniMap((v) => !v)}
               title={showMiniMap ? "Hide MiniMap" : "Show MiniMap"}
               aria-label="Toggle MiniMap"
-              className={`h-7.5 w-7.5 rounded-lg flex items-center justify-center transition ${
+              className={`h-8 w-8 rounded-xl flex items-center justify-center transition ${
                 showMiniMap ? "bg-surface-200 text-brand" : "text-foreground-lighter hover:text-foreground hover:bg-surface-200/50"
               }`}
             >
@@ -696,7 +792,7 @@ function WorkflowCanvasInner({
               }
               title="Toggle Grid Style (Dots / Lines)"
               aria-label="Toggle Grid Style"
-              className="h-7.5 w-7.5 rounded-lg flex items-center justify-center text-foreground-lighter hover:text-foreground hover:bg-surface-200 transition"
+              className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground-lighter hover:text-foreground hover:bg-surface-200 transition"
             >
               <Grid size={14} />
             </button>
@@ -704,20 +800,20 @@ function WorkflowCanvasInner({
 
           <Background
             variant={gridVariant}
-            gap={gridVariant === BackgroundVariant.Lines ? 24 : 20}
-            size={gridVariant === BackgroundVariant.Lines ? 1 : 0.8}
-            color="hsl(var(--border-muted))"
+            gap={24}
+            size={gridVariant === BackgroundVariant.Lines ? 1 : 1.1}
+            color="rgba(148, 163, 184, 0.35)"
           />
 
           {showMiniMap && (
-            <div className="absolute bottom-5 right-5 z-10 pointer-events-auto">
+            <div className="absolute bottom-6 right-6 z-10 pointer-events-auto">
               <MiniMap
                 style={{
                   position: 'relative',
                   backgroundColor: 'hsl(var(--background-surface-100))',
                   border: '1px solid hsl(var(--border-default))',
-                  borderRadius: 12,
-                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
+                  borderRadius: 16,
+                  boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
                   margin: 0,
                 }}
                 nodeColor={(node) => {

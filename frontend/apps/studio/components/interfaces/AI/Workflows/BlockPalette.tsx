@@ -1,5 +1,6 @@
 
 
+import { useState, useMemo } from "react";
 import {
   Play,
   Split,
@@ -7,7 +8,8 @@ import {
   Webhook,
   Network,
   HelpCircle,
-  PanelLeftClose,
+  X,
+  Search,
 } from "lucide-react";
 import {
   PaperPlaneIcon,
@@ -22,9 +24,6 @@ export const SINGLETON_TYPES = new Set(["starter", "webhook", "response"]);
 
 const iconMap: Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
   Play,
-  // Filled Font Awesome replacements — the lucide-react equivalents are
-  // thin-line glyphs that dissolve on tinted tiles at this size. Keys match
-  // the legacy registry string so block-registry.ts needs no changes.
   Bot: RobotIcon,
   Code: CodeIcon,
   GitBranch: CodeBranchIcon,
@@ -36,37 +35,32 @@ const iconMap: Record<string, React.ComponentType<{ className?: string; strokeWi
   Network,
 };
 
-// Arbitrary-hex values are used for amber/violet/orange/indigo/blue because
-// this app's tailwind config remaps those color names onto Radix Colors (see
-// frontend/packages/config/ui.config.js), where `-500` resolves to step 5 —
-// a pale interactive-background tint, not Tailwind's saturated mid-tone.
-// The hex values below are Tailwind's canonical default palette.
 const iconColorMap: Record<string, string> = {
-  emerald: "text-emerald-300",
-  violet: "text-[#c4b5fd]",
-  amber: "text-[#fcd34d]",
-  orange: "text-[#fdba74]",
-  blue: "text-[#93c5fd]",
-  teal: "text-teal-300",
-  cyan: "text-cyan-300",
-  sky: "text-sky-300",
-  indigo: "text-[#a5b4fc]",
-  rose: "text-rose-300",
-  slate: "text-slate-200",
+  emerald: "text-emerald-400 dark:text-emerald-300",
+  violet: "text-violet-500 dark:text-[#c4b5fd]",
+  amber: "text-amber-500 dark:text-[#fcd34d]",
+  orange: "text-orange-500 dark:text-[#fdba74]",
+  blue: "text-blue-500 dark:text-[#93c5fd]",
+  teal: "text-teal-500 dark:text-teal-300",
+  cyan: "text-cyan-500 dark:text-cyan-300",
+  sky: "text-sky-500 dark:text-sky-300",
+  indigo: "text-indigo-500 dark:text-[#a5b4fc]",
+  rose: "text-rose-500 dark:text-rose-300",
+  slate: "text-slate-500 dark:text-slate-200",
 };
 
 const tileBgMap: Record<string, string> = {
-  emerald: "bg-emerald-500/30 border-emerald-400/60",
-  violet: "bg-[#8b5cf6]/30 border-[#a78bfa]/60",
-  amber: "bg-[#f59e0b]/30 border-[#fbbf24]/60",
-  orange: "bg-[#f97316]/30 border-[#fb923c]/60",
-  blue: "bg-[#3b82f6]/30 border-[#60a5fa]/60",
-  teal: "bg-teal-500/30 border-teal-400/60",
-  cyan: "bg-cyan-500/30 border-cyan-400/60",
-  sky: "bg-sky-500/30 border-sky-400/60",
-  indigo: "bg-[#6366f1]/30 border-[#818cf8]/60",
-  rose: "bg-rose-500/30 border-rose-400/60",
-  slate: "bg-slate-500/40 border-slate-400/60",
+  emerald: "bg-emerald-500/10 border-emerald-500/25",
+  violet: "bg-violet-500/10 border-violet-500/25",
+  amber: "bg-amber-500/10 border-amber-500/25",
+  orange: "bg-orange-500/10 border-orange-500/25",
+  blue: "bg-blue-500/10 border-blue-500/25",
+  teal: "bg-teal-500/10 border-teal-500/25",
+  cyan: "bg-cyan-500/10 border-cyan-500/25",
+  sky: "bg-sky-500/10 border-sky-500/25",
+  indigo: "bg-indigo-500/10 border-indigo-500/25",
+  rose: "bg-rose-500/10 border-rose-500/25",
+  slate: "bg-slate-500/10 border-slate-500/25",
 };
 
 interface BlockPaletteProps {
@@ -76,54 +70,111 @@ interface BlockPaletteProps {
 }
 
 export function BlockPalette({ onAddBlock, existingBlockTypes, onClose }: BlockPaletteProps) {
+  const [search, setSearch] = useState("");
+
+  const filteredBlocks = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return Object.values(blockRegistry);
+    return Object.values(blockRegistry).filter(
+      (b) =>
+        b.name.toLowerCase().includes(q) ||
+        b.description.toLowerCase().includes(q) ||
+        b.type.toLowerCase().includes(q)
+    );
+  }, [search]);
+
   return (
-    <div className="w-56 bg-surface-100 border-r border-default flex flex-col h-full" style={{ boxShadow: '8px 0 24px rgb(0 0 0 / 0.2)' }}>
-      <div className="px-3 py-3 border-b border-default flex items-center justify-between">
-        <h3 className="text-xs font-medium text-foreground-muted uppercase tracking-wider">
-          Blocks
-        </h3>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded text-foreground-lighter hover:text-foreground hover:bg-surface-200 transition"
-            title="Collapse Palette"
-            aria-label="Collapse Palette"
-          >
-            <PanelLeftClose size={14} />
-          </button>
+    <div className="w-64 bg-white/95 dark:bg-[#141517]/95 backdrop-blur-md border border-neutral-200/80 dark:border-neutral-800 rounded-2xl flex flex-col h-full shadow-[0_8px_30px_rgb(0_0_0/0.12)] overflow-hidden">
+      {/* Header */}
+      <div className="p-3 border-b border-default/50 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-foreground tracking-tight">Block Palette</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface-200 text-foreground-lighter font-medium">
+              {filteredBlocks.length}
+            </span>
+          </div>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded-lg text-foreground-lighter hover:text-foreground hover:bg-surface-200 transition"
+              title="Close Palette"
+              aria-label="Close Palette"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-foreground-lighter" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search blocks..."
+            className="w-full pl-8 pr-2.5 py-1.5 text-xs rounded-xl bg-surface-200/70 border border-default/60 text-foreground placeholder:text-foreground-lighter/70 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </div>
+      </div>
+
+      {/* Block List */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+        {filteredBlocks.length === 0 ? (
+          <div className="text-center py-8 text-xs text-foreground-muted">
+            No matching blocks found
+          </div>
+        ) : (
+          filteredBlocks.map((blockType) => {
+            const Icon = iconMap[blockType.icon] ?? HelpCircle;
+            const disabled = SINGLETON_TYPES.has(blockType.type) && existingBlockTypes.has(blockType.type);
+            return (
+              <button
+                key={blockType.type}
+                className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-foreground transition-all text-left group ${
+                  disabled
+                    ? "opacity-35 cursor-not-allowed"
+                    : "hover:bg-surface-200/80 active:scale-[0.98] cursor-grab active:cursor-grabbing hover:shadow-2xs"
+                }`}
+                onClick={() =>
+                  !disabled && onAddBlock(blockType.type, getDefaultConfig(blockType.type))
+                }
+                draggable={!disabled}
+                onDragStart={(e) => {
+                  if (disabled) {
+                    e.preventDefault();
+                    return;
+                  }
+                  e.dataTransfer.setData("blockType", blockType.type);
+                  e.dataTransfer.effectAllowed = "move";
+                }}
+              >
+                <div
+                  className={`shrink-0 flex items-center justify-center h-8 w-8 rounded-xl border transition-transform group-hover:scale-105 shadow-2xs ${
+                    tileBgMap[blockType.color] ?? "bg-slate-500/10 border-slate-500/25"
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 ${iconColorMap[blockType.color] ?? "text-slate-200"}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-semibold truncate group-hover:text-brand-500 transition-colors">
+                    {blockType.name}
+                  </div>
+                  <div className="text-[10px] text-foreground-muted truncate">
+                    {blockType.description}
+                  </div>
+                </div>
+              </button>
+            );
+          })
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
-        {Object.values(blockRegistry).map((blockType) => {
-          const Icon = iconMap[blockType.icon] ?? HelpCircle;
-          const disabled = SINGLETON_TYPES.has(blockType.type) && existingBlockTypes.has(blockType.type);
-          return (
-            <button
-              key={blockType.type}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-md text-foreground transition-colors text-left ${disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-surface-300"}`}
-              onClick={() =>
-                !disabled && onAddBlock(blockType.type, getDefaultConfig(blockType.type))
-              }
-              draggable={!disabled}
-              onDragStart={(e) => {
-                if (disabled) { e.preventDefault(); return; }
-                e.dataTransfer.setData("blockType", blockType.type);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-            >
-              <div className={`shrink-0 flex items-center justify-center h-7 w-7 rounded-md border ${tileBgMap[blockType.color] ?? "bg-slate-500/30 border-slate-400/60"}`}>
-                <Icon className={`h-4 w-4 ${iconColorMap[blockType.color] ?? "text-slate-200"}`} />
-              </div>
-              <div className="min-w-0">
-                <div className="font-medium truncate">{blockType.name}</div>
-                <div className="text-xs text-foreground-muted truncate">
-                  {blockType.description}
-                </div>
-              </div>
-            </button>
-          );
-        })}
+
+      {/* Helper Footer */}
+      <div className="p-2 border-t border-default/40 bg-surface-100/50 text-[10px] text-foreground-lighter text-center">
+        Click to insert or drag onto canvas
       </div>
     </div>
   );

@@ -689,6 +689,9 @@ const WorkflowEditorPage: NextPageWithLayout = () => {
             onGraphChange={handleGraphChange}
             token={token ?? undefined}
             projectRef={ref as string}
+            onToggleCopilot={() => setShowCopilot((v) => !v)}
+            isCopilotOpen={showCopilot}
+            saveStatus={saveStatus}
           />
         </div>
         {showCopilot && (

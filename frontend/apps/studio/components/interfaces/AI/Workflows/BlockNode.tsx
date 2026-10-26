@@ -11,6 +11,9 @@ import {
   HelpCircle,
   Plus,
   Minus,
+  Settings,
+  Copy,
+  Trash2,
 } from "lucide-react";
 import {
   PaperPlaneIcon,
@@ -227,8 +230,49 @@ interface BlockNodeData {
   config: Record<string, unknown>;
 }
 
+function getCategoryBadge(blockType: string) {
+  switch (blockType) {
+    case "starter":
+    case "webhook":
+      return {
+        label: "Trigger",
+        icon: "⚡",
+        badgeClass: "bg-amber-500/10 text-amber-500 border-amber-500/30 dark:bg-amber-400/10 dark:text-amber-400 dark:border-amber-400/25",
+      };
+    case "agent":
+    case "llm":
+      return {
+        label: "Agent",
+        icon: "🤖",
+        badgeClass: "bg-blue-500/10 text-blue-500 border-blue-500/30 dark:bg-blue-400/10 dark:text-blue-400 dark:border-blue-400/25",
+      };
+    case "condition":
+    case "split":
+      return {
+        label: "Condition",
+        icon: "🔀",
+        badgeClass: "bg-violet-500/10 text-violet-500 border-violet-500/30 dark:bg-violet-400/10 dark:text-violet-400 dark:border-violet-400/25",
+      };
+    case "response":
+      return {
+        label: "Response",
+        icon: "📨",
+        badgeClass: "bg-rose-500/10 text-rose-500 border-rose-500/30 dark:bg-rose-400/10 dark:text-rose-400 dark:border-rose-400/25",
+      };
+    case "code":
+    case "tool":
+    case "kb":
+    default:
+      return {
+        label: "Tool",
+        icon: "🛠",
+        badgeClass: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30 dark:bg-emerald-400/10 dark:text-emerald-400 dark:border-emerald-400/25",
+      };
+  }
+}
+
 function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
-  const { setEdges, updateNodeConfigAndRefresh } = useWorkflowState();
+  const { setEdges, updateNodeConfigAndRefresh, deleteNode, duplicateNode, openConfig } = useWorkflowState();
 
   const typeConfig = blockRegistry[data.blockType];
   const iconName = typeConfig?.icon ?? "HelpCircle";
@@ -236,6 +280,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
   const Icon = iconMap[iconName] ?? HelpCircle;
   const hasInput = typeConfig?.hasInput ?? true;
   const hasOutput = typeConfig?.hasOutput ?? true;
+  const categoryBadge = getCategoryBadge(data.blockType);
 
   // Dynamic output handles for split and condition blocks; static for others
   const outputHandles = (() => {
@@ -301,44 +346,107 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
       key={`${id}:${(data as any).layoutVersion ?? outputHandlesKey}`}
       ref={nodeRef}
       className={`
-        relative overflow-visible
-        rounded-lg border border-default bg-surface-100
-        w-[220px] shadow-sm
-        ${selected ? "ring-2 ring-brand-400 border-brand-400" : ""}
+        relative overflow-visible group
+        rounded-[20px] border bg-white/95 dark:bg-[#151619]/95 backdrop-blur-md
+        w-[265px] transition-all duration-200
+        ${
+          selected
+            ? "ring-2 ring-brand-500 border-brand-500 shadow-[0_8px_30px_rgba(37,99,235,0.18)]"
+            : "border-neutral-200/90 dark:border-neutral-800 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:border-pink-500/40 dark:hover:border-pink-500/35 hover:shadow-[0_0_20px_rgba(236,72,153,0.12)]"
+        }
       `}
     >
-      {/* Colored top accent bar */}
-      <div className={`h-[5px] rounded-t-[7px] ${topBarColorMap[color] ?? topBarColorMap.slate}`} />
-
       {/* Input handle */}
       {hasInput && (
         <Handle
           type="target"
           position={Position.Top}
+          className="!w-3 !h-3 !rounded-full !bg-white dark:!bg-[#151619] !border-2 !border-neutral-400 dark:!border-neutral-500 hover:!border-brand-500 hover:!scale-125 !transition-all shadow-xs"
         />
       )}
 
-      <div className="px-3 py-2.5">
-        {/* Header: icon + label */}
-        <div className="flex items-center gap-2">
-          <Icon className={`h-4 w-4 shrink-0 ${iconColorMap[color] ?? "text-slate-200"}`} />
-          <span className="text-sm font-medium text-foreground truncate">
-            {data.label || typeConfig?.name || data.blockType}
-          </span>
+      <div className="p-4">
+        {/* Top Bar: Category badge on left, Bencho folded micro-controls on right */}
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div
+            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border shadow-2xs flex items-center gap-1.5 ${categoryBadge.badgeClass}`}
+          >
+            <span>{categoryBadge.icon}</span>
+            <span>{categoryBadge.label}</span>
+          </div>
+
+          {/* Bencho Corner Folded Controls (Settings, Duplicate, Delete) */}
+          <div
+            className={`flex items-center gap-1 transition-opacity duration-150 ${
+              selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            }`}
+          >
+            <button
+              type="button"
+              title="Configure Node"
+              aria-label="Configure Node"
+              onClick={(e) => {
+                e.stopPropagation();
+                openConfig?.(id);
+              }}
+              className="h-6 w-6 rounded-lg bg-surface-200/90 hover:bg-surface-300 text-foreground-lighter hover:text-foreground flex items-center justify-center transition border border-default/40 shadow-2xs"
+            >
+              <Settings size={12} />
+            </button>
+            <button
+              type="button"
+              title="Duplicate Node"
+              aria-label="Duplicate Node"
+              onClick={(e) => {
+                e.stopPropagation();
+                duplicateNode?.(id);
+              }}
+              className="h-6 w-6 rounded-lg bg-surface-200/90 hover:bg-surface-300 text-foreground-lighter hover:text-foreground flex items-center justify-center transition border border-default/40 shadow-2xs"
+            >
+              <Copy size={12} />
+            </button>
+            <button
+              type="button"
+              title="Delete Node"
+              aria-label="Delete Node"
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteNode?.(id);
+              }}
+              className="h-6 w-6 rounded-lg bg-surface-200/90 hover:bg-rose-500/10 text-foreground-lighter hover:text-rose-500 flex items-center justify-center transition border border-default/40 shadow-2xs"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        </div>
+
+        {/* Header: icon + label + description */}
+        <div className="flex items-start gap-3">
+          <div className="h-9 w-9 rounded-2xl bg-surface-200/80 border border-default flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+            <Icon className={`h-4.5 w-4.5 ${iconColorMap[color] ?? "text-slate-200"}`} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-foreground tracking-tight truncate">
+              {data.label || typeConfig?.name || data.blockType}
+            </div>
+            <div className="text-[11px] text-foreground-lighter line-clamp-2 mt-0.5 leading-relaxed">
+              {typeConfig?.description || data.blockType}
+            </div>
+          </div>
         </div>
 
         {/* Config fields (non-advanced only) */}
         {visibleSubBlocks && visibleSubBlocks.length > 0 && (
-          <div className="mt-1.5">
+          <div className="mt-2.5 pt-2 border-t border-default/40">
             {visibleSubBlocks.map((sb) => (
               <div
                 key={sb.id}
                 className="flex items-center justify-between gap-2 mt-1 first:mt-0"
               >
-                <span className="text-xs text-foreground-muted truncate">
+                <span className="text-[11px] text-foreground-muted truncate">
                   {sb.title}
                 </span>
-                <span className="text-xs text-foreground truncate max-w-[120px] text-right font-medium">
+                <span className="text-[11px] text-foreground truncate max-w-[130px] text-right font-medium">
                   <ConfigValue value={data.config?.[sb.id]} subBlock={sb} config={data.config ?? {}} />
                 </span>
               </div>
@@ -348,7 +456,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
 
         {/* Condition branch expression previews */}
         {data.blockType === "condition" && (
-          <div className="mt-1.5">
+          <div className="mt-2.5 pt-2 border-t border-default/40">
             {((data.config?.branches as Array<{ expression: string }>) ?? []).map((b, i) => {
               const label = i === 0 ? "if" : `elif ${i}`;
               const expr = b.expression || "\u2014";
@@ -429,6 +537,19 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
             </button>
           </div>
         )}
+
+        {/* Bencho Footer: Colorful connection dots + Model/Status tag */}
+        <div className="mt-3 pt-2.5 border-t border-default/50 flex items-center justify-between">
+          <div className="flex items-center -space-x-1">
+            <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 border border-white dark:border-[#151619] shadow-2xs" />
+            <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 border border-white dark:border-[#151619] shadow-2xs" />
+            <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 border border-white dark:border-[#151619] shadow-2xs" />
+          </div>
+
+          <span className="text-[10px] font-medium text-foreground-muted truncate max-w-[130px] px-2 py-0.5 rounded-md bg-surface-200/60 border border-default/40">
+            {(data.config?.model as string) || (data.config?.engine as string) || (data.blockType === "condition" ? `${((data.config?.branches as any[]) ?? []).length} branches` : "Ready")}
+          </span>
+        </div>
       </div>
 
       {/* Output handles */}
@@ -436,6 +557,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
         <Handle
           type="source"
           position={Position.Bottom}
+          className="!w-3 !h-3 !rounded-full !bg-white dark:!bg-[#151619] !border-2 !border-neutral-400 dark:!border-neutral-500 hover:!border-brand-500 hover:!scale-125 !transition-all shadow-xs"
         />
       )}
 
@@ -450,6 +572,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                 position={Position.Bottom}
                 id={handle}
                 style={{ left: leftPct }}
+                className="!w-3 !h-3 !rounded-full !bg-white dark:!bg-[#151619] !border-2 !border-neutral-400 dark:!border-neutral-500 hover:!border-brand-500 hover:!scale-125 !transition-all shadow-xs"
               />
               <div
                 className="pointer-events-none absolute text-[10px] text-foreground-muted whitespace-nowrap"

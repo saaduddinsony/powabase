@@ -12,6 +12,9 @@ interface WorkflowContextValue {
     nodeId: string,
     updater: (prevConfig: Record<string, unknown>) => Record<string, unknown>
   ) => void;
+  deleteNode?: (nodeId: string) => void;
+  duplicateNode?: (nodeId: string) => void;
+  openConfig?: (nodeId: string) => void;
 }
 
 export const WorkflowContext = createContext<WorkflowContextValue | null>(null);
