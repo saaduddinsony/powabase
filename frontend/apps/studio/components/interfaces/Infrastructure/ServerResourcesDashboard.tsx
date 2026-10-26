@@ -136,8 +136,8 @@ export function ServerResourcesDashboard() {
             type={autoRefresh ? 'default' : 'outline'}
             size="tiny"
             onClick={() => setAutoRefresh(!autoRefresh)}
+            icon={<Clock className="h-3.5 w-3.5 text-foreground-lighter" />}
           >
-            <Clock className="h-3 w-3 mr-1 text-foreground-lighter" />
             {autoRefresh ? 'Auto-refresh (10s)' : 'Auto-refresh off'}
           </Button>
 
@@ -146,7 +146,7 @@ export function ServerResourcesDashboard() {
             size="tiny"
             loading={isRefetching}
             onClick={() => refetch()}
-            icon={<RefreshCw className={`h-3 w-3 ${isRefetching ? 'animate-spin' : ''}`} />}
+            icon={<RefreshCw className={`h-3.5 w-3.5 ${isRefetching ? 'animate-spin' : ''}`} />}
           >
             Refresh
           </Button>
@@ -474,7 +474,11 @@ export function ServerResourcesDashboard() {
                     <tr key={service.name} className="hover:bg-surface-200/40 transition-colors">
                       <td className="py-3 px-4 font-medium text-foreground">
                         <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          {service.status === 'healthy' ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          ) : (
+                            <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                          )}
                           <span>{service.name}</span>
                         </div>
                       </td>
@@ -490,13 +494,23 @@ export function ServerResourcesDashboard() {
                         :{service.port}
                       </td>
                       <td className="py-3 px-4 font-mono text-foreground-light">
-                        {service.latencyMs}ms
+                        {service.status === 'healthy' ? `${service.latencyMs}ms` : '—'}
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          Healthy
-                        </span>
+                        {service.status === 'healthy' ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            Healthy
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-destructive/10 text-destructive border border-destructive/20"
+                            title={service.errorMessage || 'Service unreachable'}
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                            Unhealthy
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

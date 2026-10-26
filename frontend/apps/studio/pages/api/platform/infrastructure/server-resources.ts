@@ -136,37 +136,62 @@ function getDiskStats() {
   }
 }
 
-async function checkServiceHealth(name: string, role: string, category: string, url: string, port: number, description: string) {
-  const start = Date.now()
-  try {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 1200)
-    const res = await fetch(url, { signal: controller.signal })
-    clearTimeout(timer)
-    const latencyMs = Date.now() - start
-    const ok = res.status < 500
-    return {
-      name,
-      role,
-      category,
-      port,
-      description,
-      status: ok ? ('healthy' as const) : ('unhealthy' as const),
-      statusCode: res.status,
-      latencyMs,
+import net from 'net'
+
+interface ServiceHealthResult {
+  name: string
+  role: string
+  category: string
+  port: number
+  description: string
+  status: 'healthy' | 'unhealthy'
+  latencyMs: number
+  errorMessage?: string
+}
+
+function checkTcpService(
+  name: string,
+  role: string,
+  category: string,
+  host: string,
+  port: number,
+  description: string
+): Promise<ServiceHealthResult> {
+  return new Promise((resolve) => {
+    const start = Date.now()
+    const socket = new net.Socket()
+    socket.setTimeout(1500)
+
+    let settled = false
+    const finish = (status: 'healthy' | 'unhealthy', errorMsg?: string) => {
+      if (settled) return
+      settled = true
+      socket.destroy()
+      const latencyMs = Date.now() - start
+      resolve({
+        name,
+        role,
+        category,
+        port,
+        description,
+        status,
+        latencyMs: status === 'healthy' ? Math.max(1, latencyMs) : 0,
+        errorMessage: errorMsg,
+      })
     }
-  } catch (err: any) {
-    return {
-      name,
-      role,
-      category,
-      port,
-      description,
-      status: 'healthy' as const, // For services that don't allow direct HTTP ping but run in stack
-      statusCode: 200,
-      latencyMs: Math.max(5, Date.now() - start),
-    }
-  }
+
+    socket.connect(port, host, () => {
+      finish('healthy')
+    })
+
+    socket.on('error', (err) => {
+      finish('unhealthy', err.message)
+    })
+
+    socket.on('timeout', () => {
+      finish('unhealthy', 'Connection timed out (1500ms)')
+    })
+  })
 }
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -184,16 +209,16 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     const loadAvg = os.loadavg()
     const uptime = os.uptime()
 
-    // Query Postgres database statistics
-    let databaseStats = {
-      status: 'healthy',
-      size: '13 MB',
-      sizeBytes: 14054191,
-      activeConnections: 12,
-      maxConnections: 100,
-      cacheHitRatio: 99.9,
-      version: 'PostgreSQL 15.8',
-    }
+    // Query Postgres database statistics directly from pg_meta
+    let databaseStats: {
+      status: string
+      size: string
+      sizeBytes: number
+      activeConnections: number
+      maxConnections: number
+      cacheHitRatio: number
+      version: string
+    } | null = null
 
     try {
       const dbResult = await executeQuery<{
@@ -219,25 +244,25 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         const row = dbResult.data[0]
         databaseStats = {
           status: 'healthy',
-          size: row.db_size || '13 MB',
-          sizeBytes: Number(row.db_size_bytes) || 14054191,
-          activeConnections: Number(row.active_connections) || 12,
+          size: row.db_size || 'N/A',
+          sizeBytes: Number(row.db_size_bytes) || 0,
+          activeConnections: Number(row.active_connections) || 0,
           maxConnections: Number(row.max_connections) || 100,
-          cacheHitRatio: Number(row.cache_hit_ratio) || 99.9,
-          version: row.pg_version || 'PostgreSQL 15.8',
+          cacheHitRatio: Number(row.cache_hit_ratio) || 0,
+          version: row.pg_version || 'PostgreSQL 15',
         }
       }
-    } catch (e) {
-      // Graceful fallback if database query is unavailable
+    } catch {
+      databaseStats = null
     }
 
-    // Check Socket stack services
+    // Check Socket stack services via real TCP connections to internal containers
     const servicesToCheck = [
       {
         name: 'PostgreSQL Database',
         role: 'Primary SQL Engine & Vector Store',
         category: 'Data Storage',
-        url: 'http://kong:8000/rest/v1/',
+        host: 'db',
         port: 5432,
         description: 'Postgres 15 relational engine with pgvector, pg_graphql, and cron support',
       },
@@ -245,7 +270,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         name: 'Kong API Gateway',
         role: 'Unified Router & Reverse Proxy',
         category: 'Networking',
-        url: 'http://kong:8000/',
+        host: 'kong',
         port: 8000,
         description: 'API gateway handling routing, SSL termination, and rate limiting',
       },
@@ -253,7 +278,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         name: 'GoTrue Auth',
         role: 'Identity & Authentication',
         category: 'Security & Identity',
-        url: 'http://kong:8000/auth/v1/health',
+        host: 'auth',
         port: 9999,
         description: 'User management, JWT issuance, OAuth providers, and MFA',
       },
@@ -261,7 +286,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         name: 'PostgREST API',
         role: 'Instant RESTful Engine',
         category: 'API Layer',
-        url: 'http://kong:8000/rest/v1/',
+        host: 'rest',
         port: 3000,
         description: 'Translates database schema directly into high-throughput REST endpoints',
       },
@@ -269,7 +294,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         name: 'Storage Engine',
         role: 'S3-Compatible Object Storage',
         category: 'Object Storage',
-        url: 'http://storage:5000/status',
+        host: 'storage',
         port: 5000,
         description: 'Bucket management, asset upload, and image transformation proxy',
       },
@@ -277,7 +302,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         name: 'Postgres Meta',
         role: 'Database Management API',
         category: 'Management Plane',
-        url: 'http://meta:8080/health',
+        host: 'meta',
         port: 8080,
         description: 'Inspects schemas, executes queries, and manages table migrations',
       },
@@ -285,7 +310,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         name: 'Realtime Engine',
         role: 'WebSockets & CDC Broadcast',
         category: 'Realtime & Events',
-        url: 'http://kong:8000/realtime/v1/',
+        host: 'realtime',
         port: 4000,
         description: 'Broadcasts database changes over WebSockets with Presence and Broadcast',
       },
@@ -293,7 +318,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         name: 'Project API',
         role: 'Management & Control Plane',
         category: 'Control Plane',
-        url: 'http://project-api:5000/health',
+        host: 'project-api',
         port: 5000,
         description: 'Platform management daemon and project orchestration controller',
       },
@@ -301,7 +326,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         name: 'Socket Studio',
         role: 'Developer Web Dashboard',
         category: 'Developer Console',
-        url: 'http://localhost:3001/api/get-utc-time',
+        host: 'localhost',
         port: 3001,
         description: 'Unified management console and developer cockpit for Socket',
       },
@@ -309,7 +334,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
         name: 'Redis Cache',
         role: 'In-Memory Cache & Lock Store',
         category: 'In-Memory Store',
-        url: 'http://kong:8000/rest/v1/',
+        host: 'redis',
         port: 6379,
         description: 'In-memory data store for caching, queues, and distributed locks',
       },
@@ -317,7 +342,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const services = await Promise.all(
       servicesToCheck.map((s) =>
-        checkServiceHealth(s.name, s.role, s.category, s.url, s.port, s.description)
+        checkTcpService(s.name, s.role, s.category, s.host, s.port, s.description)
       )
     )
 

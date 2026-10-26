@@ -73,7 +73,27 @@ export function SupabaseProjectOverview() {
   const { data: project } = useSelectedProjectQuery()
   const { data: organization } = useSelectedOrganizationQuery()
 
-  const [showExplorerCallout, setShowExplorerCallout] = useState(true)
+  const [showExplorerCallout, setShowExplorerCallout] = useState(false)
+
+  useEffect(() => {
+    try {
+      const dismissed = typeof window !== 'undefined' ? localStorage.getItem('socket-overview-explorer-dismissed') : null
+      if (!dismissed) {
+        setShowExplorerCallout(true)
+      }
+    } catch {
+      // noop
+    }
+  }, [])
+
+  const handleDismissCallout = () => {
+    setShowExplorerCallout(false)
+    try {
+      localStorage.setItem('socket-overview-explorer-dismissed', 'true')
+    } catch {
+      // noop
+    }
+  }
 
   // Fetch real-time hardware telemetry from Socket server
   const { data: serverResources } = useQuery<ServerResourcesResponse>({
@@ -156,10 +176,14 @@ export function SupabaseProjectOverview() {
                   className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted transition-all group"
                 >
                   <div className="h-11 w-11 rounded-lg bg-surface-200/80 border border-default flex items-center justify-center shrink-0">
-                    <span className="flex h-3 w-3 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
-                    </span>
+                    <div className="grid grid-cols-3 gap-1 p-0.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    </div>
                   </div>
                   <div className="truncate">
                     <div className="text-[10px] font-semibold text-foreground-lighter tracking-wider uppercase">
@@ -185,11 +209,8 @@ export function SupabaseProjectOverview() {
                     </div>
                     <div className="text-sm font-medium text-foreground truncate mt-0.5 flex items-center gap-1.5">
                       <Badge variant="outline" className="text-[10px] uppercase font-mono px-1.5 py-0">
-                        {serverResources?.host.arch === 'arm64' ? 'NANO' : 'NANO'}
+                        NANO
                       </Badge>
-                      <span className="text-xs text-foreground-light">
-                        {serverResources?.cpu.cores ?? 2} vCPUs
-                      </span>
                     </div>
                   </div>
                 </Link>
@@ -330,37 +351,50 @@ export function SupabaseProjectOverview() {
                             Primary Database
                           </div>
                           <div className="text-xs text-foreground-light mt-0.5">
-                            {project?.region ? project.region : 'Dedicated Host (Frankfurt)'}
+                            {project?.region ? project.region : 'Dedicated Host'}
                           </div>
                           <div className="text-[11px] text-foreground-lighter font-mono mt-0.5">
-                            {serverResources?.host.arch ?? 'arm64'} · {serverResources?.cpu.model ?? 'Neoverse-N1'}
+                            {serverResources
+                              ? `${serverResources.host.arch} · ${serverResources.cpu.model}`
+                              : 'ARM64 · Dedicated Host'}
                           </div>
                         </div>
                       </div>
 
-                      {/* Flag Badge */}
-                      <span className="text-xl shrink-0" title="Host Region">
-                        🇩🇪
+                      {/* Server Host Badge */}
+                      <span className="text-base shrink-0 p-1 rounded-md bg-surface-200 border border-default text-foreground-light" title="Self-Hosted Server Runtime">
+                        🖥️
                       </span>
                     </div>
 
                     {/* Mini Resource Metrics Strip */}
                     <div className="mt-3.5 pt-2.5 border-t border-default/70 flex items-center justify-between text-[11px] font-mono text-foreground-light">
                       <span>
-                        CPU <strong className="text-foreground font-semibold">{serverResources?.cpu.usagePercent ?? 2}%</strong>
+                        CPU{' '}
+                        <strong className="text-foreground font-semibold">
+                          {serverResources ? `${serverResources.cpu.usagePercent}%` : '—'}
+                        </strong>
                       </span>
                       <span>·</span>
                       <span>
-                        Disk <strong className="text-foreground font-semibold">{serverResources?.disk.usedPercent ?? 26}%</strong>
+                        Disk{' '}
+                        <strong className="text-foreground font-semibold">
+                          {serverResources ? `${serverResources.disk.usedPercent}%` : '—'}
+                        </strong>
                       </span>
                       <span>·</span>
                       <span>
-                        RAM <strong className="text-foreground font-semibold">{serverResources?.memory.usedPercent ?? 36}%</strong>
+                        RAM{' '}
+                        <strong className="text-foreground font-semibold">
+                          {serverResources ? `${serverResources.memory.usedPercent}%` : '—'}
+                        </strong>
                       </span>
                       <span>·</span>
                       <span>
                         <strong className="text-foreground font-semibold">
-                          {serverResources?.database.activeConnections ?? 27}/{serverResources?.database.maxConnections ?? 100}
+                          {serverResources?.database
+                            ? `${serverResources.database.activeConnections}/${serverResources.database.maxConnections}`
+                            : '—'}
                         </strong>{' '}
                         conns
                       </span>
@@ -381,82 +415,131 @@ export function SupabaseProjectOverview() {
               </div>
             </div>
 
-            {/* Request Telemetry & Core Service Health Strip */}
-            <div className="rounded-xl border border-default bg-surface-100 p-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                  <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                  <span className="tabular-nums">0 Total Requests</span>
+            {/* Request Telemetry Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+              <div className="flex items-center gap-5 text-sm">
+                <div className="flex items-center gap-2 font-medium text-foreground">
+                  <span className="grid grid-cols-2 gap-0.5 p-0.5">
+                    <span className="h-1 w-1 rounded-full bg-foreground-lighter" />
+                    <span className="h-1 w-1 rounded-full bg-foreground-lighter" />
+                    <span className="h-1 w-1 rounded-full bg-foreground-lighter" />
+                    <span className="h-1 w-1 rounded-full bg-foreground-lighter" />
+                  </span>
+                  <span className="tabular-nums font-semibold">0 Total Requests</span>
                 </div>
                 <div className="text-sm text-foreground-light tabular-nums">
                   100.0% Success Rate
                 </div>
               </div>
 
-              {/* Four Core Pillars Warning / Error Indicators */}
-              <div className="flex flex-wrap items-center gap-5 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground-light uppercase tracking-wider text-[11px]">
-                    POSTGRES
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-foreground-lighter">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500/80" />
-                    Warnings 0
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-foreground-lighter">
-                    <span className="h-1.5 w-1.5 rounded-full bg-destructive/80" />
-                    Errors 0
-                  </span>
-                </div>
-
-                <div className="hidden sm:block h-3.5 w-px bg-default" />
-
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground-light uppercase tracking-wider text-[11px]">
-                    EDGE FUNCTIONS
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-foreground-lighter">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500/80" />
-                    Warnings 0
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-foreground-lighter">
-                    <span className="h-1.5 w-1.5 rounded-full bg-destructive/80" />
-                    Errors 0
-                  </span>
-                </div>
-
-                <div className="hidden sm:block h-3.5 w-px bg-default" />
-
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground-light uppercase tracking-wider text-[11px]">
-                    AUTH
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-foreground-lighter">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500/80" />
-                    Warnings 0
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-foreground-lighter">
-                    <span className="h-1.5 w-1.5 rounded-full bg-destructive/80" />
-                    Errors 0
-                  </span>
-                </div>
-
-                <div className="hidden sm:block h-3.5 w-px bg-default" />
-
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground-light uppercase tracking-wider text-[11px]">
-                    STORAGE
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-foreground-lighter">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500/80" />
-                    Warnings 0
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-foreground-lighter">
-                    <span className="h-1.5 w-1.5 rounded-full bg-destructive/80" />
-                    Errors 0
-                  </span>
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-default bg-surface-100 text-xs text-foreground-light cursor-default">
+                  <span>Last 60 minutes</span>
+                  <ChevronDown size={12} className="text-foreground-lighter" />
                 </div>
               </div>
+            </div>
+
+            {/* 4 Core Pillars Grid (API GATEWAY, STORAGE, REALTIME, POSTGRES) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 1. API GATEWAY */}
+              <Link
+                href={`/project/${projectRef}/infrastructure`}
+                className="rounded-xl border border-default bg-surface-100 p-4 shadow-sm hover:border-foreground-muted transition-all block group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-foreground-lighter tracking-wider uppercase">
+                    API GATEWAY
+                  </span>
+                  <div className="flex items-center gap-2 text-[10px] text-foreground-lighter">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      WARNINGS 0
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                      ERRORS 0
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 text-2xl font-semibold text-foreground tracking-tight tabular-nums">
+                  0
+                </div>
+              </Link>
+
+              {/* 2. STORAGE */}
+              <Link
+                href={`/project/${projectRef}/storage/buckets`}
+                className="rounded-xl border border-default bg-surface-100 p-4 shadow-sm hover:border-foreground-muted transition-all block group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-foreground-lighter tracking-wider uppercase">
+                    STORAGE
+                  </span>
+                  <div className="flex items-center gap-2 text-[10px] text-foreground-lighter">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      WARNINGS 0
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                      ERRORS 0
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 text-2xl font-semibold text-foreground tracking-tight tabular-nums">
+                  0
+                </div>
+              </Link>
+
+              {/* 3. REALTIME */}
+              <Link
+                href={`/project/${projectRef}/realtime/inspector`}
+                className="rounded-xl border border-default bg-surface-100 p-4 shadow-sm hover:border-foreground-muted transition-all block group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-foreground-lighter tracking-wider uppercase">
+                    REALTIME
+                  </span>
+                  <div className="flex items-center gap-2 text-[10px] text-foreground-lighter">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      WARNINGS 0
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                      ERRORS 0
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 text-2xl font-semibold text-foreground tracking-tight tabular-nums">
+                  0
+                </div>
+              </Link>
+
+              {/* 4. POSTGRES */}
+              <Link
+                href={`/project/${projectRef}/editor`}
+                className="rounded-xl border border-default bg-surface-100 p-4 shadow-sm hover:border-foreground-muted transition-all block group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-foreground-lighter tracking-wider uppercase">
+                    POSTGRES
+                  </span>
+                  <div className="flex items-center gap-2 text-[10px] text-foreground-lighter">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      WARNINGS 0
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                      ERRORS 0
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 text-2xl font-semibold text-foreground tracking-tight tabular-nums">
+                  {serverResources?.database?.activeConnections ?? 0}
+                </div>
             </div>
 
             {/* Powabase AI Observability Stats */}
@@ -533,7 +616,7 @@ export function SupabaseProjectOverview() {
             </span>
             <button
               type="button"
-              onClick={() => setShowExplorerCallout(false)}
+              onClick={handleDismissCallout}
               className="text-foreground-lighter hover:text-foreground transition-colors p-1 rounded-md"
               title="Dismiss"
             >
