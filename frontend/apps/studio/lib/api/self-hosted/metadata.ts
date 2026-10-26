@@ -221,6 +221,43 @@ export async function getSocketOrganizations(): Promise<SocketOrganization[]> {
   }))
 }
 
+export async function getSocketOrganizationBySlug(slug: string): Promise<SocketOrganization | null> {
+  await ensureMetadataSchema()
+
+  const { data, error } = await executeQuery<{
+    id: number
+    name: string
+    slug: string
+    billing_email: string
+    plan_id: string
+  }>({
+    query: `SELECT id, name, slug, billing_email, plan_id FROM _socket_metadata.organizations WHERE slug = $1`,
+    parameters: [slug],
+  })
+
+  if (error || !data || data.length === 0) {
+    if (slug === 'default-org-slug' || slug === 'default') {
+      return {
+        id: 1,
+        name: 'Socket Organization',
+        slug: 'default-org-slug',
+        billing_email: 'admin@socket.dev',
+        plan: { id: 'enterprise', name: 'Enterprise' },
+      }
+    }
+    return null
+  }
+
+  const org = data[0]
+  return {
+    id: org.id,
+    name: org.name,
+    slug: org.slug,
+    billing_email: org.billing_email || 'admin@socket.dev',
+    plan: { id: org.plan_id || 'enterprise', name: 'Enterprise' },
+  }
+}
+
 export async function createSocketOrganization({ name }: { name: string }): Promise<SocketOrganization> {
   await ensureMetadataSchema()
 

@@ -58,7 +58,7 @@ const OrganizationLayoutContent = ({
       {pageTitle && (
         <Head>
           <title>{pageTitle}</title>
-          <meta name="description" content="Powabase" />
+          <meta name="description" content="Socket" />
         </Head>
       )}
       {selectedOrganization && selectedOrganization?.managed_by !== 'supabase' && (
