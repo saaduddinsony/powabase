@@ -17,16 +17,22 @@ import {
   useDeployWorkflowMutation,
   useArmWebhookMutation,
   useWorkflowExecutionsQuery,
+  useDeleteWorkflowMutation,
   exportWorkflowAsJson,
   validateWorkflowJson,
   workflowKeys,
 } from "@/data/ai-workflows";
+import { useRouter } from "next/router";
+import { Trash2 } from "lucide-react";
+import { useSidebarManagerSnapshot } from "@/state/sidebar-manager-state";
+import { SIDEBAR_KEYS } from "@/components/layouts/ProjectLayout/LayoutSidebar/LayoutSidebarProvider";
+import { InteractiveCopilotAvatar } from "@/components/interfaces/AI/ProjectCopilot/InteractiveCopilotAvatar";
 import { useSessionAccessTokenQuery } from "@/data/auth/session-access-token-query";
 import {
   WorkflowExecutionPanel,
   type ExecutionResult,
 } from "@/components/interfaces/AI/Workflows/WorkflowExecutionPanel";
-import { CopilotPanel } from "@/components/interfaces/AI/Workflows/CopilotPanel";
+import ConfirmationModal from "ui-patterns/Dialogs/ConfirmationModal";
 import type { WorkflowCanvasHandle } from "@/components/interfaces/AI/Workflows/WorkflowCanvas";
 
 const WorkflowCanvas = dynamic(
@@ -80,9 +86,27 @@ const WorkflowEditorPage: NextPageWithLayout = () => {
   const [editName, setEditName] = useState("");
   const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
   const [showPanel, setShowPanel] = useState(false);
-  const [showCopilot, setShowCopilot] = useState(false);
   const canvasRef = useRef<WorkflowCanvasHandle>(null);
   const [importCounter, setImportCounter] = useState(0);
+
+  const router = useRouter();
+  const { activeSidebar, toggleSidebar } = useSidebarManagerSnapshot();
+  const isCopilotOpen = activeSidebar?.id === SIDEBAR_KEYS.PROJECT_COPILOT;
+  const handleToggleCopilot = () => {
+    toggleSidebar(SIDEBAR_KEYS.PROJECT_COPILOT);
+  };
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const deleteWorkflowMutation = useDeleteWorkflowMutation();
+
+  const handleDeleteWorkflow = async () => {
+    try {
+      await deleteWorkflowMutation.mutateAsync(workflowId);
+      router.push(`/project/${ref}/workflows`);
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Failed to delete workflow");
+    }
+  };
 
   // Webhook listening state
   const [isListening, setIsListening] = useState(false);
@@ -540,18 +564,28 @@ const WorkflowEditorPage: NextPageWithLayout = () => {
             </svg>
             Import
           </button>
+          {/* Ask AI Copilot button (Opens default Project Copilot from side panel) */}
           <button
-            onClick={() => setShowCopilot((v) => !v)}
+            type="button"
+            onClick={handleToggleCopilot}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md border transition ${
-              showCopilot
+              isCopilotOpen
                 ? "text-brand-600 border-brand-400 bg-brand-400/10"
                 : "text-foreground border-default hover:bg-surface-200"
             }`}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-            Copilot
+            <InteractiveCopilotAvatar size="tiny" isAwake={isCopilotOpen} />
+            <span>Ask AI</span>
+          </button>
+
+          {/* Delete Workflow Button */}
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm font-medium rounded-md text-foreground-lighter hover:text-destructive-600 hover:bg-destructive-500/10 border border-default transition"
+            title="Delete this workflow"
+          >
+            <Trash2 size={14} />
           </button>
           <button
             onClick={() => setShowPanel((v) => !v)}
@@ -678,7 +712,7 @@ const WorkflowEditorPage: NextPageWithLayout = () => {
         </div>
       </div>
 
-      {/* Canvas + Copilot sidebar */}
+      {/* Canvas */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         <div className="flex-1">
           <WorkflowCanvas
@@ -689,17 +723,11 @@ const WorkflowEditorPage: NextPageWithLayout = () => {
             onGraphChange={handleGraphChange}
             token={token ?? undefined}
             projectRef={ref as string}
-            onToggleCopilot={() => setShowCopilot((v) => !v)}
-            isCopilotOpen={showCopilot}
+            onToggleCopilot={handleToggleCopilot}
+            isCopilotOpen={isCopilotOpen}
             saveStatus={saveStatus}
           />
         </div>
-        {showCopilot && (
-          <CopilotPanel
-            workflowId={workflowId}
-            canvasRef={canvasRef}
-          />
-        )}
       </div>
 
       {/* Bottom panel: execution results + history */}
@@ -712,6 +740,23 @@ const WorkflowEditorPage: NextPageWithLayout = () => {
           }}
         />
       )}
+
+      {/* Delete confirmation modal */}
+      <ConfirmationModal
+        variant="destructive"
+        size="medium"
+        loading={deleteWorkflowMutation.isPending}
+        visible={showDeleteModal}
+        title={`Delete workflow "${workflow.name}"`}
+        confirmLabel="Delete"
+        confirmLabelLoading="Deleting..."
+        onCancel={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteWorkflow}
+      >
+        <p className="text-sm text-foreground-light">
+          Are you sure you want to delete this workflow? All associated blocks, connections, and execution logs will be permanently deleted. This action cannot be undone.
+        </p>
+      </ConfirmationModal>
     </div>
   );
 }

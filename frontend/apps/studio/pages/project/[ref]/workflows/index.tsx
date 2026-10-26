@@ -3,11 +3,12 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/router";
-import { Search, Plus, ChevronRight, Trash2, GitBranch, Sparkles, ArrowRight, Layers, Bot, Zap } from "lucide-react";
+import { Search, Plus, ChevronRight, Trash2, GitBranch, Sparkles, ArrowRight, Layers, Bot, Zap, X, Check } from "lucide-react";
 
 import { useSessionAccessTokenQuery } from "@/data/auth/session-access-token-query";
 import { hasAiAuth } from "@/lib/ai-api";
 import { workflowsApi, type WorkflowListItem } from "@/lib/ai-api/workflows-api";
+import ConfirmationModal from "ui-patterns/Dialogs/ConfirmationModal";
 import {
   useCreateWorkflowMutation,
   useDeleteWorkflowMutation,
@@ -82,6 +83,234 @@ function buildBadges(w: WorkflowListItem): HorizontalCardBadgeSpec[] {
   return out;
 }
 
+export interface WorkflowBlueprint {
+  id: "blank" | "rag" | "webhook" | "multi_agent";
+  title: string;
+  badge: string;
+  subtitle: string;
+  defaultName: string;
+  defaultDescription: string;
+  icon: typeof Sparkles;
+  iconColor: string;
+  bgColor: string;
+  borderColor: string;
+  graph?: {
+    blocks: Array<{
+      id: string;
+      type: string;
+      name: string;
+      position: { x: number; y: number };
+      config: Record<string, unknown>;
+      enabled: boolean;
+    }>;
+    edges: Array<{
+      source: string;
+      target: string;
+      sourceHandle?: string | null;
+      targetHandle?: string | null;
+      condition?: string | null;
+    }>;
+  };
+}
+
+export const BLUEPRINTS: WorkflowBlueprint[] = [
+  {
+    id: "blank",
+    title: "Blank Canvas",
+    badge: "Infinite",
+    subtitle: "Start clean with an empty node graph and a starter trigger",
+    defaultName: "Untitled Workflow",
+    defaultDescription: "Visual AI node graph",
+    icon: Sparkles,
+    iconColor: "text-brand-500",
+    bgColor: "bg-brand-500/10",
+    borderColor: "border-brand-500/20",
+    graph: {
+      blocks: [
+        {
+          id: "starter_1",
+          type: "starter",
+          name: "Starter",
+          position: { x: 180, y: 180 },
+          config: { input: { query: "string" } },
+          enabled: true,
+        },
+      ],
+      edges: [],
+    },
+  },
+  {
+    id: "rag",
+    title: "AI Knowledge Assistant",
+    badge: "RAG & LLM",
+    subtitle: "Starter → Vector Knowledge Search → LLM Generation → Response",
+    defaultName: "AI Knowledge Base Assistant",
+    defaultDescription: "Grounded Q&A assistant retrieving context from knowledge collections",
+    icon: Bot,
+    iconColor: "text-emerald-500",
+    bgColor: "bg-emerald-500/10",
+    borderColor: "border-emerald-500/20",
+    graph: {
+      blocks: [
+        {
+          id: "starter_1",
+          type: "starter",
+          name: "User Query",
+          position: { x: 140, y: 180 },
+          config: { input: { query: "How do I optimize database performance?" } },
+          enabled: true,
+        },
+        {
+          id: "knowledge_1",
+          type: "knowledge",
+          name: "Knowledge Search",
+          position: { x: 500, y: 180 },
+          config: { query: "<starter_1.output.query>", top_k: 4 },
+          enabled: true,
+        },
+        {
+          id: "agent_1",
+          type: "agent",
+          name: "Reasoning LLM",
+          position: { x: 860, y: 180 },
+          config: {
+            input: "Answer the question with the retrieved knowledge:\n\nQuestion: <starter_1.output.query>\n\nContext:\n<knowledge_1.output>",
+          },
+          enabled: true,
+        },
+        {
+          id: "response_1",
+          type: "response",
+          name: "Final Answer",
+          position: { x: 1220, y: 180 },
+          config: { output: "<agent_1.output>" },
+          enabled: true,
+        },
+      ],
+      edges: [
+        { source: "starter_1", target: "knowledge_1", sourceHandle: null, targetHandle: null, condition: null },
+        { source: "knowledge_1", target: "agent_1", sourceHandle: null, targetHandle: null, condition: null },
+        { source: "agent_1", target: "response_1", sourceHandle: null, targetHandle: null, condition: null },
+      ],
+    },
+  },
+  {
+    id: "webhook",
+    title: "Database Webhook Trigger",
+    badge: "Event-Driven",
+    subtitle: "Webhook → Branch Filter → Notification / SQL Execution",
+    defaultName: "Postgres Webhook Dispatcher",
+    defaultDescription: "Listen to external HTTP triggers or database changes and automate responses",
+    icon: Zap,
+    iconColor: "text-amber-500",
+    bgColor: "bg-amber-500/10",
+    borderColor: "border-amber-500/20",
+    graph: {
+      blocks: [
+        {
+          id: "webhook_1",
+          type: "webhook",
+          name: "Webhook Inbound",
+          position: { x: 140, y: 180 },
+          config: {},
+          enabled: true,
+        },
+        {
+          id: "condition_1",
+          type: "condition",
+          name: "Event Filter",
+          position: { x: 500, y: 180 },
+          config: {
+            expression: "<webhook_1.output.event> == 'INSERT'",
+            branches: [{ expression: "<webhook_1.output.event> == 'INSERT'" }],
+          },
+          enabled: true,
+        },
+        {
+          id: "agent_1",
+          type: "agent",
+          name: "Event Handler Agent",
+          position: { x: 860, y: 180 },
+          config: {
+            input: "Summarize and log the incoming event data: <webhook_1.output.record>",
+          },
+          enabled: true,
+        },
+        {
+          id: "response_1",
+          type: "response",
+          name: "Webhook Ack",
+          position: { x: 1220, y: 180 },
+          config: { output: { status: "processed", details: "<agent_1.output>" } },
+          enabled: true,
+        },
+      ],
+      edges: [
+        { source: "webhook_1", target: "condition_1", sourceHandle: null, targetHandle: null, condition: null },
+        { source: "condition_1", target: "agent_1", sourceHandle: null, targetHandle: null, condition: null },
+        { source: "agent_1", target: "response_1", sourceHandle: null, targetHandle: null, condition: null },
+      ],
+    },
+  },
+  {
+    id: "multi_agent",
+    title: "Multi-Agent Router",
+    badge: "Orchestration",
+    subtitle: "Classifier → Specialized Agent Tool Pipeline",
+    defaultName: "Multi-Agent Intent Router",
+    defaultDescription: "Classify incoming user queries and delegate to targeted downstream agents",
+    icon: Layers,
+    iconColor: "text-violet-500",
+    bgColor: "bg-violet-500/10",
+    borderColor: "border-violet-500/20",
+    graph: {
+      blocks: [
+        {
+          id: "starter_1",
+          type: "starter",
+          name: "User Intent Input",
+          position: { x: 140, y: 200 },
+          config: { input: { message: "I want to track an active freight shipment" } },
+          enabled: true,
+        },
+        {
+          id: "agent_router",
+          type: "agent",
+          name: "Intent Classifier",
+          position: { x: 500, y: 200 },
+          config: {
+            input: "Classify into SUPPORT, BILLING, or TRACKING:\n<starter_1.output.message>",
+          },
+          enabled: true,
+        },
+        {
+          id: "agent_support",
+          type: "agent",
+          name: "Specialized Handler",
+          position: { x: 860, y: 200 },
+          config: {
+            input: "Provide resolution based on classified intent (<agent_router.output>): <starter_1.output.message>",
+          },
+          enabled: true,
+        },
+        {
+          id: "response_1",
+          type: "response",
+          name: "Final Dispatch",
+          position: { x: 1220, y: 200 },
+          config: { output: "<agent_support.output>" },
+          enabled: true,
+        },
+      ],
+      edges: [
+        { source: "starter_1", target: "agent_router", sourceHandle: null, targetHandle: null, condition: null },
+        { source: "agent_router", target: "agent_support", sourceHandle: null, targetHandle: null, condition: null },
+        { source: "agent_support", target: "response_1", sourceHandle: null, targetHandle: null, condition: null },
+      ],
+    },
+  },
+];
+
 const WorkflowsListPage: NextPageWithLayout = () => {
   const { ref } = useParams();
   const router = useRouter();
@@ -94,10 +323,12 @@ const WorkflowsListPage: NextPageWithLayout = () => {
   const sort = SORT_OPTIONS[sortIdx];
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createName, setCreateName] = useState("");
-  const [createDescription, setCreateDescription] = useState("");
+  const [selectedBlueprint, setSelectedBlueprint] = useState<WorkflowBlueprint["id"]>("blank");
+  const [createName, setCreateName] = useState("Untitled Workflow");
+  const [createDescription, setCreateDescription] = useState("Visual AI node graph");
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [workflowToDelete, setWorkflowToDelete] = useState<WorkflowListItem | null>(null);
 
   const createMutation = useCreateWorkflowMutation();
   const deleteMutation = useDeleteWorkflowMutation();
@@ -132,6 +363,15 @@ const WorkflowsListPage: NextPageWithLayout = () => {
     if (queryError) setError(queryError.message);
   }, [queryError]);
 
+  const handleSelectBlueprint = (bpId: WorkflowBlueprint["id"]) => {
+    setSelectedBlueprint(bpId);
+    const bp = BLUEPRINTS.find((b) => b.id === bpId);
+    if (bp) {
+      setCreateName(bp.defaultName);
+      setCreateDescription(bp.defaultDescription);
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createName.trim()) return;
@@ -140,6 +380,17 @@ const WorkflowsListPage: NextPageWithLayout = () => {
         name: createName.trim(),
         description: createDescription.trim() || undefined,
       });
+
+      // If blueprint has pre-configured nodes/edges, pre-seed the graph
+      const bp = BLUEPRINTS.find((b) => b.id === selectedBlueprint);
+      if (bp?.graph && token && ref) {
+        try {
+          await workflowsApi.saveGraph(token, ref as string, result.id, bp.graph);
+        } catch (saveErr) {
+          console.error("Failed to seed blueprint graph:", saveErr);
+        }
+      }
+
       setCreateName("");
       setCreateDescription("");
       setShowCreateModal(false);
@@ -149,14 +400,13 @@ const WorkflowsListPage: NextPageWithLayout = () => {
     }
   };
 
-  const handleDelete = async (w: WorkflowListItem, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!confirm(`Delete workflow "${w.name}"?`)) return;
-    setDeletingId(w.id);
+  const confirmDelete = async () => {
+    if (!workflowToDelete) return;
+    setDeletingId(workflowToDelete.id);
     try {
-      await deleteMutation.mutateAsync(w.id);
+      await deleteMutation.mutateAsync(workflowToDelete.id);
       queryClient.invalidateQueries({ queryKey: ["workflows", ref] });
+      setWorkflowToDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
     } finally {
@@ -251,7 +501,10 @@ const WorkflowsListPage: NextPageWithLayout = () => {
           </div>
           <button
             type="button"
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              handleSelectBlueprint("blank");
+              setShowCreateModal(true);
+            }}
             data-onboarding-id={ONBOARDING_ANCHORS.workflows.createButton}
             className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2 flex items-center gap-1.5"
           >
@@ -296,8 +549,7 @@ const WorkflowsListPage: NextPageWithLayout = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        setCreateName("Untitled Workflow");
-                        setCreateDescription("Visual AI node graph");
+                        handleSelectBlueprint("blank");
                         setShowCreateModal(true);
                       }}
                       className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 text-sm font-medium rounded-full shadow-md transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -316,8 +568,7 @@ const WorkflowsListPage: NextPageWithLayout = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          setCreateName("AI Knowledge Base Assistant");
-                          setCreateDescription("Starter → Knowledge Base Search → LLM Generation → Response");
+                          handleSelectBlueprint("rag");
                           setShowCreateModal(true);
                         }}
                         className="p-4 rounded-xl border border-default bg-surface-200/40 hover:bg-surface-200 hover:border-foreground-muted transition-all text-left group flex flex-col justify-between"
@@ -342,8 +593,7 @@ const WorkflowsListPage: NextPageWithLayout = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          setCreateName("Postgres Webhook Dispatcher");
-                          setCreateDescription("Webhook → SQL Query → Branch Condition → Webhook Post");
+                          handleSelectBlueprint("webhook");
                           setShowCreateModal(true);
                         }}
                         className="p-4 rounded-xl border border-default bg-surface-200/40 hover:bg-surface-200 hover:border-foreground-muted transition-all text-left group flex flex-col justify-between"
@@ -368,8 +618,7 @@ const WorkflowsListPage: NextPageWithLayout = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          setCreateName("Multi-Agent Intent Router");
-                          setCreateDescription("Starter → Classifier → Specialized Agent Tool → Terminal Output");
+                          handleSelectBlueprint("multi_agent");
                           setShowCreateModal(true);
                         }}
                         className="p-4 rounded-xl border border-default bg-surface-200/40 hover:bg-surface-200 hover:border-foreground-muted transition-all text-left group flex flex-col justify-between"
@@ -428,7 +677,11 @@ const WorkflowsListPage: NextPageWithLayout = () => {
                       rightMeta={meta || null}
                       actions={
                         <button
-                          onClick={(e) => handleDelete(w, e)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setWorkflowToDelete(w);
+                          }}
                           disabled={deletingId === w.id}
                           className="text-foreground-lighter hover:text-destructive-600 transition p-1"
                           title="Delete"
@@ -451,28 +704,107 @@ const WorkflowsListPage: NextPageWithLayout = () => {
         </div>
       </div>
 
+      {/* Redesigned Bencho Workflow Creation Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-surface-100 border border-default rounded-xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto always-show-scrollbar">
-            <h3 className="text-xl font-semibold text-foreground mb-4">
-              Create workflow
-            </h3>
-            <form onSubmit={handleCreate}>
-              <div className="space-y-4 mb-6">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-100 border border-default/80 rounded-[24px] shadow-2xl p-6 sm:p-7 w-full max-w-2xl max-h-[92vh] overflow-y-auto always-show-scrollbar animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-4 pb-5 border-b border-default/60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand-500/20 via-emerald-500/10 to-transparent border border-brand-500/20 flex items-center justify-center text-brand">
+                  <GitBranch size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-foreground tracking-tight">
+                    Create New Workflow
+                  </h3>
+                  <p className="text-xs sm:text-sm text-foreground-lighter mt-0.5">
+                    Start fresh or jumpstart your canvas with a pre-configured architecture.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="p-1.5 rounded-full text-foreground-lighter hover:text-foreground hover:bg-surface-200 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreate} className="mt-5 space-y-6">
+              {/* Blueprint Selection */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-foreground-lighter mb-3">
+                  Choose Blueprint Architecture
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {BLUEPRINTS.map((bp) => {
+                    const Icon = bp.icon;
+                    const isSelected = selectedBlueprint === bp.id;
+                    return (
+                      <button
+                        key={bp.id}
+                        type="button"
+                        onClick={() => handleSelectBlueprint(bp.id)}
+                        className={cn(
+                          "relative p-3.5 rounded-2xl border text-left transition-all flex flex-col justify-between group",
+                          isSelected
+                            ? "border-brand-500 bg-brand-500/[0.06] ring-2 ring-brand-500/20 shadow-sm"
+                            : "border-default bg-surface-200/40 hover:bg-surface-200/80 hover:border-default/80"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center border", bp.bgColor, bp.borderColor, bp.iconColor)}>
+                            <Icon size={16} />
+                          </div>
+                          <span className={cn(
+                            "text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full border",
+                            isSelected
+                              ? "bg-brand-500/10 text-brand-600 dark:text-brand-400 border-brand-500/20"
+                              : "bg-surface-300 text-foreground-lighter border-default"
+                          )}>
+                            {bp.badge}
+                          </span>
+                        </div>
+                        <div>
+                          <div className={cn(
+                            "text-sm font-medium transition-colors",
+                            isSelected ? "text-brand-600 dark:text-brand-400" : "text-foreground group-hover:text-foreground"
+                          )}>
+                            {bp.title}
+                          </div>
+                          <div className="text-xs text-foreground-lighter mt-1 line-clamp-2 leading-relaxed">
+                            {bp.subtitle}
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <div className="absolute top-3 right-3 w-4 h-4 rounded-full bg-brand flex items-center justify-center text-white dark:text-black">
+                            <Check size={10} strokeWidth={3} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Workflow Details */}
+              <div className="space-y-4 pt-4 border-t border-default/60">
                 <div>
                   <label
                     htmlFor="create-workflow-name"
-                    className="block text-sm text-foreground-light mb-1.5"
+                    className="block text-xs font-semibold uppercase tracking-wider text-foreground-lighter mb-1.5"
                   >
-                    Name
+                    Workflow Name
                   </label>
                   <input
                     id="create-workflow-name"
                     type="text"
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
-                    placeholder="e.g. Document processing pipeline"
-                    className="w-full px-4 py-2.5 bg-surface-200 border border-default rounded-lg text-foreground placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-brand-400"
+                    placeholder="e.g. Lead Qualification Engine"
+                    className="w-full px-3.5 py-2.5 bg-surface-200/60 border border-default rounded-xl text-foreground text-sm placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition"
                     required
                     autoFocus
                   />
@@ -480,44 +812,69 @@ const WorkflowsListPage: NextPageWithLayout = () => {
                 <div>
                   <label
                     htmlFor="create-workflow-desc"
-                    className="block text-sm text-foreground-light mb-1.5"
+                    className="block text-xs font-semibold uppercase tracking-wider text-foreground-lighter mb-1.5"
                   >
-                    Description (optional)
+                    Description <span className="text-foreground-muted font-normal lowercase">(optional)</span>
                   </label>
                   <textarea
                     id="create-workflow-desc"
                     value={createDescription}
                     onChange={(e) => setCreateDescription(e.target.value)}
                     placeholder="Describe what this workflow does..."
-                    rows={3}
-                    className="w-full px-4 py-2.5 bg-surface-200 border border-default rounded-lg text-foreground placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-brand-400"
+                    rows={2}
+                    className="w-full px-3.5 py-2 bg-surface-200/60 border border-default rounded-xl text-foreground text-sm placeholder-foreground-muted focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 transition resize-none"
                   />
                 </div>
               </div>
-              <div className="flex gap-3 justify-end">
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-default/60">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setCreateName("");
-                    setCreateDescription("");
-                  }}
-                  className="px-4 py-2 text-foreground-light hover:text-foreground transition"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 text-sm text-foreground-lighter hover:text-foreground transition rounded-full"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || !createName.trim()}
-                  className="px-4 py-2 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-none whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted focus-visible:ring-offset-2"
+                  className="px-6 py-2.5 bg-[#17181A] text-white hover:bg-black dark:bg-white dark:text-black dark:hover:bg-neutral-200 disabled:opacity-50 text-sm font-medium rounded-full shadow-md whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground-muted flex items-center gap-2 hover:scale-[1.01] active:scale-[0.99]"
                 >
-                  {createMutation.isPending ? "Creating..." : "Create"}
+                  {createMutation.isPending ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      <span>Creating Canvas...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={15} />
+                      <span>Create Workflow</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        variant="destructive"
+        size="medium"
+        loading={deleteMutation.isPending}
+        visible={Boolean(workflowToDelete)}
+        title={workflowToDelete ? `Delete workflow "${workflowToDelete.name}"` : "Delete workflow"}
+        confirmLabel="Delete"
+        confirmLabelLoading="Deleting..."
+        onCancel={() => setWorkflowToDelete(null)}
+        onConfirm={confirmDelete}
+      >
+        <p className="text-sm text-foreground-light">
+          Are you sure you want to delete this workflow? All associated blocks, connections, and execution logs will be permanently deleted. This action cannot be undone.
+        </p>
+      </ConfirmationModal>
     </div>
   );
 };

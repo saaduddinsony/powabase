@@ -25,6 +25,7 @@ import { getDefaultConfig, blockRegistry, type InputMapping } from "@/data/ai-wo
 import { evaluateCondition } from "./condition-utils";
 import { WorkflowContext } from "./WorkflowContext";
 import { useWorkflowHistory } from "./useWorkflowHistory";
+import { InteractiveCopilotAvatar } from "@/components/interfaces/AI/ProjectCopilot/InteractiveCopilotAvatar";
 import {
   Undo2,
   Redo2,
@@ -561,6 +562,28 @@ function WorkflowCanvasInner({
     setSelectedNodeId(nodeId);
   }, []);
 
+  const handleZoomIn = useCallback(() => {
+    if (!reactFlowInstance.current) return;
+    const current = reactFlowInstance.current.getZoom();
+    const next = Math.min(2.0, Math.round((current + 0.15) * 100) / 100);
+    reactFlowInstance.current.zoomTo(next, { duration: 120 });
+    setCurrentZoom(Math.round(next * 100));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    if (!reactFlowInstance.current) return;
+    const current = reactFlowInstance.current.getZoom();
+    const next = Math.max(0.2, Math.round((current - 0.15) * 100) / 100);
+    reactFlowInstance.current.zoomTo(next, { duration: 120 });
+    setCurrentZoom(Math.round(next * 100));
+  }, []);
+
+  const handleZoomReset = useCallback(() => {
+    if (!reactFlowInstance.current) return;
+    reactFlowInstance.current.zoomTo(1, { duration: 120 });
+    setCurrentZoom(100);
+  }, []);
+
   const workflowCtx = useMemo(
     () => ({
       setNodes,
@@ -602,21 +625,30 @@ function WorkflowCanvasInner({
           onDragOver={onDragOver}
           onNodeDragStop={() => takeSnapshot()}
           onNodesDelete={() => takeSnapshot()}
+          onMove={(_event, viewport) => {
+            setCurrentZoom(Math.round(viewport.zoom * 100));
+          }}
           onMoveEnd={(_event, viewport) => {
             setCurrentZoom(Math.round(viewport.zoom * 100));
           }}
           onInit={(instance) => {
             reactFlowInstance.current = instance;
+            // Never zoom above 100% on initial load
+            const allNodes = instance.getNodes();
+            if (allNodes.length > 3) {
+              instance.fitView({ maxZoom: 1, padding: 0.35, duration: 0 });
+            } else {
+              instance.zoomTo(1, { duration: 0 });
+            }
             setCurrentZoom(Math.round(instance.getZoom() * 100));
 
-            // After fitView completes and the viewport settles,
-            // remeasure all handle positions so first-drag edges are correct
             requestAnimationFrame(() => {
-              const allNodeIds = instance.getNodes().map((n) => n.id);
+              const allNodeIds = allNodes.map((n) => n.id);
               allNodeIds.forEach((nid) => updateNodeInternals(nid));
             });
           }}
           nodeTypes={nodeTypes}
+          defaultViewport={{ x: 100, y: 80, zoom: 1 }}
           defaultEdgeOptions={{
             type: 'smoothstep',
             style: {
@@ -624,9 +656,8 @@ function WorkflowCanvasInner({
               strokeWidth: 2,
             },
           }}
-          fitView
-          minZoom={0.1}
-          maxZoom={2.5}
+          minZoom={0.2}
+          maxZoom={2.0}
           panOnScroll={true}
           zoomOnPinch={true}
           panOnDrag={panMode ? [0, 1, 2] : [1, 2]}
@@ -654,19 +685,19 @@ function WorkflowCanvasInner({
 
           {/* Centered Floating HUD Dock (StackAI style) */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center bg-white/95 dark:bg-[#141517]/95 backdrop-blur-md border border-neutral-200/80 dark:border-neutral-800 rounded-2xl px-2.5 py-1.5 shadow-[0_8px_30px_rgb(0_0_0/0.12)] gap-1.5">
-            {/* ✨ Ask AI (StackAI style) */}
+            {/* ✨ Ask AI (Opens default Project Copilot from side panel) */}
             {onToggleCopilot && (
               <button
                 type="button"
                 onClick={onToggleCopilot}
-                title="Ask AI Copilot"
-                className={`h-8 px-3 rounded-xl flex items-center gap-1.5 text-xs font-medium transition active:scale-95 ${
+                title="Open Project Copilot"
+                className={`h-8 px-3 rounded-xl flex items-center gap-2 text-xs font-medium transition active:scale-95 ${
                   isCopilotOpen
-                    ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30"
-                    : "text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                    ? "bg-foreground text-background shadow-xs"
+                    : "text-foreground-light hover:text-foreground hover:bg-surface-200"
                 }`}
               >
-                <Sparkles size={13} className="text-purple-500" />
+                <InteractiveCopilotAvatar size="tiny" isAwake={isCopilotOpen} />
                 <span>Ask AI</span>
               </button>
             )}
@@ -712,46 +743,46 @@ function WorkflowCanvasInner({
 
             <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-800 mx-0.5" />
 
-            {/* Zoom Controls */}
+            {/* Zoom Controls with real-time percentage updates */}
             <button
               type="button"
-              onClick={() => reactFlowInstance.current?.zoomOut({ duration: 250 })}
-              title="Zoom Out"
+              onClick={handleZoomOut}
+              title="Zoom Out (-15%)"
               aria-label="Zoom Out"
-              className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition"
+              className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition active:scale-95"
             >
               <Minus size={14} />
             </button>
 
             <button
               type="button"
-              onClick={() => reactFlowInstance.current?.zoomTo(1, { duration: 250 })}
+              onClick={handleZoomReset}
               title="Reset Zoom to 100%"
               aria-label="Reset Zoom to 100%"
-              className="h-8 px-2 rounded-xl flex items-center justify-center text-[11px] font-mono font-medium text-foreground hover:bg-surface-200 transition"
+              className="h-8 px-2 rounded-xl flex items-center justify-center text-[11px] font-mono font-medium text-foreground hover:bg-surface-200 transition active:scale-95"
             >
               {currentZoom}%
             </button>
 
             <button
               type="button"
-              onClick={() => reactFlowInstance.current?.zoomIn({ duration: 250 })}
-              title="Zoom In"
+              onClick={handleZoomIn}
+              title="Zoom In (+15%)"
               aria-label="Zoom In"
-              className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition"
+              className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition active:scale-95"
             >
               <Plus size={14} />
             </button>
 
             <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-800 mx-0.5" />
 
-            {/* Fit View */}
+            {/* Fit View (capped at 100%) */}
             <button
               type="button"
-              onClick={() => reactFlowInstance.current?.fitView({ padding: 0.25, duration: 350 })}
-              title="Fit View to Screen"
+              onClick={() => reactFlowInstance.current?.fitView({ maxZoom: 1, padding: 0.25, duration: 250 })}
+              title="Fit View to Screen (Max 100%)"
               aria-label="Fit View to Screen"
-              className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition"
+              className="h-8 w-8 rounded-xl flex items-center justify-center text-foreground-light hover:text-foreground hover:bg-surface-200 transition active:scale-95"
             >
               <Maximize2 size={14} />
             </button>
