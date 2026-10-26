@@ -1,4 +1,4 @@
-import { useParams } from 'common'
+import { IS_PLATFORM, useParams } from 'common'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import {
