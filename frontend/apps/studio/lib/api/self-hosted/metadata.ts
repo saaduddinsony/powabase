@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import { executeQuery } from './query'
+export { executeQuery } from './query'
 
 export interface SocketOrganization {
   id: number

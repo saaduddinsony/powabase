@@ -3,8 +3,8 @@ import apiWrapper from '@/lib/api/apiWrapper'
 import {
   saveCopilotMessage,
   getCopilotSettings,
-  executeQuery,
 } from '@/lib/api/self-hosted/metadata'
+import { executeQuery } from '@/lib/api/self-hosted/query'
 
 export const config = {
   api: {
