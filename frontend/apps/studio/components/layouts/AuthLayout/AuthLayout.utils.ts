@@ -45,61 +45,51 @@ export function generateAuthMenu(options: GenerateAuthMenuOptions): ProductMenuG
           url: `${baseUrl}/policies`,
           items: [],
         },
-        ...(isPlatform
+        ...(features.signInProviders
           ? [
-              ...(features.signInProviders
-                ? [
-                    {
-                      name: 'Sign In / Providers',
-                      key: 'sign-in-up',
-                      pages: ['providers', 'third-party'],
-                      url: `${baseUrl}/providers`,
-                      items: [],
-                    },
-                  ]
-                : []),
-              // Passkeys — gated: feature-flagged, not GA
-              // OAuth Server — gated: no backend support
-              // Sessions — gated: GoTrue rejects timebox/inactivity 0 or empty, needs duration format handling
-              ...(features.rateLimits
-                ? [
-                    {
-                      name: 'Rate Limits',
-                      key: 'rate-limits',
-                      url: `${baseUrl}/rate-limits`,
-                      items: [],
-                    },
-                  ]
-                : []),
-              ...(features.multiFactor
-                ? [
-                    {
-                      name: 'Multi-Factor',
-                      key: 'mfa',
-                      url: `${baseUrl}/mfa`,
-                      items: [],
-                    },
-                  ]
-                : []),
               {
-                name: 'URL Configuration',
-                key: 'url-configuration',
-                url: `${baseUrl}/url-configuration`,
+                name: 'Sign In / Providers',
+                key: 'sign-in-up',
+                pages: ['providers', 'third-party'],
+                url: `${baseUrl}/providers`,
                 items: [],
               },
-              ...(features.attackProtection
-                ? [
-                    {
-                      name: 'Attack Protection',
-                      key: 'protection',
-                      url: `${baseUrl}/protection`,
-                      items: [],
-                    },
-                  ]
-                : []),
-              // Auth Hooks — gated: needs investigation
-              // Audit Logs — gated: proxy route returns 404
-              // Performance — gated: needs Supabase metrics API
+            ]
+          : []),
+        ...(features.rateLimits
+          ? [
+              {
+                name: 'Rate Limits',
+                key: 'rate-limits',
+                url: `${baseUrl}/rate-limits`,
+                items: [],
+              },
+            ]
+          : []),
+        ...(features.multiFactor
+          ? [
+              {
+                name: 'Multi-Factor',
+                key: 'mfa',
+                url: `${baseUrl}/mfa`,
+                items: [],
+              },
+            ]
+          : []),
+        {
+          name: 'URL Configuration',
+          key: 'url-configuration',
+          url: `${baseUrl}/url-configuration`,
+          items: [],
+        },
+        ...(features.attackProtection
+          ? [
+              {
+                name: 'Attack Protection',
+                key: 'protection',
+                url: `${baseUrl}/protection`,
+                items: [],
+              },
             ]
           : []),
       ],

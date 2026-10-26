@@ -49,7 +49,6 @@ export const useAuthConfigQuery = <TData = ProjectAuthConfigData>(
     queryFn: ({ signal }) => getProjectAuthConfig({ projectRef }, signal),
     enabled:
       enabled &&
-      IS_PLATFORM &&
       typeof projectRef !== 'undefined' &&
       projectRef !== '_' &&
       isActive,

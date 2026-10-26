@@ -24,8 +24,7 @@ const SignUpPage: NextPageWithLayout = () => {
   return (
     <>
       <div className="flex flex-col gap-5">
-        {/* [Powabase] Hidden cloud-only sign-in methods */}
-        {/* {signInWithGithubEnabled && (
+        {signInWithGithubEnabled && (
           <>
             <SignInWithGitHub />
 
@@ -38,7 +37,7 @@ const SignUpPage: NextPageWithLayout = () => {
               </div>
             </div>
           </>
-        )} */}
+        )}
 
         {googleAuthEnabled && (
           <>

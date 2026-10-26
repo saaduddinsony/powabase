@@ -15,7 +15,7 @@ export const AuthProvidersLayout = ({ children }: PropsWithChildren<{}>) => {
 
   const navItems = [
     {
-      label: 'Powabase Auth',
+      label: 'Socket Auth',
       href: `/project/${ref}/auth/providers`,
     },
     ...(authenticationThirdPartyAuth

@@ -38,7 +38,7 @@ const handleCreate = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 
   try {
-    const org = await createSocketOrganization(name)
+    const org = await createSocketOrganization({ name: name.trim() })
     return res.status(201).json(org)
   } catch (error: any) {
     return res.status(500).json({ error: { message: error.message || 'Failed to create organization' } })

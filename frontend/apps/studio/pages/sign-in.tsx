@@ -38,45 +38,12 @@ const SignInPage: NextPageWithLayout = () => {
 
   const googleAuthEnabled = isGoogleAuthEnabled()
 
-  // Only Google and the email form render today; the GitHub/SSO/custom blocks below
-  // are commented out, so their flags must NOT feed the divider or it appears with
-  // nothing above it.
-  const showOrDivider = googleAuthEnabled && signInWithEmailEnabled
-
-  useEffect(() => {
-    if (!IS_PLATFORM) {
-      // on selfhosted instance just redirect to projects page
-      router.replace('/project/default')
-    }
-  }, [router])
+  const showOrDivider = (googleAuthEnabled || signInWithGithubEnabled) && signInWithEmailEnabled
 
   return (
     <>
       <div className="flex flex-col gap-5">
-        {/* [Powabase] Hidden cloud-only sign-in methods */}
-        {/* {customProvider && <SignInWithCustom providerName={customProvider} />} */}
-        {/* {signInWithGithubEnabled && <SignInWithGitHub />} */}
-        {/* {signInWithSsoEnabled && (
-          <LastSignInWrapper type="sso">
-            <Button
-              asChild
-              block
-              size="large"
-              type="outline"
-              icon={<Lock width={18} height={18} />}
-            >
-              <Link
-                href={{
-                  pathname: '/sign-in-sso',
-                  query: router.query,
-                }}
-              >
-                Continue with SSO
-              </Link>
-            </Button>
-          </LastSignInWrapper>
-        )} */}
-
+        {signInWithGithubEnabled && <SignInWithGitHub />}
         {googleAuthEnabled && <SignInWithGoogle />}
 
         {showOrDivider && (

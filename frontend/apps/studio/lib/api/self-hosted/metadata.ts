@@ -129,6 +129,12 @@ export async function ensureMetadataSchema(): Promise<void> {
       status TEXT DEFAULT 'pending'
     );
 
+    CREATE TABLE IF NOT EXISTS _socket_metadata.project_auth_config (
+      project_ref TEXT PRIMARY KEY,
+      config JSONB NOT NULL DEFAULT '{}'::jsonb,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
     ALTER TABLE _socket_metadata.projects ADD COLUMN IF NOT EXISTS db_schema TEXT DEFAULT 'public';
     ALTER TABLE _socket_metadata.projects ADD COLUMN IF NOT EXISTS jwt_secret TEXT;
     ALTER TABLE _socket_metadata.projects ADD COLUMN IF NOT EXISTS anon_key TEXT;
@@ -258,10 +264,17 @@ export async function getSocketOrganizationBySlug(slug: string): Promise<SocketO
   }
 }
 
-export async function createSocketOrganization({ name }: { name: string }): Promise<SocketOrganization> {
+export async function createSocketOrganization(
+  input: string | { name: string }
+): Promise<SocketOrganization> {
   await ensureMetadataSchema()
 
-  const trimmedName = name.trim()
+  const rawName = typeof input === 'string' ? input : input?.name
+  const trimmedName = (rawName || '').trim()
+  if (!trimmedName) {
+    throw new Error('Organization name is required')
+  }
+
   const slug = `${slugify(trimmedName)}-${Math.random().toString(36).substring(2, 6)}`
 
   const { data, error } = await executeQuery<{
@@ -284,6 +297,18 @@ export async function createSocketOrganization({ name }: { name: string }): Prom
   }
 
   const row = data[0]
+
+  // Automatically insert owner member into _socket_metadata.organization_members
+  await executeQuery({
+    query: `
+      INSERT INTO _socket_metadata.organization_members (
+        organization_id, primary_email, username, role_id, mfa_enabled, gotrue_id
+      ) VALUES ($1, 'admin@socket.dev', 'admin', 1, false, '00000000-0000-0000-0000-000000000001')
+      ON CONFLICT (organization_id, primary_email) DO NOTHING
+    `,
+    parameters: [row.id],
+  })
+
   return {
     id: row.id,
     name: row.name,
@@ -775,5 +800,46 @@ export async function acceptSocketInvitation(token: string, userEmail?: string, 
   })
 
   return { success: true }
+}
+
+export async function getSocketProjectAuthConfig(projectRef: string): Promise<Record<string, any>> {
+  await ensureMetadataSchema()
+
+  const { data, error } = await executeQuery<{
+    project_ref: string
+    config: Record<string, any>
+  }>({
+    query: `SELECT config FROM _socket_metadata.project_auth_config WHERE project_ref = $1`,
+    parameters: [projectRef],
+  })
+
+  if (error || !data || data.length === 0) {
+    return {}
+  }
+
+  const row = data[0]
+  return typeof row.config === 'object' && row.config !== null ? row.config : {}
+}
+
+export async function updateSocketProjectAuthConfig(
+  projectRef: string,
+  updates: Record<string, any>
+): Promise<Record<string, any>> {
+  await ensureMetadataSchema()
+
+  const current = await getSocketProjectAuthConfig(projectRef)
+  const merged = { ...current, ...updates }
+
+  await executeQuery({
+    query: `
+      INSERT INTO _socket_metadata.project_auth_config (project_ref, config, updated_at)
+      VALUES ($1, $2::jsonb, NOW())
+      ON CONFLICT (project_ref) DO UPDATE
+      SET config = EXCLUDED.config, updated_at = NOW()
+    `,
+    parameters: [projectRef, JSON.stringify(merged)],
+  })
+
+  return merged
 }
 
