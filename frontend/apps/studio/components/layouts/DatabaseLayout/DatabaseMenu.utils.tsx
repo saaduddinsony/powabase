@@ -35,6 +35,9 @@ export const useGenerateDatabaseMenu = (): ProductMenuGroup[] => {
         { name: 'Extensions', key: 'extensions', url: getDatabaseURL('extensions') },
         { name: 'Indexes', key: 'indexes', url: getDatabaseURL('indexes') },
         { name: 'Publications', key: 'publications', url: getDatabaseURL('publications') },
+        { name: 'Cron Jobs', key: 'cron', url: getDatabaseURL('cron') },
+        { name: 'Queues', key: 'queues', url: getDatabaseURL('queues') },
+        { name: 'Security & Performance Advisor', key: 'linter', url: getDatabaseURL('linter') },
       ],
     },
     {

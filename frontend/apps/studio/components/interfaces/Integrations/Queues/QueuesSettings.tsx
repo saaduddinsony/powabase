@@ -211,7 +211,7 @@ export const QueuesSettings = () => {
                             <p className="max-w-2xl">
                               When enabled, you will be able to use the following functions from the{' '}
                               <code className="text-code-inline">{QUEUES_SCHEMA}</code> schema to
-                              manage your queues via any Powabase client library or PostgREST
+                              manage your queues via any Socket client library or PostgREST
                               endpoints:
                             </p>
                             <p className="mt-2">

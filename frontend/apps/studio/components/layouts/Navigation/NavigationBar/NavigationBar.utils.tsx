@@ -1,5 +1,5 @@
 import { Auth, Database, Realtime, SqlEditor, Storage, TableEditor } from 'icons'
-import { Blocks, BookOpen, Bot, Code, FileText, GitBranch, Play, Server, Settings } from 'lucide-react'
+import { Activity, Blocks, BookOpen, Bot, Code, FileText, GitBranch, Play, Server, Settings } from 'lucide-react'
 
 import { ICON_SIZE, ICON_STROKE_WIDTH } from '@/components/interfaces/Sidebar'
 import type { Route } from '@/components/ui/ui.types'
@@ -201,15 +201,16 @@ export const generateOtherRoutes = (
   project?: Project,
   features?: OtherFeatures
 ): Route[] => {
+  const { isProjectActive, isProjectBuilding, buildingUrl } = getRouteContext(ref, project)
+
   return [
-    // Advisors / Logs: deleted outright (source trees, orphaned layouts/interfaces, and every
-    // inbound link from live code removed together) — neither is a stub anymore, there's
-    // nothing left to route to. Never emitted here.
-    // Integrations (Bucket-2): never emitted here, not gated — but not deleted. Neither prod
-    // (infra/helm/project-stack) nor the OSS data-plane (templates/supabase-project) runs a
-    // backend for it, and pages/project/[ref]/integrations/** is a dead RedirectToProject stub
-    // in both builds — retained (not deleted) so inbound links from live code don't 404; see
-    // nav-no-cloud-only-corpses.spec.ts.
+    {
+      key: 'observability',
+      label: 'Observability & Logs',
+      disabled: !isProjectActive,
+      icon: <Activity size={ICON_SIZE} strokeWidth={ICON_STROKE_WIDTH} />,
+      link: ref && (isProjectBuilding ? buildingUrl : `/project/${ref}/observability`),
+    },
   ]
 }
 
