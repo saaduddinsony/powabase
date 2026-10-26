@@ -1676,7 +1676,10 @@ export async function streamProjectCopilotChat(
     projectApiUrl(ref, `/project-copilot/sessions/${sessionId}/chat`),
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: {
+        'Content-Type': 'application/json',
+        ...aiAuthHeader(token),
+      },
       body: JSON.stringify(body),
       signal: options?.signal,
     }

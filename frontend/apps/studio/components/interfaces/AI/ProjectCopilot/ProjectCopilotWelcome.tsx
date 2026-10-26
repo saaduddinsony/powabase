@@ -27,8 +27,10 @@ const QUICK_STARTS: Array<{ id: string; label: string }> = [
  */
 export const ProjectCopilotWelcomeBody = ({
   onStartGuide,
+  onPromptClick,
 }: {
-  onStartGuide: (sequenceId: string) => void
+  onStartGuide?: (sequenceId: string) => void
+  onPromptClick?: (prompt: string) => void
 }) => {
   return (
     <div className="flex flex-col gap-y-4">
@@ -57,7 +59,12 @@ export const ProjectCopilotWelcomeBody = ({
           string and API keys.
         </p>
         <div className="flex flex-wrap gap-2 pt-1">
-          <Button type="primary" size="tiny" icon={<KeyRound size={14} />} onClick={() => onStartGuide('connect')}>
+          <Button
+            type="primary"
+            size="tiny"
+            icon={<KeyRound size={14} />}
+            onClick={() => (onStartGuide ? onStartGuide('connect') : onPromptClick?.('Show me how to connect'))}
+          >
             Show me how to connect
           </Button>
           <Button asChild type="default" size="tiny">
@@ -82,7 +89,7 @@ export const ProjectCopilotWelcomeBody = ({
               type="default"
               size="tiny"
               icon={q.id === 'create-table' ? <Database size={14} /> : <Sparkles size={14} />}
-              onClick={() => onStartGuide(q.id)}
+              onClick={() => (onStartGuide ? onStartGuide(q.id) : onPromptClick?.(q.label))}
             >
               {q.label}
             </Button>

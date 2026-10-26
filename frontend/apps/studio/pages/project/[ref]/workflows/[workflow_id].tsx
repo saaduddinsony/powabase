@@ -23,10 +23,9 @@ import {
   workflowKeys,
 } from "@/data/ai-workflows";
 import { useRouter } from "next/router";
-import { Trash2 } from "lucide-react";
+import { Trash2, Bot } from "lucide-react";
 import { useSidebarManagerSnapshot } from "@/state/sidebar-manager-state";
 import { SIDEBAR_KEYS } from "@/components/layouts/ProjectLayout/LayoutSidebar/LayoutSidebarProvider";
-import { InteractiveCopilotAvatar } from "@/components/interfaces/AI/ProjectCopilot/InteractiveCopilotAvatar";
 import { useSessionAccessTokenQuery } from "@/data/auth/session-access-token-query";
 import {
   WorkflowExecutionPanel,
@@ -574,7 +573,7 @@ const WorkflowEditorPage: NextPageWithLayout = () => {
                 : "text-foreground border-default hover:bg-surface-200"
             }`}
           >
-            <InteractiveCopilotAvatar size="tiny" isAwake={isCopilotOpen} />
+            <Bot size={14} className={isCopilotOpen ? "text-brand-500" : "text-foreground-lighter"} />
             <span>Ask AI</span>
           </button>
 

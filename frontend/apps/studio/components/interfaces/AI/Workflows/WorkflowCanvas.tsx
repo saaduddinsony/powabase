@@ -25,7 +25,6 @@ import { getDefaultConfig, blockRegistry, type InputMapping } from "@/data/ai-wo
 import { evaluateCondition } from "./condition-utils";
 import { WorkflowContext } from "./WorkflowContext";
 import { useWorkflowHistory } from "./useWorkflowHistory";
-import { InteractiveCopilotAvatar } from "@/components/interfaces/AI/ProjectCopilot/InteractiveCopilotAvatar";
 import {
   Undo2,
   Redo2,
@@ -38,6 +37,7 @@ import {
   MousePointer,
   Layers,
   Sparkles,
+  Bot,
 } from "lucide-react";
 
 const nodeTypes = { block: BlockNode };
@@ -697,7 +697,7 @@ function WorkflowCanvasInner({
                     : "text-foreground-light hover:text-foreground hover:bg-surface-200"
                 }`}
               >
-                <InteractiveCopilotAvatar size="tiny" isAwake={isCopilotOpen} />
+                <Bot size={14} className={isCopilotOpen ? "text-background" : "text-foreground-lighter"} />
                 <span>Ask AI</span>
               </button>
             )}
