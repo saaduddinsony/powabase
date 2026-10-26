@@ -33,7 +33,7 @@ export const ProjectCopilotWelcomeBody = ({
   return (
     <div className="flex flex-col gap-y-4">
       <div className="flex flex-col items-center justify-center pt-2 pb-1 gap-y-2.5">
-        <InteractiveCopilotAvatar size={85} shape="Cube" eyes="Slant" showSpeechOnPoke={true} />
+        <InteractiveCopilotAvatar size={85} shape="Circle" eyes="Slant" showSpeechOnPoke={true} />
         <div className="flex flex-col items-center gap-0.5 text-center">
           <span className="text-sm font-semibold text-foreground">Socket Project Copilot</span>
           <span className="text-xs text-foreground-lighter">Two eyes that follow your pointer &amp; assist your workflow</span>

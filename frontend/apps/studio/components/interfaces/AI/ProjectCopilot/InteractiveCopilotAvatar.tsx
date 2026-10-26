@@ -6,7 +6,7 @@ export type AvatarSize = 'tiny' | 'small' | 'medium' | 'large' | 'xlarge' | 'her
 
 export interface InteractiveCopilotAvatarProps {
   size?: AvatarSize
-  shape?: 'Cube' | 'Ball' | 'Pill' | 'Hexagon'
+  shape?: 'Circle' | 'Ball' | 'Cube' | 'Pill' | 'Hexagon'
   eyes?: 'Slant' | 'Dots' | 'Squares'
   theme?: 'auto' | 'light' | 'dark'
   isAwake?: boolean
@@ -16,7 +16,8 @@ export interface InteractiveCopilotAvatarProps {
 }
 
 const SHAPES: Record<string, string> = {
-  Ball: 'M50 0 A50 50 0 1 1 49.99 0 Z',
+  Circle: 'M50 4 A46 46 0 1 1 49.99 4 Z',
+  Ball: 'M50 4 A46 46 0 1 1 49.99 4 Z',
   Cube: 'M30 6 H70 A24 24 0 0 1 94 30 V70 A24 24 0 0 1 70 94 H30 A24 24 0 0 1 6 70 V30 A24 24 0 0 1 30 6 Z',
   Pill: 'M34 17 H66 A33 33 0 0 1 66 83 H34 A33 33 0 0 1 34 17 Z',
   Hexagon:
@@ -43,7 +44,7 @@ const SPEECH_TINTS = ['#18191c', '#24252a', '#0b0c0e']
 
 export const InteractiveCopilotAvatar = ({
   size = 'small',
-  shape = 'Cube',
+  shape = 'Circle',
   eyes = 'Slant',
   theme = 'auto',
   isAwake = true,
@@ -274,7 +275,7 @@ export const InteractiveCopilotAvatar = ({
     <div
       ref={containerRef}
       className={cn(
-        'relative inline-flex items-center justify-center select-none flex-shrink-0',
+        'relative inline-flex items-center justify-center select-none flex-shrink-0 rounded-full',
         onClick && 'cursor-pointer',
         className
       )}
