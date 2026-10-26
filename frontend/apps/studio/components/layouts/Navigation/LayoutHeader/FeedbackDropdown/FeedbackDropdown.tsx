@@ -1,5 +1,5 @@
 import { IS_PLATFORM } from 'common'
-import { Lightbulb, TriangleAlert } from 'lucide-react'
+import { ArrowUpRight, Lightbulb, TriangleAlert } from 'lucide-react'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import {
@@ -66,26 +66,41 @@ export const FeedbackDropdown = ({ className }: { className?: string }) => {
       >
         {stage === 'select' && (
           <div className="flex flex-col gap-4 p-4">
-            <div className="font-medium text-sm">What would you like to share?</div>
+            <div className="font-semibold text-sm text-foreground">What would you like to share?</div>
             <div className="grid grid-cols-2 gap-3">
-              <Button type="default" className="h-32" onClick={() => setStage('issue-options')}>
-                <div className="grid gap-1.5 text-center">
-                  <TriangleAlert size="28" className="mx-auto text-destructive-600" />
-                  <div className="flex flex-col items-center">
-                    <span className="text-base">Issue</span>
-                    <span className="text-xs text-foreground-lighter">with my project</span>
+              <button
+                type="button"
+                onClick={() => setStage('issue-options')}
+                className="group relative flex flex-col justify-between p-4 h-36 rounded-2xl border border-default bg-surface-100 hover:bg-surface-200/60 hover:border-foreground-muted hover:shadow-md active:scale-[0.98] transition-all duration-200 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground-lighter"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className="h-9 w-9 rounded-xl bg-destructive-200/40 text-destructive-600 border border-destructive-400/20 flex items-center justify-center transition-transform group-hover:scale-105">
+                    <TriangleAlert size={18} />
                   </div>
+                  <ArrowUpRight size={15} className="text-foreground-lighter opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
                 </div>
-              </Button>
-              <Button type="default" className="h-32" onClick={() => setStage('widget')}>
-                <div className="grid gap-1.5 text-center">
-                  <Lightbulb size="28" className="mx-auto text-warning" />
-                  <div className="flex flex-col items-center">
-                    <span className="text-base">Idea</span>
-                    <span className="text-xs text-foreground-lighter">to improve Supabase</span>
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Issue</div>
+                  <div className="text-xs text-foreground-lighter mt-0.5 leading-snug">with my project</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStage('widget')}
+                className="group relative flex flex-col justify-between p-4 h-36 rounded-2xl border border-default bg-surface-100 hover:bg-surface-200/60 hover:border-foreground-muted hover:shadow-md active:scale-[0.98] transition-all duration-200 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground-lighter"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className="h-9 w-9 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center transition-transform group-hover:scale-105">
+                    <Lightbulb size={18} />
                   </div>
+                  <ArrowUpRight size={15} className="text-foreground-lighter opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
                 </div>
-              </Button>
+                <div>
+                  <div className="text-sm font-semibold text-foreground">Idea</div>
+                  <div className="text-xs text-foreground-lighter mt-0.5 leading-snug">to improve Socket</div>
+                </div>
+              </button>
             </div>
           </div>
         )}
