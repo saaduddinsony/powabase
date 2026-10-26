@@ -45,96 +45,92 @@ export function RegionalWorldMap({
   } | null>(null)
 
   return (
-    <div className="w-full h-full relative flex flex-col items-center justify-center my-auto py-1 z-10 select-none">
-      <div className="w-full h-[220px] max-h-[230px] overflow-hidden flex items-center justify-center">
-        <ComposableMap
-          projectionConfig={{ scale: 135, center: [14, 15] }}
-          width={720}
-          height={320}
-          className="w-full h-full"
+    <div className="w-full h-full min-h-[300px] relative flex flex-col items-center justify-center select-none overflow-hidden cursor-grab active:cursor-grabbing">
+      <ComposableMap
+        projectionConfig={{ scale: 145, center: [14, 15] }}
+        width={800}
+        height={380}
+        className="w-full h-full"
+      >
+        <ZoomableGroup
+          center={[14, 15]}
+          zoom={1.1}
+          minZoom={1.0}
+          maxZoom={6.0}
         >
-          <ZoomableGroup
-            center={[14, 15]}
-            zoom={1.05}
-            minZoom={1.0}
-            maxZoom={1.8}
-            filterZoomEvent={() => false}
+          <Geographies geography={GeographyData}>
+            {({ geographies }) =>
+              geographies.map((geo) => (
+                <Geography
+                  key={geo.rsmKey}
+                  geography={geo}
+                  strokeWidth={0.4}
+                  className="fill-border-overlay stroke-border-muted dark:fill-surface-300 dark:stroke-surface-100 transition-colors"
+                  style={{
+                    default: { outline: 'none' },
+                    hover: { outline: 'none', fill: 'var(--colors-surface-200, #d1d5db)' },
+                    pressed: { outline: 'none' },
+                  }}
+                />
+              ))
+            }
+          </Geographies>
+
+          {/* Inactive Global Cloud / Edge Regions */}
+          {GLOBAL_REGIONS.map((region) => {
+            const isPrimary =
+              Math.abs(region.coordinates[0] - coordinates[0]) < 2 &&
+              Math.abs(region.coordinates[1] - coordinates[1]) < 2
+
+            if (isPrimary) return null
+
+            return (
+              <Marker
+                key={region.key}
+                coordinates={region.coordinates}
+                onMouseEnter={() =>
+                  setHoveredRegion({
+                    name: region.name,
+                    flag: region.flag,
+                    isPrimary: false,
+                  })
+                }
+                onMouseLeave={() => setHoveredRegion(null)}
+              >
+                <circle
+                  r={3.2}
+                  className="fill-white/80 dark:fill-white/70 hover:fill-white cursor-pointer transition-colors stroke-[0.8] stroke-background drop-shadow-xs"
+                />
+              </Marker>
+            )
+          })}
+
+          {/* Primary Active Server Deployment Region */}
+          <Marker
+            coordinates={coordinates}
+            onMouseEnter={() =>
+              setHoveredRegion({
+                name: label,
+                flag: '🇸🇬',
+                isPrimary: true,
+              })
+            }
+            onMouseLeave={() => setHoveredRegion(null)}
           >
-            <Geographies geography={GeographyData}>
-              {({ geographies }) =>
-                geographies.map((geo) => (
-                  <Geography
-                    key={geo.rsmKey}
-                    geography={geo}
-                    strokeWidth={0.4}
-                    pointerEvents="none"
-                    className="fill-border-overlay stroke-border-muted dark:fill-surface-300 dark:stroke-surface-100"
-                    style={{
-                      default: { outline: 'none' },
-                      hover: { outline: 'none' },
-                      pressed: { outline: 'none' },
-                    }}
-                  />
-                ))
-              }
-            </Geographies>
+            <circle
+              r={12}
+              className="animate-ping fill-brand opacity-40 pointer-events-none"
+            />
+            <circle
+              r={5.5}
+              className="fill-brand stroke-2 stroke-background cursor-pointer drop-shadow-sm"
+            />
+          </Marker>
+        </ZoomableGroup>
+      </ComposableMap>
 
-            {/* Inactive Global Cloud / Edge Regions */}
-            {GLOBAL_REGIONS.map((region) => {
-              const isPrimary =
-                Math.abs(region.coordinates[0] - coordinates[0]) < 2 &&
-                Math.abs(region.coordinates[1] - coordinates[1]) < 2
-
-              if (isPrimary) return null
-
-              return (
-                <Marker
-                  key={region.key}
-                  coordinates={region.coordinates}
-                  onMouseEnter={() =>
-                    setHoveredRegion({
-                      name: region.name,
-                      flag: region.flag,
-                      isPrimary: false,
-                    })
-                  }
-                  onMouseLeave={() => setHoveredRegion(null)}
-                >
-                  <circle
-                    r={2.8}
-                    className="fill-foreground-lighter/50 hover:fill-foreground cursor-pointer transition-colors stroke-[0.8] stroke-background"
-                  />
-                </Marker>
-              )
-            })}
-
-            {/* Primary Active Server Deployment Region */}
-            <Marker
-              coordinates={coordinates}
-              onMouseEnter={() =>
-                setHoveredRegion({
-                  name: label,
-                  flag: '🇸🇬',
-                  isPrimary: true,
-                })
-              }
-              onMouseLeave={() => setHoveredRegion(null)}
-            >
-              <circle
-                r={9}
-                className="animate-ping fill-brand opacity-40 pointer-events-none"
-              />
-              <circle
-                r={4.8}
-                className="fill-brand stroke-2 stroke-background cursor-pointer drop-shadow-sm"
-              />
-            </Marker>
-          </ZoomableGroup>
-        </ComposableMap>
-      </div>
-
-      {/* Region Status Label / Tooltip */}
-      <div className="text-[11px] font-mono text-foreground-light mt-1 flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-100/90 border border-default shadow-xs backdrop-blur-xs transition-all">
+      {/* Floating Region Status Badge */}
+      <div className="absolute bottom-3 left-3 z-10 text-[11px] font-mono text-foreground-light flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-100/90 border border-default shadow-xs backdrop-blur-md transition-all pointer-events-none">
         {hoveredRegion ? (
           <>
             <span>{hoveredRegion.flag || '📍'}</span>

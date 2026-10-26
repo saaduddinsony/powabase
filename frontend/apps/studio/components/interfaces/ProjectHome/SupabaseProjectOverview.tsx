@@ -315,41 +315,45 @@ export function SupabaseProjectOverview() {
 
               {/* Right Column: Interactive Dot-Matrix Canvas with Primary Database Card */}
               <div
-                className="lg:col-span-6 relative flex flex-col justify-between rounded-xl border border-default bg-surface-100/40 p-5 min-h-[250px] shadow-sm overflow-hidden"
+                className={`lg:col-span-6 relative flex flex-col justify-between rounded-xl border border-default bg-surface-100/40 min-h-[300px] shadow-sm overflow-hidden ${
+                  canvasMode === 'node' ? 'p-5' : 'p-0'
+                }`}
                 style={{
                   backgroundImage:
-                    'radial-gradient(rgba(128, 128, 128, 0.22) 1.5px, transparent 1.5px)',
+                    canvasMode === 'node'
+                      ? 'radial-gradient(rgba(128, 128, 128, 0.22) 1.5px, transparent 1.5px)'
+                      : undefined,
                   backgroundSize: '18px 18px',
                 }}
               >
                 {/* Top Right Canvas Controls */}
-                <div className="flex justify-end z-10">
-                  <div className="inline-flex items-center bg-surface-100 rounded-md border border-default p-0.5 shadow-xs">
+                <div className="absolute top-3.5 right-3.5 z-20">
+                  <div className="inline-flex items-center bg-surface-100/90 backdrop-blur-md rounded-lg border border-default p-1 shadow-sm gap-1">
                     <button
                       type="button"
                       onClick={() => setCanvasMode('node')}
                       title="Show infrastructure as a diagram"
                       aria-label="Show infrastructure as a diagram"
-                      className={`h-6.5 w-6.5 rounded flex items-center justify-center transition-colors ${
+                      className={`h-7.5 min-w-[34px] px-2.5 rounded-md flex items-center justify-center transition-all duration-150 ${
                         canvasMode === 'node'
                           ? 'bg-surface-200 text-foreground shadow-xs'
                           : 'text-foreground-lighter hover:text-foreground hover:bg-surface-200/50'
                       }`}
                     >
-                      <Network size={14} className={canvasMode === 'node' ? 'text-foreground' : 'text-foreground-lighter'} />
+                      <Network size={15} className={canvasMode === 'node' ? 'text-foreground' : 'text-foreground-lighter'} />
                     </button>
                     <button
                       type="button"
                       onClick={() => setCanvasMode('map')}
                       title="Show infrastructure on the map"
                       aria-label="Show infrastructure on the map"
-                      className={`h-6.5 w-6.5 rounded flex items-center justify-center transition-colors ${
+                      className={`h-7.5 min-w-[34px] px-2.5 rounded-md flex items-center justify-center transition-all duration-150 ${
                         canvasMode === 'map'
                           ? 'bg-surface-200 text-foreground shadow-xs'
                           : 'text-foreground-lighter hover:text-foreground hover:bg-surface-200/50'
                       }`}
                     >
-                      <Globe2 size={14} className={canvasMode === 'map' ? 'text-foreground' : 'text-foreground-lighter'} />
+                      <Globe2 size={15} className={canvasMode === 'map' ? 'text-foreground' : 'text-foreground-lighter'} />
                     </button>
                   </div>
                 </div>
@@ -438,15 +442,17 @@ export function SupabaseProjectOverview() {
               )}
 
                 {/* Canvas Footer Hint */}
-                <div className="flex justify-between items-center text-[11px] text-foreground-lighter z-10">
-                  <span>Socket Bare-Metal / Dedicated Runtime</span>
-                  <Link
-                    href={`/project/${projectRef}/infrastructure`}
-                    className="hover:text-foreground text-brand transition-colors"
-                  >
-                    Manage server &rarr;
-                  </Link>
-                </div>
+                {canvasMode === 'node' && (
+                  <div className="flex justify-between items-center text-[11px] text-foreground-lighter z-10">
+                    <span>Socket Bare-Metal / Dedicated Runtime</span>
+                    <Link
+                      href={`/project/${projectRef}/infrastructure`}
+                      className="hover:text-foreground text-brand transition-colors"
+                    >
+                      Manage server &rarr;
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
 
