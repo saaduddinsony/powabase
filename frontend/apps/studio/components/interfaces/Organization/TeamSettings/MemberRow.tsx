@@ -125,12 +125,13 @@ export const MemberRow = ({ member }: MemberRowProps) => {
             )
             const role = orgScopedRole || projectScopedRole
             const roleName = (role?.name ?? '').split('_')[0]
+            const roleProjects = (role as any)?.projects ?? []
             const projectsApplied =
-              role?.projects.length === 0
+              roleProjects.length === 0
                 ? (orgProjects?.map((p) => p.name) ?? [])
-                : (role?.projects ?? [])
-                    .map(({ ref }) => orgProjects?.find((p) => p.ref === ref)?.name ?? '')
-                    .filter((x) => x.length > 0)
+                : roleProjects
+                    .map(({ ref }: any) => orgProjects?.find((p) => p.ref === ref)?.name ?? '')
+                    .filter((x: string) => x.length > 0)
 
             return (
               <div key={`role-${id}`} className="flex items-center gap-x-2">
@@ -146,7 +147,7 @@ export const MemberRow = ({ member }: MemberRowProps) => {
                       <HoverCard_Shadcn_ openDelay={200}>
                         <HoverCardTrigger_Shadcn_ asChild>
                           <span className="text-foreground-light">
-                            {role?.projects.length === 0
+                            {roleProjects.length === 0
                               ? 'Organization'
                               : `${projectsApplied.length} project${projectsApplied.length > 1 ? 's' : ''}`}
                           </span>
