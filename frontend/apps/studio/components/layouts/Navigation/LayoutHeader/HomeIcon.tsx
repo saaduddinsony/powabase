@@ -17,6 +17,9 @@ export const HomeIcon = ({ className }: { className?: string }) => {
 
   const isCopilotOpen = activeSidebar?.id === SIDEBAR_KEYS.PROJECT_COPILOT
   const [showAvatar, setShowAvatar] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
+
+  const isAvatarActive = (showAvatar || isHovered) && !isCopilotOpen
 
   // Periodic smooth morphing cycle when Copilot is not currently open
   useEffect(() => {
@@ -67,27 +70,31 @@ export const HomeIcon = ({ className }: { className?: string }) => {
   const logoDimension = largeLogo ? 'h-[24px] w-[24px]' : 'h-[22px] w-[22px]'
 
   return (
-    <div className={cn('relative items-center justify-center flex-shrink-0 flex', logoDimension, className)}>
+    <div
+      className={cn('relative items-center justify-center flex-shrink-0 flex', logoDimension, className)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       {/* Interactive Avatar Mode */}
       <div
         onClick={handleAvatarClick}
-        title="Project Copilot AI Assistant"
+        title="Project Copilot AI Assistant (Click to open)"
         className={cn(
-          'absolute inset-0 flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer',
-          showAvatar && !isCopilotOpen
+          'absolute inset-0 flex items-center justify-center transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer',
+          isAvatarActive
             ? 'opacity-100 scale-100 pointer-events-auto filter drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]'
             : 'opacity-0 scale-90 pointer-events-none'
         )}
       >
-        <InteractiveCopilotAvatar size="small" isAwake={showAvatar && !isCopilotOpen} />
+        <InteractiveCopilotAvatar size="small" isAwake={isAvatarActive} showSpeechOnPoke={false} />
       </div>
 
       {/* Socket Logo Mode */}
       <Link
         href={homeHref}
         className={cn(
-          'items-center justify-center flex-shrink-0 flex transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]',
-          showAvatar && !isCopilotOpen
+          'items-center justify-center flex-shrink-0 flex transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]',
+          isAvatarActive
             ? 'opacity-0 scale-90 pointer-events-none'
             : 'opacity-100 scale-100 pointer-events-auto'
         )}

@@ -16,6 +16,7 @@ import { HomeIcon } from './HomeIcon'
 import { LocalVersionPopover } from './LocalVersionPopover'
 import { MergeRequestButton } from './MergeRequestButton'
 import { ProjectCopilotButton } from './ProjectCopilotButton'
+import { ThemeToggle } from './ThemeToggle'
 import {
   useIsBranching2Enabled,
   useIsFloatingMobileToolbarEnabled,
@@ -195,6 +196,7 @@ export const LayoutHeader = ({
             {projectRef && <ProjectCopilotButton />}
             <CreditBar />
             <HeaderPlanUpgradeButton />
+            <ThemeToggle />
             <UserDropdown triggerClassName="hidden md:flex" />
           </div>
         </div>

@@ -23,6 +23,7 @@ import { useFeaturePreviewModal } from '@/components/interfaces/App/FeaturePrevi
 import { ProfileImage } from '@/components/ui/ProfileImage'
 import { useIsPlatformAdminQuery } from '@/data/admin/use-is-platform-admin-query'
 import { useProfileNameAndPicture } from '@/lib/profile'
+import { executeThemeTransition } from '@/lib/theme-transition'
 
 const COMMON_TIMEZONES = [
   { value: 'UTC', label: 'UTC' },
@@ -157,7 +158,7 @@ export function UserDropdown({
           <DropdownMenuRadioGroup
             value={theme}
             onValueChange={(value) => {
-              setTheme(value)
+              executeThemeTransition(value, setTheme)
             }}
           >
             <DropdownMenuRadioItem value="system" className="cursor-pointer text-xs">

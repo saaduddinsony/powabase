@@ -22,6 +22,7 @@ import { ButtonTooltip } from '../ui/ButtonTooltip'
 import { useFeaturePreviewModal } from './App/FeaturePreview/FeaturePreviewContext'
 import { ProfileImage } from '@/components/ui/ProfileImage'
 import { useAppStateSnapshot } from '@/state/app-state'
+import { executeThemeTransition } from '@/lib/theme-transition'
 
 export const LocalDropdown = ({
   triggerClassName,
@@ -74,7 +75,7 @@ export const LocalDropdown = ({
           <DropdownMenuRadioGroup
             value={theme}
             onValueChange={(value) => {
-              setTheme(value)
+              executeThemeTransition(value, setTheme)
             }}
           >
             {singleThemes.map((theme: Theme) => (
