@@ -38,6 +38,7 @@ import { useSidebarManagerSnapshot } from '@/state/sidebar-manager-state'
 import { docsNoticeCopy, isDocsNotice } from './docs-notice-copy'
 import { looksLikeGuideLaunchClaim } from './launch-claim'
 import { ProjectCopilotWelcomeBody } from './ProjectCopilotWelcome'
+import { InteractiveCopilotAvatar } from './InteractiveCopilotAvatar'
 
 /** Inline notice shown for a pre-stream turn failure (402/409/503/other). */
 interface TurnNotice {
@@ -315,12 +316,10 @@ export const ProjectCopilotPanel = () => {
 
   return (
     <div className="flex flex-col h-full bg-studio" role="complementary" aria-label="Project Copilot">
-      {/* Header with single Bot icon (no repetitive eye avatar) */}
+      {/* Header with single InteractiveCopilotAvatar on top left */}
       <div className="flex items-center justify-between px-4 h-12 border-b border-default flex-shrink-0">
-        <div className="flex items-center gap-x-2">
-          <div className="w-6 h-6 rounded-lg bg-surface-200 border border-default flex items-center justify-center text-foreground shadow-2xs">
-            <Bot size={14} />
-          </div>
+        <div className="flex items-center gap-x-2.5">
+          <InteractiveCopilotAvatar size="small" shape="Circle" eyes="Slant" isAwake={true} showSpeechOnPoke={true} />
           <h2 className="text-sm font-semibold text-foreground">Project Copilot</h2>
         </div>
         <div className="flex items-center gap-x-0.5">
