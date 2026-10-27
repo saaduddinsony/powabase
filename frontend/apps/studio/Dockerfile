@@ -53,11 +53,11 @@ CMD ["pnpm", "dev:studio"]
 FROM dev AS builder
 
 # Build-time env vars (NEXT_PUBLIC_* are baked into the bundle)
-ARG NEXT_PUBLIC_IS_PLATFORM=true
+ARG NEXT_PUBLIC_IS_PLATFORM=false
 ARG NEXT_PUBLIC_ENVIRONMENT=local
-ARG NEXT_PUBLIC_API_URL=http://localhost:5000/api
+ARG NEXT_PUBLIC_API_URL=/api
 ARG NEXT_PUBLIC_GOTRUE_URL=http://localhost:8000/auth/v1
-ARG NEXT_PUBLIC_SITE_URL=http://localhost:3001
+ARG NEXT_PUBLIC_SITE_URL=
 ARG NEXT_PUBLIC_HCAPTCHA_SITE_KEY=10000000-ffff-ffff-ffff-000000000001
 # Whether the FE renders/executes the hCaptcha widget. CI wires this from the
 # same HCAPTCHA_ENABLED var that toggles GoTrue's server-side verification.
