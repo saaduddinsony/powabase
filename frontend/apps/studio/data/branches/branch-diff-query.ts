@@ -59,6 +59,6 @@ export const useBranchDiffQuery = (
   useQuery<BranchDiffData, ResponseError>({
     queryKey: branchKeys.diff(projectRef, branchRef, pgdelta),
     queryFn: () => getBranchDiff({ branchRef, includedSchemas, pgdelta }),
-    enabled: IS_PLATFORM && enabled && Boolean(branchRef),
+    enabled: enabled && Boolean(branchRef),
     ...options,
   })

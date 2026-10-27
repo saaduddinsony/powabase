@@ -50,6 +50,7 @@ const handleGet = async (req: NextApiRequest, res: NextApiResponse) => {
     const response = {
       ...DEFAULT_PROJECT,
       ...project,
+      is_branch_enabled: true,
       connectionString,
       restUrl: PROJECT_REST_URL,
       service_api_keys: [

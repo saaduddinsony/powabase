@@ -215,6 +215,29 @@ export async function ensureMetadataSchema(): Promise<void> {
     INSERT INTO _socket_metadata.user_profiles (gotrue_id, primary_email, username, first_name, last_name)
     VALUES ('00000000-0000-0000-0000-000000000001', 'admin@socket.dev', 'admin', 'Socket', 'Admin')
     ON CONFLICT (gotrue_id) DO NOTHING;
+    CREATE TABLE IF NOT EXISTS _socket_metadata.branches (
+      id TEXT PRIMARY KEY,
+      project_ref TEXT NOT NULL,
+      name TEXT NOT NULL,
+      git_branch TEXT,
+      is_default BOOLEAN DEFAULT FALSE,
+      status TEXT DEFAULT 'ACTIVE_HEALTHY',
+      preview_project_status TEXT DEFAULT 'ACTIVE_HEALTHY',
+      db_schema TEXT DEFAULT 'public',
+      persistent BOOLEAN DEFAULT TRUE,
+      with_data BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(project_ref, name)
+    );
+
+    INSERT INTO _socket_metadata.branches (
+      id, project_ref, name, git_branch, is_default, status, preview_project_status, db_schema
+    )
+    VALUES (
+      'main', 'default', 'main', 'main', TRUE, 'MIGRATIONS_PASSED', 'ACTIVE_HEALTHY', 'public'
+    )
+    ON CONFLICT (project_ref, name) DO NOTHING;
 
     SELECT setval(pg_get_serial_sequence('_socket_metadata.organizations', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organizations;
     SELECT setval(pg_get_serial_sequence('_socket_metadata.projects', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.projects;
@@ -1203,6 +1226,266 @@ export async function updateCopilotSettings(
     parameters: [ref, settings.warn_on_delete ?? null, settings.model ?? null],
   })
   return true
+}
+
+export interface SocketBranch {
+  id: string
+  project_ref: string
+  parent_project_ref?: string
+  name: string
+  git_branch?: string
+  is_default: boolean
+  status: string
+  preview_project_status: string
+  db_schema: string
+  persistent: boolean
+  with_data: boolean
+  created_at: string
+  updated_at: string
+}
+
+export async function getSocketBranches(projectRef: string = 'default'): Promise<any[]> {
+  await ensureMetadataSchema()
+
+  // Ensure default main branch exists for this projectRef
+  await executeQuery({
+    query: `
+      INSERT INTO _socket_metadata.branches (
+        id, project_ref, name, git_branch, is_default, status, preview_project_status, db_schema
+      )
+      VALUES (
+        $1, $2, 'main', 'main', TRUE, 'MIGRATIONS_PASSED', 'ACTIVE_HEALTHY', 'public'
+      )
+      ON CONFLICT (project_ref, name) DO NOTHING
+    `,
+    parameters: [`main_${projectRef}`, projectRef],
+  })
+
+  const { data, error } = await executeQuery<any>({
+    query: `
+      SELECT id, project_ref, name, git_branch, is_default, status,
+             preview_project_status, db_schema, persistent, with_data,
+             created_at, updated_at
+      FROM _socket_metadata.branches
+      WHERE project_ref = $1
+      ORDER BY is_default DESC, created_at DESC
+    `,
+    parameters: [projectRef],
+  })
+
+  if (error || !data) {
+    return [
+      {
+        id: `main_${projectRef}`,
+        name: 'main',
+        project_ref: projectRef,
+        parent_project_ref: projectRef,
+        git_branch: 'main',
+        is_default: true,
+        status: 'MIGRATIONS_PASSED',
+        preview_project_status: 'ACTIVE_HEALTHY',
+        persistent: true,
+        with_data: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ]
+  }
+
+  return data.map((b) => ({
+    id: b.id,
+    name: b.name,
+    project_ref: b.is_default ? b.project_ref : `${b.project_ref}-${b.name.toLowerCase().replace(/[^a-z0-9_-]/g, '-')}`,
+    parent_project_ref: b.project_ref,
+    git_branch: b.git_branch || b.name,
+    is_default: b.is_default,
+    status: b.status || 'MIGRATIONS_PASSED',
+    preview_project_status: b.preview_project_status || 'ACTIVE_HEALTHY',
+    persistent: b.persistent ?? true,
+    with_data: b.with_data ?? true,
+    created_at: b.created_at,
+    updated_at: b.updated_at,
+  }))
+}
+
+export async function createSocketBranch({
+  projectRef = 'default',
+  branchName,
+  gitBranch,
+  withData = true,
+}: {
+  projectRef: string
+  branchName: string
+  gitBranch?: string
+  withData?: boolean
+}): Promise<any> {
+  await ensureMetadataSchema()
+
+  const cleanName = branchName.trim().replace(/[^a-zA-Z0-9_-]/g, '-')
+  if (!cleanName) throw new Error('Branch name is invalid')
+
+  const branchSchema = `branch_${cleanName.toLowerCase().replace(/[^a-z0-9_]/g, '_')}`
+  const branchId = `branch_${cleanName}_${Math.random().toString(36).substring(2, 8)}`
+  const childProjectRef = `${projectRef}-${cleanName.toLowerCase()}`
+
+  // 1. Provision isolated Postgres schema
+  await executeQuery({
+    query: `CREATE SCHEMA IF NOT EXISTS "${branchSchema}";`,
+  })
+
+  // 2. Clone tables/data if withData is true
+  if (withData) {
+    await executeQuery({
+      query: `
+        DO $$
+        DECLARE
+          t record;
+        BEGIN
+          FOR t IN
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+          LOOP
+            BEGIN
+              EXECUTE format('CREATE TABLE IF NOT EXISTS %I.%I (LIKE public.%I INCLUDING ALL)', '${branchSchema}', t.table_name, t.table_name);
+              EXECUTE format('INSERT INTO %I.%I SELECT * FROM public.%I ON CONFLICT DO NOTHING', '${branchSchema}', t.table_name, t.table_name);
+            EXCEPTION WHEN OTHERS THEN
+              -- Continue even if one table has unsupported dependencies
+            END;
+          END LOOP;
+        END $$;
+      `,
+    })
+  }
+
+  // 3. Insert branch record into metadata
+  await executeQuery({
+    query: `
+      INSERT INTO _socket_metadata.branches (
+        id, project_ref, name, git_branch, is_default, status,
+        preview_project_status, db_schema, persistent, with_data
+      )
+      VALUES ($1, $2, $3, $4, FALSE, 'MIGRATIONS_PASSED', 'ACTIVE_HEALTHY', $5, TRUE, $6)
+      ON CONFLICT (project_ref, name) DO UPDATE
+      SET updated_at = NOW(), status = 'MIGRATIONS_PASSED'
+    `,
+    parameters: [branchId, projectRef, cleanName, gitBranch || cleanName, branchSchema, withData],
+  })
+
+  // 4. Register child project in _socket_metadata.projects so studio queries work
+  const parentProj = await getSocketProjectByRef(projectRef)
+  await executeQuery({
+    query: `
+      INSERT INTO _socket_metadata.projects (
+        ref, name, organization_id, cloud_provider, status, region, db_schema,
+        jwt_secret, anon_key, service_role_key
+      )
+      VALUES ($1, $2, $3, $4, 'ACTIVE_HEALTHY', $5, $6, $7, $8, $9)
+      ON CONFLICT (ref) DO UPDATE SET db_schema = $6
+    `,
+    parameters: [
+      childProjectRef,
+      `${parentProj?.name || 'Project'} (${cleanName})`,
+      parentProj?.organization_id || 1,
+      parentProj?.cloud_provider || 'localhost',
+      parentProj?.region || 'local',
+      branchSchema,
+      parentProj?.jwt_secret,
+      parentProj?.anon_key,
+      parentProj?.service_role_key,
+    ],
+  })
+
+  return {
+    id: branchId,
+    name: cleanName,
+    project_ref: childProjectRef,
+    parent_project_ref: projectRef,
+    git_branch: gitBranch || cleanName,
+    is_default: false,
+    status: 'MIGRATIONS_PASSED',
+    preview_project_status: 'ACTIVE_HEALTHY',
+    persistent: true,
+    with_data: withData,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+}
+
+export async function deleteSocketBranch(branchIdOrRef: string): Promise<boolean> {
+  await ensureMetadataSchema()
+
+  const { data } = await executeQuery<any>({
+    query: `
+      SELECT id, project_ref, name, is_default, db_schema
+      FROM _socket_metadata.branches
+      WHERE id = $1 OR name = $1 OR project_ref || '-' || name = $1
+      LIMIT 1
+    `,
+    parameters: [branchIdOrRef],
+  })
+
+  if (!data || data.length === 0) return false
+  const branch = data[0]
+
+  if (branch.is_default || branch.name === 'main') {
+    throw new Error('Cannot delete the default production branch')
+  }
+
+  // 1. Drop isolated schema
+  if (branch.db_schema && branch.db_schema !== 'public') {
+    await executeQuery({
+      query: `DROP SCHEMA IF EXISTS "${branch.db_schema}" CASCADE;`,
+    })
+  }
+
+  // 2. Delete branch record
+  await executeQuery({
+    query: `DELETE FROM _socket_metadata.branches WHERE id = $1`,
+    parameters: [branch.id],
+  })
+
+  // 3. Delete child project record
+  const childProjectRef = `${branch.project_ref}-${branch.name.toLowerCase()}`
+  await executeQuery({
+    query: `DELETE FROM _socket_metadata.projects WHERE ref = $1`,
+    parameters: [childProjectRef],
+  })
+
+  return true
+}
+
+export async function getSocketBranchByIdOrRef(branchIdOrRef: string): Promise<any | null> {
+  await ensureMetadataSchema()
+
+  const { data } = await executeQuery<any>({
+    query: `
+      SELECT id, project_ref, name, git_branch, is_default, status,
+             preview_project_status, db_schema, persistent, with_data,
+             created_at, updated_at
+      FROM _socket_metadata.branches
+      WHERE id = $1 OR name = $1 OR project_ref || '-' || name = $1
+      LIMIT 1
+    `,
+    parameters: [branchIdOrRef],
+  })
+
+  if (!data || data.length === 0) return null
+  const b = data[0]
+  return {
+    id: b.id,
+    name: b.name,
+    project_ref: b.is_default ? b.project_ref : `${b.project_ref}-${b.name.toLowerCase().replace(/[^a-z0-9_-]/g, '-')}`,
+    parent_project_ref: b.project_ref,
+    git_branch: b.git_branch || b.name,
+    is_default: b.is_default,
+    status: b.status || 'MIGRATIONS_PASSED',
+    preview_project_status: b.preview_project_status || 'ACTIVE_HEALTHY',
+    persistent: b.persistent ?? true,
+    with_data: b.with_data ?? true,
+    created_at: b.created_at,
+    updated_at: b.updated_at,
+  }
 }
 
 
