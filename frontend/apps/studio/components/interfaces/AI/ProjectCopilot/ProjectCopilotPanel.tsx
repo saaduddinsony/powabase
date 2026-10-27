@@ -302,7 +302,7 @@ export const ProjectCopilotPanel = () => {
       sawTriggerGuideRef.current = false
 
       const optimisticUserId = `optimistic-${crypto.randomUUID()}`
-      setMessages((prev) => [
+      setMessages((prev: ProjectCopilotMessage[]) => [
         ...prev,
         {
           id: optimisticUserId,
@@ -333,7 +333,7 @@ export const ProjectCopilotPanel = () => {
                   : `Using ${event.tool_call.name}…`
               )
             } else if (event.event === 'reasoning_delta') {
-              setReasoning((prev) => prev + event.delta)
+              setReasoning((prev: string) => prev + event.delta)
             } else if (event.event === 'trigger_guide') {
               sawTriggerGuideRef.current = true
               if (mountedRef.current && sessionIdRef.current === turnSessionId) {
@@ -476,7 +476,7 @@ export const ProjectCopilotPanel = () => {
                 type="default"
                 size="tiny"
                 icon={<RotateCcw size={12} />}
-                onClick={() => setRetryTick((t) => t + 1)}
+                onClick={() => setRetryTick((t: number) => t + 1)}
               >
                 Retry
               </Button>
@@ -486,10 +486,10 @@ export const ProjectCopilotPanel = () => {
 
         <div className="flex flex-col gap-y-4" aria-live="polite">
           {messages.length === 0 && !bootstrapError && (
-            <ProjectCopilotWelcomeBody onPromptClick={(prompt) => void send(prompt)} />
+            <ProjectCopilotWelcomeBody onPromptClick={(prompt: string) => void send(prompt)} />
           )}
 
-          {messages.map((m) => {
+          {messages.map((m: ProjectCopilotMessage) => {
             const seq =
               m.guide_event?.sequence_id !== undefined
                 ? getSequence(m.guide_event.sequence_id)
@@ -513,7 +513,7 @@ export const ProjectCopilotPanel = () => {
                       <Bot size={11} />
                     </div>
                     <div className="flex-1">
-                      <MarkdownText className="text-xs text-foreground leading-relaxed">{m.content}</MarkdownText>
+                      <MarkdownText className="text-xs text-foreground leading-relaxed" children={m.content} />
                     </div>
                   </div>
                 )}
@@ -587,7 +587,7 @@ export const ProjectCopilotPanel = () => {
               ? 'border-red-500/50 ring-2 ring-red-500/20'
               : 'border-neutral-200 dark:border-neutral-800 focus-within:ring-2 focus-within:ring-brand-500/25 focus-within:border-brand-500/80'
           )}
-          onSubmit={(e) => {
+          onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
             e.preventDefault()
             void send(input)
           }}
@@ -596,8 +596,8 @@ export const ProjectCopilotPanel = () => {
           <textarea
             aria-label="Message Project Copilot"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
+            onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
                 void send(input)
@@ -648,7 +648,7 @@ export const ProjectCopilotPanel = () => {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setShowToolsMenu((v) => !v)}
+                onClick={() => setShowToolsMenu((v: boolean) => !v)}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-200 hover:bg-surface-300 text-foreground-lighter hover:text-foreground text-[11px] font-medium transition shadow-2xs"
               >
                 <Plus
@@ -664,7 +664,7 @@ export const ProjectCopilotPanel = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setInput((prev) => (prev ? `${prev} @docs ` : '@docs '))
+                      setInput((prev: string) => (prev ? `${prev} @docs ` : '@docs '))
                       setShowToolsMenu(false)
                     }}
                     className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-foreground rounded-xl hover:bg-surface-200 transition text-left"
@@ -675,7 +675,7 @@ export const ProjectCopilotPanel = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setInput((prev) => (prev ? `${prev} @database ` : '@database '))
+                      setInput((prev: string) => (prev ? `${prev} @database ` : '@database '))
                       setShowToolsMenu(false)
                     }}
                     className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-foreground rounded-xl hover:bg-surface-200 transition text-left"
@@ -686,7 +686,7 @@ export const ProjectCopilotPanel = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setInput((prev) => (prev ? `${prev} @workflow ` : '@workflow '))
+                      setInput((prev: string) => (prev ? `${prev} @workflow ` : '@workflow '))
                       setShowToolsMenu(false)
                     }}
                     className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-foreground rounded-xl hover:bg-surface-200 transition text-left"
