@@ -19,6 +19,7 @@ import {
   Layers,
   Link2,
   Music,
+  Pencil,
   Plus,
   RefreshCw,
   Search,
