@@ -190,6 +190,14 @@ function WorkflowCanvasInner({
     return () => window.removeEventListener("keydown", handler);
   }, [undo, redo]);
 
+  // Handle canvas resize when copilot sidebar opens or closes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event("resize"));
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [isCopilotOpen]);
+
   // Notify parent whenever nodes or edges change
   const isInitialRender = useRef(true);
   useEffect(() => {
@@ -691,14 +699,14 @@ function WorkflowCanvasInner({
                 type="button"
                 onClick={onToggleCopilot}
                 title="Open Project Copilot"
-                className={`h-8 px-3 rounded-xl flex items-center gap-2 text-xs font-medium transition active:scale-95 ${
+                className={`h-8 px-3 rounded-xl flex items-center gap-2 text-xs font-medium whitespace-nowrap shrink-0 transition active:scale-95 ${
                   isCopilotOpen
-                    ? "bg-foreground text-background shadow-xs"
+                    ? "bg-surface-300 dark:bg-surface-300 text-foreground border border-stronger shadow-xs"
                     : "text-foreground-light hover:text-foreground hover:bg-surface-200"
                 }`}
               >
-                <Bot size={14} className={isCopilotOpen ? "text-background" : "text-foreground-lighter"} />
-                <span>Ask AI</span>
+                <Bot size={14} className={isCopilotOpen ? "text-foreground" : "text-foreground-lighter"} />
+                <span className="whitespace-nowrap select-none">Ask AI</span>
               </button>
             )}
 

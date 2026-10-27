@@ -23,7 +23,7 @@ import {
   workflowKeys,
 } from "@/data/ai-workflows";
 import { useRouter } from "next/router";
-import { Trash2, Bot } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useSidebarManagerSnapshot } from "@/state/sidebar-manager-state";
 import { SIDEBAR_KEYS } from "@/components/layouts/ProjectLayout/LayoutSidebar/LayoutSidebarProvider";
 import { useSessionAccessTokenQuery } from "@/data/auth/session-access-token-query";
@@ -563,19 +563,7 @@ const WorkflowEditorPage: NextPageWithLayout = () => {
             </svg>
             Import
           </button>
-          {/* Ask AI Copilot button (Opens default Project Copilot from side panel) */}
-          <button
-            type="button"
-            onClick={handleToggleCopilot}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md border transition ${
-              isCopilotOpen
-                ? "text-brand-600 border-brand-400 bg-brand-400/10"
-                : "text-foreground border-default hover:bg-surface-200"
-            }`}
-          >
-            <Bot size={14} className={isCopilotOpen ? "text-brand-500" : "text-foreground-lighter"} />
-            <span>Ask AI</span>
-          </button>
+
 
           {/* Delete Workflow Button */}
           <button
