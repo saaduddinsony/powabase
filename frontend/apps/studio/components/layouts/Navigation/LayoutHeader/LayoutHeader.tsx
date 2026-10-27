@@ -27,6 +27,7 @@ import { LocalDropdown } from '@/components/interfaces/LocalDropdown'
 import { UserDropdown } from '@/components/interfaces/UserDropdown'
 import { AdvisorButton } from '@/components/layouts/AppLayout/AdvisorButton'
 import { AssistantButton } from '@/components/layouts/AppLayout/AssistantButton'
+import { BranchDropdown } from '@/components/layouts/AppLayout/BranchDropdown'
 import { InlineEditorButton } from '@/components/layouts/AppLayout/InlineEditorButton'
 import { OrganizationDropdown } from '@/components/layouts/AppLayout/OrganizationDropdown'
 import { ProjectDropdown } from '@/components/layouts/AppLayout/ProjectDropdown'
@@ -145,6 +146,8 @@ export const LayoutHeader = ({
                   >
                     <LayoutHeaderDivider />
                     <ProjectDropdown />
+                    <LayoutHeaderDivider />
+                    <BranchDropdown />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -179,7 +182,7 @@ export const LayoutHeader = ({
                     ease: 'easeOut',
                   }}
                 >
-                  {IS_PLATFORM && gitlessBranching && <MergeRequestButton />}
+                  {gitlessBranching && <MergeRequestButton />}
                   <ConnectButton />
                 </motion.div>
               )}
