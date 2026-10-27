@@ -21,7 +21,7 @@ import {
 } from "./BlockIcons";
 import { blockRegistry, getDefaultConfig } from "@/data/ai-workflows/block-registry";
 
-export const SINGLETON_TYPES = new Set(["starter", "webhook", "response"]);
+export const SINGLETON_TYPES = new Set(["starter"]);
 
 const iconMap: Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
   Play,
@@ -271,8 +271,11 @@ export function BlockPalette({ onAddBlock, existingBlockTypes, onClose }: BlockP
                 {/* Right: Quick Add Button or On-Canvas Indicator */}
                 <div className="shrink-0 self-center">
                   {disabled ? (
-                    <span className="text-[9px] font-semibold text-foreground-lighter px-1.5 py-0.5 rounded bg-surface-200/80 border border-default/40">
-                      On canvas
+                    <span
+                      title="Only 1 manual Starter trigger allowed per workflow"
+                      className="text-[9px] font-semibold text-foreground-lighter px-2 py-0.5 rounded bg-surface-200/80 border border-default/40"
+                    >
+                      Added
                     </span>
                   ) : (
                     <button
