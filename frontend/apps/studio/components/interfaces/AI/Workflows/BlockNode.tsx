@@ -1,5 +1,5 @@
-import { useState, useEffect, useLayoutEffect, Fragment, useRef } from "react";
-import { Handle, Position, type NodeProps, useReactFlow, useUpdateNodeInternals } from "reactflow";
+import React, { useState, useEffect, useLayoutEffect, Fragment, useRef, type ComponentType, type MouseEvent } from "react";
+import { Handle, Position, type NodeProps, useReactFlow, useUpdateNodeInternals, type Edge } from "reactflow";
 import {
   Play,
   Split,
@@ -184,7 +184,7 @@ function KBNamesLabel({ value }: { value: unknown }) {
 function MappedInputLabel({ mapping }: { mapping: InputMapping }) {
   const { getNodes } = useReactFlow();
   const nodes = getNodes();
-  const sourceNode = nodes.find((n) => n.id === mapping.sourceId);
+  const sourceNode = nodes.find((n: any) => n.id === mapping.sourceId);
   const sourceName = sourceNode?.data?.label || mapping.sourceId;
   const label = `← ${sourceName}.${mapping.outputField}`;
   return <>{label.length > 22 ? label.slice(0, 20) + "…" : label}</>;
@@ -282,9 +282,9 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
 
   const toggleExpand = (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    setIsExpanded((prev) => {
+    setIsExpanded((prev: boolean) => {
       const next = !prev;
-      updateNodeConfigAndRefresh(id, (c) => ({ ...c, _isExpanded: next }));
+      updateNodeConfigAndRefresh(id, (c: Record<string, unknown>) => ({ ...c, _isExpanded: next }));
       return next;
     });
   };
@@ -317,8 +317,8 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
 
     const run = () => {
       updateNodeInternals(id);
-      setEdges((edges) =>
-        edges.map((e) =>
+      setEdges((edges: any[]) =>
+        edges.map((e: any) =>
           e.source === id || e.target === id ? { ...e } : e
         )
       );
@@ -477,7 +477,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                 type="button"
                 title="Configure Node Drawer"
                 aria-label="Configure Node Drawer"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   openConfig?.(id);
                 }}
@@ -489,7 +489,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                 type="button"
                 title="Duplicate Node"
                 aria-label="Duplicate Node"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   duplicateNode?.(id);
                 }}
@@ -501,7 +501,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                 type="button"
                 title="Delete Node"
                 aria-label="Delete Node"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent) => {
                   e.stopPropagation();
                   deleteNode?.(id);
                 }}
@@ -615,12 +615,12 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                     title="Remove Branch"
                     aria-label="Remove Branch"
                     className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-300 text-foreground transition"
-                    onClick={(e) => {
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       const branches = (data.config?.branches as Array<{ expression: string }>) ?? [];
                       if (branches.length <= 1) return;
                       const next = branches.slice(0, -1);
-                      updateNodeConfigAndRefresh(id, (prev) => ({ ...prev, branches: next }));
+                      updateNodeConfigAndRefresh(id, (prev: any) => ({ ...prev, branches: next }));
                     }}
                   >
                     <Minus className="w-3 h-3" />
@@ -633,12 +633,12 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                     title="Add Branch"
                     aria-label="Add Branch"
                     className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-300 text-foreground transition"
-                    onClick={(e) => {
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       const branches = (data.config?.branches as Array<{ expression: string }>) ?? [];
                       if (branches.length >= 8) return;
                       const next = [...branches, { expression: "" }];
-                      updateNodeConfigAndRefresh(id, (prev) => ({ ...prev, branches: next }));
+                      updateNodeConfigAndRefresh(id, (prev: any) => ({ ...prev, branches: next }));
                     }}
                   >
                     <Plus className="w-3 h-3" />
@@ -658,11 +658,11 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                   title="Decrease branches"
                   aria-label="Decrease branches"
                   className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-300 text-foreground transition"
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     const current = (data.config?.branches as number) || 2;
                     if (current <= 2) return;
-                    updateNodeConfigAndRefresh(id, (prev) => ({ ...prev, branches: current - 1 }));
+                    updateNodeConfigAndRefresh(id, (prev: any) => ({ ...prev, branches: current - 1 }));
                   }}
                 >
                   <Minus className="w-3 h-3" />
@@ -675,11 +675,11 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                   title="Increase branches"
                   aria-label="Increase branches"
                   className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-300 text-foreground transition"
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     const current = (data.config?.branches as number) || 2;
                     if (current >= 8) return;
-                    updateNodeConfigAndRefresh(id, (prev) => ({ ...prev, branches: current + 1 }));
+                    updateNodeConfigAndRefresh(id, (prev: any) => ({ ...prev, branches: current + 1 }));
                   }}
                 >
                   <Plus className="w-3 h-3" />
