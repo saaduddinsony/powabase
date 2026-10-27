@@ -50,7 +50,10 @@ export const ProjectConnectionPopover = ({ projectRef }: ProjectConnectionPopove
     { projectRef },
     { enabled: open && canReadAPIKeys }
   )
-  const { publishableKey } = canReadAPIKeys ? getKeys(apiKeys) : { publishableKey: null }
+  const { publishableKey, anonKey } = canReadAPIKeys
+    ? getKeys(apiKeys)
+    : { publishableKey: null, anonKey: null }
+  const effectivePublishableKey = publishableKey ?? anonKey
 
   const { data: databases, isLoading: isLoadingDatabases } = useReadReplicasQuery(
     { projectRef },
@@ -97,15 +100,18 @@ export const ProjectConnectionPopover = ({ projectRef }: ProjectConnectionPopove
       },
       {
         label: 'Publishable key',
-        value: publishableKey?.api_key ?? '',
+        value: effectivePublishableKey?.api_key ?? '',
         displayValue:
           isLoadingPermissions || isLoadingKeys
             ? 'Loading publishable key...'
             : canReadAPIKeys
-              ? (publishableKey?.api_key ?? 'Publishable key unavailable')
+              ? (effectivePublishableKey?.api_key ?? 'Publishable key unavailable')
               : "You don't have permission to view API keys.",
         disabled:
-          isLoadingPermissions || isLoadingKeys || !canReadAPIKeys || !publishableKey?.api_key,
+          isLoadingPermissions ||
+          isLoadingKeys ||
+          !canReadAPIKeys ||
+          !effectivePublishableKey?.api_key,
         icon: KeyRound,
       },
       {
@@ -129,13 +135,13 @@ export const ProjectConnectionPopover = ({ projectRef }: ProjectConnectionPopove
       canReadAPIKeys,
       cliCommands,
       directConnectionString,
+      effectivePublishableKey?.api_key,
       isLoadingApiUrl,
       isLoadingDatabases,
       isLoadingKeys,
       isLoadingPermissions,
       projectRef,
       projectUrl,
-      publishableKey?.api_key,
     ]
   )
 

@@ -2,6 +2,7 @@ import { components } from 'api-types'
 import { NextApiRequest, NextApiResponse } from 'next'
 
 import apiWrapper from '@/lib/api/apiWrapper'
+import { getSocketProjectByRef } from '@/lib/api/self-hosted/metadata'
 
 type ProjectAppConfig = components['schemas']['ProjectSettingsResponse']['app_config'] & {
   protocol?: string
@@ -25,24 +26,42 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
 }
 
 const handleGetAll = async (req: NextApiRequest, res: NextApiResponse) => {
+  const { ref } = req.query
+  const projectRef = typeof ref === 'string' ? ref : ref?.[0]
+
+  let anonKey = process.env.SUPABASE_ANON_KEY ?? ''
+  let serviceKey = process.env.SUPABASE_SERVICE_KEY ?? ''
+
+  if (projectRef && projectRef !== 'default') {
+    try {
+      const project = await getSocketProjectByRef(projectRef)
+      if (project) {
+        if (project.anon_key) anonKey = project.anon_key
+        if (project.service_role_key) serviceKey = project.service_role_key
+      }
+    } catch {
+      // fallback to default env keys
+    }
+  }
+
   const response = [
     {
       name: 'anon',
-      api_key: process.env.SUPABASE_ANON_KEY ?? '',
+      api_key: anonKey,
       id: 'anon',
-      type: 'legacy',
+      type: 'publishable',
       hash: '',
       prefix: '',
-      description: 'Legacy anon API key',
+      description: 'Publishable API key (anon)',
     },
     {
       name: 'service_role',
-      api_key: process.env.SUPABASE_SERVICE_KEY ?? '',
+      api_key: serviceKey,
       id: 'service_role',
-      type: 'legacy',
+      type: 'secret',
       hash: '',
       prefix: '',
-      description: 'Legacy service_role API key',
+      description: 'Secret API key (service_role)',
     },
   ]
 
