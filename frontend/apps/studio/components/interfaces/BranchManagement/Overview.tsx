@@ -5,6 +5,7 @@ import { partition } from 'lodash'
 import {
   Clock,
   ExternalLink,
+  Globe,
   Infinity,
   MoreVertical,
   Pencil,
@@ -16,12 +17,21 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
+  Badge,
   Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogSection,
+  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Input_Shadcn_,
+  Label_Shadcn_,
 } from 'ui'
 import { ConfirmationModal } from 'ui-patterns/Dialogs/ConfirmationModal'
 
@@ -264,6 +274,31 @@ const PreviewBranchActions = ({
     setShowPersistentBranchDeleteConfirmationModal,
   ] = useState(false)
   const [showEditBranchModal, setShowEditBranchModal] = useState(false)
+  const [showDomainModal, setShowDomainModal] = useState(false)
+  const [customDomainInput, setCustomDomainInput] = useState((branch as any).custom_domain || '')
+  const [isSavingDomain, setIsSavingDomain] = useState(false)
+
+  const handleSaveDomain = async () => {
+    setIsSavingDomain(true)
+    try {
+      const res = await fetch(`/api/v1/projects/${projectRef}/branches/${branch.id}/domain`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ custom_domain: customDomainInput }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error?.message || 'Failed to update domain')
+      toast.success('Custom preview domain updated with automated SSL')
+      setShowDomainModal(false)
+      if (projectRef) {
+        queryClient.invalidateQueries({ queryKey: branchKeys.list(projectRef) })
+      }
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setIsSavingDomain(false)
+    }
+  }
 
   const { mutate: resetBranch, isPending: isResetting } = useBranchResetMutation({
     onSuccess() {
@@ -451,6 +486,20 @@ const PreviewBranchActions = ({
             </DropdownMenuItemTooltip>
           )}
 
+          <DropdownMenuItem
+            className="gap-x-2"
+            onSelect={(e) => {
+              e.stopPropagation()
+              setShowDomainModal(true)
+            }}
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowDomainModal(true)
+            }}
+          >
+            <Globe size={14} /> Custom Domain & SSL
+          </DropdownMenuItem>
+
           <DropdownMenuSeparator />
 
           <DropdownMenuItemTooltip
@@ -471,6 +520,59 @@ const PreviewBranchActions = ({
           </DropdownMenuItemTooltip>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Custom Domain Modal */}
+      <Dialog open={showDomainModal} onOpenChange={setShowDomainModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe size={16} className="text-primary" />
+              <span>Preview Domain & SSL Routing</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <DialogSection className="space-y-4">
+            <div className="space-y-1.5">
+              <Label_Shadcn_>Auto-Assigned Subdomain</Label_Shadcn_>
+              <div className="flex items-center gap-2 p-2 rounded border border-border bg-surface-200/50 font-mono text-xs text-foreground">
+                <span className="truncate flex-1">
+                  {(branch as any).subdomain || `${branch.name.toLowerCase()}-preview.backend.freightsolution.xyz`}
+                </span>
+                <Badge variant="success" className="text-[9px] uppercase font-mono">
+                  SSL Active
+                </Badge>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label_Shadcn_ htmlFor="b-domain">Custom Domain (Optional)</Label_Shadcn_>
+              <Input_Shadcn_
+                id="b-domain"
+                placeholder="e.g. preview-stage.mybrand.com"
+                value={customDomainInput}
+                onChange={(e) => setCustomDomainInput(e.target.value)}
+                className="font-mono text-xs"
+              />
+              <p className="text-[11px] text-foreground-lighter">
+                Point a DNS CNAME record for your custom domain to <code className="font-mono text-foreground">backend.freightsolution.xyz</code>. Automated Let&apos;s Encrypt SSL certificates are managed dynamically.
+              </p>
+            </div>
+          </DialogSection>
+
+          <DialogFooter className="flex items-center justify-end gap-2">
+            <Button type="default" onClick={() => setShowDomainModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              loading={isSavingDomain}
+              onClick={handleSaveDomain}
+            >
+              Save Domain
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <TextConfirmModal
         variant="warning"

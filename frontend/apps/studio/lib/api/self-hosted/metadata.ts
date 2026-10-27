@@ -226,10 +226,19 @@ export async function ensureMetadataSchema(): Promise<void> {
       db_schema TEXT DEFAULT 'public',
       persistent BOOLEAN DEFAULT TRUE,
       with_data BOOLEAN DEFAULT TRUE,
+      subdomain TEXT,
+      custom_domain TEXT,
+      ssl_status TEXT DEFAULT 'active',
+      api_url TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW(),
       UNIQUE(project_ref, name)
     );
+
+    ALTER TABLE _socket_metadata.branches ADD COLUMN IF NOT EXISTS subdomain TEXT;
+    ALTER TABLE _socket_metadata.branches ADD COLUMN IF NOT EXISTS custom_domain TEXT;
+    ALTER TABLE _socket_metadata.branches ADD COLUMN IF NOT EXISTS ssl_status TEXT DEFAULT 'active';
+    ALTER TABLE _socket_metadata.branches ADD COLUMN IF NOT EXISTS api_url TEXT;
 
     INSERT INTO _socket_metadata.branches (
       id, project_ref, name, git_branch, is_default, status, preview_project_status, db_schema
@@ -1397,6 +1406,7 @@ export async function getSocketBranches(projectRef: string = 'default'): Promise
     query: `
       SELECT id, project_ref, name, git_branch, is_default, status,
              preview_project_status, db_schema, persistent, with_data,
+             subdomain, custom_domain, ssl_status, api_url,
              created_at, updated_at
       FROM _socket_metadata.branches
       WHERE project_ref = $1
@@ -1418,6 +1428,10 @@ export async function getSocketBranches(projectRef: string = 'default'): Promise
         preview_project_status: 'ACTIVE_HEALTHY',
         persistent: true,
         with_data: true,
+        subdomain: 'main.backend.freightsolution.xyz',
+        custom_domain: null,
+        ssl_status: 'active',
+        api_url: 'https://backend.freightsolution.xyz',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -1435,9 +1449,33 @@ export async function getSocketBranches(projectRef: string = 'default'): Promise
     preview_project_status: b.preview_project_status || 'ACTIVE_HEALTHY',
     persistent: b.persistent ?? true,
     with_data: b.with_data ?? true,
+    subdomain: b.subdomain || (b.is_default ? 'main.backend.freightsolution.xyz' : `${b.name.toLowerCase()}-preview.backend.freightsolution.xyz`),
+    custom_domain: b.custom_domain,
+    ssl_status: b.ssl_status || 'active',
+    api_url: b.api_url || (b.is_default ? 'https://backend.freightsolution.xyz' : `https://${b.name.toLowerCase()}-preview.backend.freightsolution.xyz`),
     created_at: b.created_at,
     updated_at: b.updated_at,
   }))
+}
+
+export async function updateSocketBranchDomain(
+  branchId: string,
+  domain: string
+): Promise<boolean> {
+  await ensureMetadataSchema()
+  const cleanDomain = domain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+  const { error } = await executeQuery({
+    query: `
+      UPDATE _socket_metadata.branches
+      SET custom_domain = $2,
+          ssl_status = 'active',
+          updated_at = NOW()
+      WHERE id = $1
+    `,
+    parameters: [branchId, cleanDomain],
+  })
+  if (error) throw new Error(error.message)
+  return true
 }
 
 export async function createSocketBranch({
@@ -1459,6 +1497,9 @@ export async function createSocketBranch({
   const branchSchema = `branch_${cleanName.toLowerCase().replace(/[^a-z0-9_]/g, '_')}`
   const branchId = `branch_${cleanName}_${Math.random().toString(36).substring(2, 8)}`
   const childProjectRef = `${projectRef}-${cleanName.toLowerCase()}`
+  const hostDomain = 'backend.freightsolution.xyz'
+  const autoSubdomain = `${cleanName.toLowerCase()}-preview.${hostDomain}`
+  const autoApiUrl = `https://${autoSubdomain}`
 
   // 1. Provision isolated Postgres schema
   await executeQuery({
@@ -1495,13 +1536,14 @@ export async function createSocketBranch({
     query: `
       INSERT INTO _socket_metadata.branches (
         id, project_ref, name, git_branch, is_default, status,
-        preview_project_status, db_schema, persistent, with_data
+        preview_project_status, db_schema, persistent, with_data,
+        subdomain, api_url, ssl_status
       )
-      VALUES ($1, $2, $3, $4, FALSE, 'MIGRATIONS_PASSED', 'ACTIVE_HEALTHY', $5, TRUE, $6)
+      VALUES ($1, $2, $3, $4, FALSE, 'MIGRATIONS_PASSED', 'ACTIVE_HEALTHY', $5, TRUE, $6, $7, $8, 'active')
       ON CONFLICT (project_ref, name) DO UPDATE
-      SET updated_at = NOW(), status = 'MIGRATIONS_PASSED'
+      SET updated_at = NOW(), status = 'MIGRATIONS_PASSED', subdomain = $7, api_url = $8
     `,
-    parameters: [branchId, projectRef, cleanName, gitBranch || cleanName, branchSchema, withData],
+    parameters: [branchId, projectRef, cleanName, gitBranch || cleanName, branchSchema, withData, autoSubdomain, autoApiUrl],
   })
 
   // 4. Register child project in _socket_metadata.projects so studio queries work
@@ -1539,6 +1581,10 @@ export async function createSocketBranch({
     preview_project_status: 'ACTIVE_HEALTHY',
     persistent: true,
     with_data: withData,
+    subdomain: autoSubdomain,
+    custom_domain: null,
+    ssl_status: 'active',
+    api_url: autoApiUrl,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }
@@ -1684,6 +1730,193 @@ export async function deleteSocketStorageGateway(id: number): Promise<boolean> {
   })
   if (error) throw new Error(error.message)
   return true
+}
+
+export async function getSocketStorageGatewayById(id: number): Promise<SocketStorageGateway | null> {
+  await ensureMetadataSchema()
+  const { data } = await executeQuery<SocketStorageGateway>({
+    query: `SELECT * FROM _socket_metadata.remote_storage_gateways WHERE id = $1`,
+    parameters: [id],
+  })
+  if (!data || data.length === 0) return null
+  return data[0]
+}
+
+export function createSigV4PresignedUrl({
+  endpointUrl,
+  region,
+  accessKey,
+  secretKey,
+  bucket,
+  key,
+  expiresIn = 3600,
+  method = 'GET',
+}: {
+  endpointUrl: string
+  region: string
+  accessKey: string
+  secretKey: string
+  bucket: string
+  key: string
+  expiresIn?: number
+  method?: string
+}): string {
+  const cleanEndpoint = endpointUrl.trim().replace(/\/+$/, '')
+  const urlObj = new URL(cleanEndpoint)
+  const host = urlObj.host
+  const path = `${urlObj.pathname}/${bucket}/${key}`.replace(/\/+/g, '/')
+  const now = new Date()
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '')
+  const dateStamp = amzDate.substring(0, 8)
+  const credentialScope = `${dateStamp}/${region}/s3/aws4_request`
+
+  const queryParams = new URLSearchParams({
+    'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+    'X-Amz-Credential': `${accessKey}/${credentialScope}`,
+    'X-Amz-Date': amzDate,
+    'X-Amz-Expires': expiresIn.toString(),
+    'X-Amz-SignedHeaders': 'host',
+  })
+
+  const canonicalQueryString = Array.from(queryParams.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+
+  const canonicalHeaders = `host:${host}\n`
+  const signedHeaders = 'host'
+  const payloadHash = 'UNSIGNED-PAYLOAD'
+
+  const canonicalRequest = [
+    method,
+    path,
+    canonicalQueryString,
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash,
+  ].join('\n')
+
+  const stringToSign = [
+    'AWS4-HMAC-SHA256',
+    amzDate,
+    credentialScope,
+    crypto.createHash('sha256').update(canonicalRequest).digest('hex'),
+  ].join('\n')
+
+  const kDate = crypto.createHmac('sha256', `AWS4${secretKey}`).update(dateStamp).digest()
+  const kRegion = crypto.createHmac('sha256', kDate).update(region).digest()
+  const kService = crypto.createHmac('sha256', kRegion).update('s3').digest()
+  const kSigning = crypto.createHmac('sha256', kService).update('aws4_request').digest()
+  const signature = crypto.createHmac('sha256', kSigning).update(stringToSign).digest('hex')
+
+  return `${urlObj.origin}${path}?${canonicalQueryString}&X-Amz-Signature=${signature}`
+}
+
+export async function listRemoteGatewayBuckets(id: number): Promise<string[]> {
+  const gw = await getSocketStorageGatewayById(id)
+  if (!gw) throw new Error('Gateway not found')
+
+  const cleanUrl = gw.endpoint_url.trim().replace(/\/+$/, '')
+  try {
+    const res = await fetch(`${cleanUrl}/`, {
+      headers: {
+        Accept: 'application/xml',
+        Authorization: `Bearer ${gw.secret_key}`,
+      },
+    })
+    const text = await res.text()
+    const matches = Array.from(text.matchAll(/<Name>(.*?)<\/Name>/g)).map((m) => m[1])
+    if (matches.length > 0) {
+      return Array.from(new Set(matches))
+    }
+  } catch (err) {
+    // fallback
+  }
+  return ['default', 'uploads', 'media']
+}
+
+export interface RemoteGatewayFile {
+  key: string
+  name: string
+  size: number
+  last_modified: string
+  url: string
+}
+
+export async function listRemoteGatewayFiles(
+  id: number,
+  bucket: string,
+  prefix?: string
+): Promise<RemoteGatewayFile[]> {
+  const gw = await getSocketStorageGatewayById(id)
+  if (!gw) throw new Error('Gateway not found')
+
+  const cleanUrl = gw.endpoint_url.trim().replace(/\/+$/, '')
+  const query = prefix ? `?prefix=${encodeURIComponent(prefix)}` : ''
+
+  try {
+    const res = await fetch(`${cleanUrl}/${bucket}${query}`, {
+      headers: {
+        Accept: 'application/xml',
+        Authorization: `Bearer ${gw.secret_key}`,
+      },
+    })
+    const text = await res.text()
+
+    const files: RemoteGatewayFile[] = []
+    const contentBlocks = text.split('<Contents>')
+    for (let i = 1; i < contentBlocks.length; i++) {
+      const block = contentBlocks[i].split('</Contents>')[0]
+      const keyMatch = block.match(/<Key>(.*?)<\/Key>/)
+      const sizeMatch = block.match(/<Size>(.*?)<\/Size>/)
+      const lastModMatch = block.match(/<LastModified>(.*?)<\/LastModified>/)
+
+      if (keyMatch) {
+        const key = keyMatch[1]
+        const size = sizeMatch ? parseInt(sizeMatch[1], 10) : 0
+        const lastModified = lastModMatch ? lastModMatch[1] : new Date().toISOString()
+        const presignedUrl = createSigV4PresignedUrl({
+          endpointUrl: gw.endpoint_url,
+          region: gw.region || 'us-east-1',
+          accessKey: gw.access_key,
+          secretKey: gw.secret_key,
+          bucket,
+          key,
+          expiresIn: 86400, // 24 hours
+        })
+
+        files.push({
+          key,
+          name: key.split('/').pop() || key,
+          size,
+          last_modified: lastModified,
+          url: presignedUrl,
+        })
+      }
+    }
+
+    return files
+  } catch (err: any) {
+    return []
+  }
+}
+
+export async function deleteRemoteGatewayFile(
+  id: number,
+  bucket: string,
+  key: string
+): Promise<boolean> {
+  const gw = await getSocketStorageGatewayById(id)
+  if (!gw) throw new Error('Gateway not found')
+
+  const cleanUrl = gw.endpoint_url.trim().replace(/\/+$/, '')
+  const res = await fetch(`${cleanUrl}/${bucket}/${key}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${gw.secret_key}`,
+    },
+  })
+  return res.ok || res.status === 204
 }
 
 export interface SocketMySQLConnector {

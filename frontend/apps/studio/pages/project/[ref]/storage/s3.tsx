@@ -6,18 +6,28 @@ import {
   Database,
   Download,
   ExternalLink,
+  File,
+  FileArchive,
+  FileText,
+  Film,
+  FolderOpen,
   FolderSync,
   Globe,
   HardDrive,
+  Image as ImageIcon,
   Key,
   Layers,
+  Link2,
+  Music,
   Plus,
   RefreshCw,
+  Search,
   Server,
   Trash2,
+  Upload,
   XCircle,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
   Badge,
@@ -54,6 +64,43 @@ interface StorageGateway {
   created_at: string
 }
 
+interface RemoteFile {
+  key: string
+  name: string
+  size: number
+  last_modified: string
+  url: string
+}
+
+function formatBytes(bytes: number, decimals = 2) {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const dm = decimals < 0 ? 0 : decimals
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
+}
+
+function getFileIcon(filename: string) {
+  const ext = filename.split('.').pop()?.toLowerCase() || ''
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) {
+    return <ImageIcon size={14} className="text-blue-400 shrink-0" />
+  }
+  if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) {
+    return <Film size={14} className="text-purple-400 shrink-0" />
+  }
+  if (['mp3', 'wav', 'ogg', 'aac'].includes(ext)) {
+    return <Music size={14} className="text-amber-400 shrink-0" />
+  }
+  if (['zip', 'tar', 'gz', 'rar', '7z'].includes(ext)) {
+    return <FileArchive size={14} className="text-emerald-400 shrink-0" />
+  }
+  if (['txt', 'md', 'json', 'csv', 'pdf', 'doc', 'docx'].includes(ext)) {
+    return <FileText size={14} className="text-rose-400 shrink-0" />
+  }
+  return <File size={14} className="text-foreground-lighter shrink-0" />
+}
+
 const StorageS3GatewaysPage: NextPageWithLayout = () => {
   const { ref: projectRef = 'default' } = useParams()
 
@@ -74,6 +121,22 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
   const [isModalTesting, setIsModalTesting] = useState(false)
   const [modalTestMessage, setModalTestMessage] = useState<{ success: boolean; text: string } | null>(null)
   const [codeTab, setCodeTab] = useState<'node' | 'python' | 'php'>('node')
+
+  // Remote S3 Browser Modal State
+  const [explorerGateway, setExplorerGateway] = useState<StorageGateway | null>(null)
+  const [remoteBuckets, setRemoteBuckets] = useState<string[]>([])
+  const [selectedBucket, setSelectedBucket] = useState('default')
+  const [remoteFiles, setRemoteFiles] = useState<RemoteFile[]>([])
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false)
+  const [fileFilter, setFileFilter] = useState('')
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Presigned URL Modal State
+  const [presignedTarget, setPresignedTarget] = useState<{ gateway: StorageGateway; bucket: string; key: string } | null>(null)
+  const [presignedExpiry, setPresignedExpiry] = useState<number>(3600)
+  const [generatedUrl, setGeneratedUrl] = useState('')
+  const [isGeneratingUrl, setIsGeneratingUrl] = useState(false)
 
   // Fetch gateways
   const fetchGateways = async () => {
@@ -101,14 +164,18 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
 
   const handleTestConnection = async (endpoint: string, accessKey: string, secretKey: string, gatewayId?: number) => {
     if (!endpoint) {
-      toast.error('Please specify an endpoint URL')
+      toast.error('Please enter endpoint URL')
       return
     }
 
-    try {
-      if (gatewayId) setTestingId(gatewayId)
-      else setIsModalTesting(true)
+    if (gatewayId) {
+      setTestingId(gatewayId)
+    } else {
+      setIsModalTesting(true)
+      setModalTestMessage(null)
+    }
 
+    try {
       const res = await fetch(`/api/v1/projects/${projectRef}/storage/gateways/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,10 +188,7 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
 
       const data = await res.json()
       if (res.ok && data.success) {
-        const msg = data.bucketCount !== undefined
-          ? `Connected! Found ${data.bucketCount} bucket(s). (HTTP ${data.status})`
-          : data.message || 'Connected successfully!'
-
+        const msg = data.message || 'Gateway connected successfully!'
         if (gatewayId) {
           setTestResult((prev) => ({ ...prev, [gatewayId]: { success: true, message: msg } }))
         } else {
@@ -132,16 +196,16 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
         }
         toast.success(msg)
       } else {
-        const msg = data.error?.message || data.message || 'Connection test failed'
+        const errMsg = data.error?.message || 'Connection test failed'
         if (gatewayId) {
-          setTestResult((prev) => ({ ...prev, [gatewayId]: { success: false, message: msg } }))
+          setTestResult((prev) => ({ ...prev, [gatewayId]: { success: false, message: errMsg } }))
         } else {
-          setModalTestMessage({ success: false, text: msg })
+          setModalTestMessage({ success: false, text: errMsg })
         }
-        toast.error(msg)
+        toast.error(errMsg)
       }
     } catch (err: any) {
-      const msg = err.message || 'Network error while testing gateway'
+      const msg = err.message || 'Network error testing gateway'
       if (gatewayId) {
         setTestResult((prev) => ({ ...prev, [gatewayId]: { success: false, message: msg } }))
       } else {
@@ -149,8 +213,8 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
       }
       toast.error(msg)
     } finally {
-      if (gatewayId) setTestingId(null)
-      else setIsModalTesting(false)
+      setTestingId(null)
+      setIsModalTesting(false)
     }
   }
 
@@ -177,7 +241,7 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error?.message || 'Failed to save gateway')
 
-      toast.success('Remote S3 storage gateway added!')
+      toast.success(`Gateway "${data.name}" added successfully!`)
       setIsAddModalOpen(false)
       setFormName('')
       setFormEndpoint('')
@@ -200,7 +264,7 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
         method: 'DELETE',
       })
       if (!res.ok) throw new Error('Failed to delete gateway')
-      toast.success('Gateway deleted')
+      toast.success('Gateway disconnected successfully')
       setDeleteId(null)
       fetchGateways()
     } catch (err: any) {
@@ -208,59 +272,221 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
     }
   }
 
-  const sampleGateway = gateways[0] || {
-    endpoint_url: 'https://storage.yourdomain.com/socket-storage.php',
-    region: 'us-east-1',
-    access_key: 'SOCKET_AK_...',
-    secret_key: 'SOCKET_SK_...',
+  // Open Remote S3 Browser
+  const handleOpenExplorer = async (gw: StorageGateway) => {
+    setExplorerGateway(gw)
+    setFileFilter('')
+    setIsLoadingFiles(true)
+
+    try {
+      const res = await fetch(`/api/v1/projects/${projectRef}/storage/gateways/${gw.id}/buckets`)
+      const bucketsData = await res.json()
+      const bucketList = Array.isArray(bucketsData) && bucketsData.length > 0 ? bucketsData : ['default']
+      setRemoteBuckets(bucketList)
+      setSelectedBucket(bucketList[0])
+      fetchRemoteFiles(gw.id, bucketList[0])
+    } catch (err) {
+      toast.error('Failed to load remote buckets')
+      setIsLoadingFiles(false)
+    }
   }
 
-  const nodeSnippet = `import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3'
+  const fetchRemoteFiles = async (gatewayId: number, bucket: string) => {
+    setIsLoadingFiles(true)
+    try {
+      const res = await fetch(
+        `/api/v1/projects/${projectRef}/storage/gateways/${gatewayId}/files?bucket=${encodeURIComponent(bucket)}`
+      )
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setRemoteFiles(data)
+      } else {
+        setRemoteFiles([])
+      }
+    } catch (err) {
+      toast.error('Failed to load files from gateway')
+      setRemoteFiles([])
+    } finally {
+      setIsLoadingFiles(false)
+    }
+  }
+
+  const handleDeleteRemoteFile = async (key: string) => {
+    if (!explorerGateway) return
+    try {
+      const res = await fetch(
+        `/api/v1/projects/${projectRef}/storage/gateways/${explorerGateway.id}/files?bucket=${encodeURIComponent(
+          selectedBucket
+        )}`,
+        {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key }),
+        }
+      )
+      if (!res.ok) throw new Error('Failed to delete remote file')
+      toast.success(`Deleted "${key}" from ${selectedBucket}`)
+      fetchRemoteFiles(explorerGateway.id, selectedBucket)
+    } catch (err: any) {
+      toast.error(err.message || 'Error deleting remote file')
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !explorerGateway) return
+
+    setIsUploading(true)
+    try {
+      // 1. Request presigned upload URL (PUT)
+      const presignRes = await fetch(
+        `/api/v1/projects/${projectRef}/storage/gateways/${explorerGateway.id}/presign`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bucket: selectedBucket,
+            key: file.name,
+            operation: 'PUT',
+            expires_in: 3600,
+          }),
+        }
+      )
+
+      const presignData = await presignRes.json()
+      if (!presignRes.ok || !presignData.url) {
+        throw new Error(presignData.error?.message || 'Failed to generate upload URL')
+      }
+
+      // 2. PUT file directly to remote gateway
+      const uploadRes = await fetch(presignData.url, {
+        method: 'PUT',
+        body: file,
+      })
+
+      if (!uploadRes.ok && uploadRes.status !== 200 && uploadRes.status !== 201) {
+        throw new Error(`Upload failed with HTTP ${uploadRes.status}`)
+      }
+
+      toast.success(`Successfully uploaded "${file.name}" to ${selectedBucket}`)
+      fetchRemoteFiles(explorerGateway.id, selectedBucket)
+    } catch (err: any) {
+      toast.error(err.message || 'Error uploading file')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleOpenPresignedModal = async (gw: StorageGateway, bucket: string, key: string) => {
+    setPresignedTarget({ gateway: gw, bucket, key })
+    setIsGeneratingUrl(true)
+    setGeneratedUrl('')
+
+    try {
+      const res = await fetch(`/api/v1/projects/${projectRef}/storage/gateways/${gw.id}/presign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bucket,
+          key,
+          expires_in: presignedExpiry,
+          operation: 'GET',
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.url) {
+        setGeneratedUrl(data.url)
+      } else {
+        toast.error('Failed to create presigned URL')
+      }
+    } catch (err) {
+      toast.error('Network error creating presigned link')
+    } finally {
+      setIsGeneratingUrl(false)
+    }
+  }
+
+  const handlePresignedExpiryChange = async (expiry: number) => {
+    setPresignedExpiry(expiry)
+    if (!presignedTarget) return
+    setIsGeneratingUrl(true)
+    try {
+      const res = await fetch(`/api/v1/projects/${projectRef}/storage/gateways/${presignedTarget.gateway.id}/presign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bucket: presignedTarget.bucket,
+          key: presignedTarget.key,
+          expires_in: expiry,
+          operation: 'GET',
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.url) {
+        setGeneratedUrl(data.url)
+      }
+    } catch (err) {
+      // ignore
+    } finally {
+      setIsGeneratingUrl(false)
+    }
+  }
+
+  const filteredFiles = remoteFiles.filter((f) =>
+    f.key.toLowerCase().includes(fileFilter.toLowerCase())
+  )
+
+  const activeGw = gateways[0]
+  const sampleEndpoint = activeGw?.endpoint_url || 'https://storage.yourdomain.com'
+  const sampleAccessKey = activeGw?.access_key || '<ACCESS_KEY>'
+  const sampleSecretKey = activeGw?.secret_key || '<SECRET_KEY>'
+
+  const nodeSnippet = `import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 
 const s3 = new S3Client({
-  endpoint: '${sampleGateway.endpoint_url}',
-  region: '${sampleGateway.region}',
+  endpoint: "${sampleEndpoint}",
+  region: "us-east-1",
   credentials: {
-    accessKeyId: '${sampleGateway.access_key}',
-    secretAccessKey: '${sampleGateway.secret_key}',
+    accessKeyId: "${sampleAccessKey}",
+    secretAccessKey: "${sampleSecretKey}",
   },
-  forcePathStyle: true, // Needed for self-hosted S3 gateways
-})
+  forcePathStyle: true,
+});
 
-const { Contents } = await s3.send(new ListObjectsV2Command({ Bucket: 'uploads' }))
-console.log(Contents)`
+// Upload an object
+await s3.send(new PutObjectCommand({
+  Bucket: "uploads",
+  Key: "documents/invoice-101.pdf",
+  Body: fileBuffer,
+  ContentType: "application/pdf"
+}));`
 
   const pythonSnippet = `import boto3
 
 s3 = boto3.client(
     's3',
-    endpoint_url='${sampleGateway.endpoint_url}',
-    region_name='${sampleGateway.region}',
-    aws_access_key_id='${sampleGateway.access_key}',
-    aws_secret_access_key='${sampleGateway.secret_key}'
+    endpoint_url='${sampleEndpoint}',
+    aws_access_key_id='${sampleAccessKey}',
+    aws_secret_access_key='${sampleSecretKey}',
+    region_name='us-east-1'
 )
 
-response = s3.list_objects_v2(Bucket='uploads')
-for obj in response.get('Contents', []):
-    print(obj['Key'], obj['Size'])`
+# Upload a file
+s3.upload_file('local_image.jpg', 'uploads', 'images/photo.jpg')`
 
-  const phpSnippet = `<?php
-require 'vendor/autoload.php';
-
-use Aws\\S3\\S3Client;
+  const phpSnippet = `use Aws\\S3\\S3Client;
 
 $s3 = new S3Client([
     'version'     => 'latest',
-    'region'      => '${sampleGateway.region}',
-    'endpoint'    => '${sampleGateway.endpoint_url}',
+    'region'      => 'us-east-1',
+    'endpoint'    => '${sampleEndpoint}',
     'use_path_style_endpoint' => true,
     'credentials' => [
-        'key'    => '${sampleGateway.access_key}',
-        'secret' => '${sampleGateway.secret_key}',
+        'key'    => '${sampleAccessKey}',
+        'secret' => '${sampleSecretKey}',
     ],
-]);
-
-$objects = $s3->listObjectsV2(['Bucket' => 'uploads']);`
+]);`
 
   return (
     <div className="flex flex-col gap-y-6 p-6 max-w-6xl mx-auto">
@@ -268,11 +494,11 @@ $objects = $s3->listObjectsV2(['Bucket' => 'uploads']);`
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">S3 & Remote Storage Gateways</h1>
-            <Badge variant="success">Socket Universal S3</Badge>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">S3 Gateways & Shared-Hosting Storage</h1>
+            <Badge variant="success">S3 SigV4 Active</Badge>
           </div>
           <p className="text-sm text-foreground-lighter mt-1">
-            Turn any cPanel, shared host, or remote server into an unlimited S3-compatible storage cluster with zero external dependencies.
+            Turn unlimited cPanel, Plesk, 20i, or shared-hosting storage into unified S3 object buckets. Browse remote files, generate presigned URLs, and stream media effortlessly.
           </p>
         </div>
 
@@ -294,7 +520,7 @@ $objects = $s3->listObjectsV2(['Bucket' => 'uploads']);`
         </div>
       </div>
 
-      {/* Hero: Drop-in PHP S3 Gateway */}
+      {/* Feature Showcase Banner */}
       <Card className="border-primary/20 bg-gradient-to-r from-card via-card to-primary/5 shadow-sm">
         <CardContent className="p-6">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
@@ -316,15 +542,15 @@ $objects = $s3->listObjectsV2(['Bucket' => 'uploads']);`
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 size={14} className="text-emerald-500" />
-                  <span>No root or MySQL required</span>
+                  <span>Interactive Remote File Browser</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 size={14} className="text-emerald-500" />
-                  <span>AWS SigV4 & Presigned URLs</span>
+                  <span>AWS SigV4 Presigned Upload & Download URLs</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 size={14} className="text-emerald-500" />
-                  <span>Built-in Web GUI</span>
+                  <span>Direct Browser Streaming & Range Headers</span>
                 </div>
               </div>
             </div>
@@ -357,45 +583,6 @@ $objects = $s3->listObjectsV2(['Bucket' => 'uploads']);`
               >
                 Copy Direct URL
               </Button>
-            </div>
-          </div>
-
-          {/* Quick Setup Instructions */}
-          <div className="mt-6 pt-5 border-t border-border grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex gap-3">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-200 text-xs font-semibold text-foreground">
-                1
-              </div>
-              <div className="text-xs">
-                <p className="font-medium text-foreground">Upload File</p>
-                <p className="text-foreground-lighter mt-0.5">
-                  Drop into <code className="font-mono text-foreground">public_html/s3/index.php</code> or any folder via cPanel File Manager or FTP.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-200 text-xs font-semibold text-foreground">
-                2
-              </div>
-              <div className="text-xs">
-                <p className="font-medium text-foreground">Open in Browser</p>
-                <p className="text-foreground-lighter mt-0.5">
-                  Visit the script URL in your browser. It automatically generates your Access Key and Secret Key on first run.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-200 text-xs font-semibold text-foreground">
-                3
-              </div>
-              <div className="text-xs">
-                <p className="font-medium text-foreground">Connect to Socket</p>
-                <p className="text-foreground-lighter mt-0.5">
-                  Click &quot;Connect Remote Gateway&quot; below, paste the endpoint & credentials, and start storing files.
-                </p>
-              </div>
             </div>
           </div>
         </CardContent>
@@ -470,6 +657,14 @@ $objects = $s3->listObjectsV2(['Bucket' => 'uploads']);`
 
                     <div className="flex items-center gap-2 shrink-0">
                       <Button
+                        type="primary"
+                        size="tiny"
+                        icon={<FolderOpen size={12} />}
+                        onClick={() => handleOpenExplorer(gw)}
+                      >
+                        Browse Files
+                      </Button>
+                      <Button
                         type="default"
                         size="tiny"
                         icon={<RefreshCw className={isTesting ? 'animate-spin' : ''} size={12} />}
@@ -521,7 +716,7 @@ $objects = $s3->listObjectsV2(['Bucket' => 'uploads']);`
                   : 'text-foreground-lighter hover:text-foreground'
               }`}
             >
-              Node.js (@aws-sdk/client-s3)
+              Node.js (AWS SDK v3)
             </button>
             <button
               type="button"
@@ -543,44 +738,246 @@ $objects = $s3->listObjectsV2(['Bucket' => 'uploads']);`
                   : 'text-foreground-lighter hover:text-foreground'
               }`}
             >
-              PHP (aws-sdk-php)
+              PHP (AWS SDK)
             </button>
           </div>
 
-          {codeTab === 'node' && (
-            <CodeBlock
-              language="typescript"
-              value={nodeSnippet}
-              hideLineNumbers
-              className="max-w-none block !bg-surface-200/50 !py-3 !px-3.5 border border-border text-foreground rounded-lg"
-            />
-          )}
-
-          {codeTab === 'python' && (
-            <CodeBlock
-              language="python"
-              value={pythonSnippet}
-              hideLineNumbers
-              className="max-w-none block !bg-surface-200/50 !py-3 !px-3.5 border border-border text-foreground rounded-lg"
-            />
-          )}
-
-          {codeTab === 'php' && (
-            <CodeBlock
-              language="php"
-              value={phpSnippet}
-              hideLineNumbers
-              className="max-w-none block !bg-surface-200/50 !py-3 !px-3.5 border border-border text-foreground rounded-lg"
-            />
-          )}
+          {codeTab === 'node' && <CodeBlock language="typescript" value={nodeSnippet} hideLineNumbers />}
+          {codeTab === 'python' && <CodeBlock language="python" value={pythonSnippet} hideLineNumbers />}
+          {codeTab === 'php' && <CodeBlock language="php" value={phpSnippet} hideLineNumbers />}
         </CardContent>
       </Card>
 
-      {/* Add Gateway Modal */}
+      {/* Remote S3 File Browser Modal */}
+      <Dialog open={explorerGateway !== null} onOpenChange={(open) => !open && setExplorerGateway(null)}>
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] flex flex-col p-0">
+          <DialogHeader className="p-4 border-b border-border">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <FolderOpen size={17} className="text-primary" />
+                  <span>{explorerGateway?.name} — Storage Explorer</span>
+                </DialogTitle>
+                <p className="text-xs text-foreground-lighter mt-0.5 font-mono">
+                  {explorerGateway?.endpoint_url}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  type="primary"
+                  size="tiny"
+                  icon={<Upload size={12} />}
+                  loading={isUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Upload File
+                </Button>
+                <Button
+                  type="default"
+                  size="tiny"
+                  icon={<RefreshCw className={isLoadingFiles ? 'animate-spin' : ''} size={12} />}
+                  onClick={() => explorerGateway && fetchRemoteFiles(explorerGateway.id, selectedBucket)}
+                >
+                  Refresh
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {/* Subheader: Bucket Selector & Search Bar */}
+          <div className="p-3 bg-surface-100/50 border-b border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-foreground-lighter">Bucket:</span>
+              <select
+                className="h-8 rounded-md border border-input bg-background px-2.5 text-xs font-mono shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={selectedBucket}
+                onChange={(e) => {
+                  setSelectedBucket(e.target.value)
+                  if (explorerGateway) fetchRemoteFiles(explorerGateway.id, e.target.value)
+                }}
+              >
+                {remoteBuckets.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="relative flex-1 sm:max-w-xs">
+              <Search size={13} className="absolute left-2.5 top-2.5 text-foreground-lighter" />
+              <Input_Shadcn_
+                placeholder="Filter files..."
+                className="pl-8 text-xs h-8 font-mono"
+                value={fileFilter}
+                onChange={(e) => setFileFilter(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* File Explorer Content Table */}
+          <div className="flex-1 overflow-auto p-4 min-h-[300px]">
+            {isLoadingFiles ? (
+              <div className="flex flex-col items-center justify-center p-12 text-xs text-foreground-lighter">
+                <RefreshCw className="animate-spin mb-2" size={20} />
+                <span>Reading remote objects from S3 gateway...</span>
+              </div>
+            ) : filteredFiles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-12 text-center text-xs text-foreground-lighter">
+                <FolderOpen size={28} className="mb-2 opacity-50" />
+                <p className="font-medium text-foreground">No files found in bucket &quot;{selectedBucket}&quot;</p>
+                <p className="mt-1">Upload a file above to begin storing objects on this remote host.</p>
+              </div>
+            ) : (
+              <div className="border border-border rounded-lg overflow-hidden">
+                <table className="w-full text-left text-xs font-mono border-collapse">
+                  <thead>
+                    <tr className="bg-surface-200/60 border-b border-border">
+                      <th className="p-2.5 font-medium text-foreground">Name / Key</th>
+                      <th className="p-2.5 font-medium text-foreground">Size</th>
+                      <th className="p-2.5 font-medium text-foreground">Last Modified</th>
+                      <th className="p-2.5 font-medium text-foreground text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {filteredFiles.map((f) => (
+                      <tr key={f.key} className="hover:bg-surface-100/50 transition-colors">
+                        <td className="p-2.5">
+                          <div className="flex items-center gap-2">
+                            {getFileIcon(f.name)}
+                            <span className="font-medium text-foreground">{f.name}</span>
+                          </div>
+                        </td>
+                        <td className="p-2.5 text-foreground-light">{formatBytes(f.size)}</td>
+                        <td className="p-2.5 text-foreground-lighter">
+                          {new Date(f.last_modified).toLocaleString()}
+                        </td>
+                        <td className="p-2.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <a href={f.url} target="_blank" rel="noopener noreferrer">
+                              <Button type="default" size="tiny" icon={<Download size={11} />}>
+                                Download
+                              </Button>
+                            </a>
+                            <Button
+                              type="default"
+                              size="tiny"
+                              icon={<Link2 size={11} />}
+                              onClick={() => explorerGateway && handleOpenPresignedModal(explorerGateway, selectedBucket, f.key)}
+                            >
+                              Presigned URL
+                            </Button>
+                            <Button
+                              type="outline"
+                              size="tiny"
+                              className="text-destructive hover:bg-destructive/10"
+                              icon={<Trash2 size={11} />}
+                              onClick={() => handleDeleteRemoteFile(f.key)}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="p-3 border-t border-border flex items-center justify-between">
+            <span className="text-[11px] text-foreground-lighter font-mono">
+              {filteredFiles.length} {filteredFiles.length === 1 ? 'object' : 'objects'} in {selectedBucket}
+            </span>
+            <Button type="default" onClick={() => setExplorerGateway(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Presigned URL Modal */}
+      <Dialog open={presignedTarget !== null} onOpenChange={(open) => !open && setPresignedTarget(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 size={16} className="text-primary" />
+              <span>Generate Presigned S3 Link</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          <DialogSection className="space-y-4">
+            <div className="text-xs text-foreground-lighter">
+              File: <strong className="text-foreground font-mono">{presignedTarget?.key}</strong> in bucket <strong className="text-foreground font-mono">{presignedTarget?.bucket}</strong>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label_Shadcn_ htmlFor="p-exp">Link Expiry Duration</Label_Shadcn_>
+              <select
+                id="p-exp"
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={presignedExpiry}
+                onChange={(e) => handlePresignedExpiryChange(parseInt(e.target.value, 10))}
+              >
+                <option value={3600}>1 Hour (Standard)</option>
+                <option value={86400}>24 Hours (1 Day)</option>
+                <option value={604800}>7 Days (1 Week)</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label_Shadcn_>Generated AWS SigV4 URL</Label_Shadcn_>
+              {isGeneratingUrl ? (
+                <div className="p-4 text-center text-xs text-foreground-lighter">
+                  <RefreshCw className="animate-spin mb-1 inline" size={14} /> Generating...
+                </div>
+              ) : (
+                <div className="relative">
+                  <textarea
+                    rows={4}
+                    readOnly
+                    className="w-full rounded-md border border-input bg-surface-200/50 p-2.5 font-mono text-[11px] text-foreground shadow-sm break-all focus-visible:outline-none"
+                    value={generatedUrl}
+                  />
+                  <Button
+                    type="primary"
+                    size="tiny"
+                    className="absolute right-2 bottom-2"
+                    icon={<Copy size={11} />}
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedUrl)
+                      toast.success('Presigned URL copied to clipboard!')
+                    }}
+                  >
+                    Copy Link
+                  </Button>
+                </div>
+              )}
+              <p className="text-[11px] text-foreground-lighter">
+                Allows any client or browser to access the remote file directly without needing your S3 credentials.
+              </p>
+            </div>
+          </DialogSection>
+
+          <DialogFooter className="flex items-center justify-end">
+            <Button type="default" onClick={() => setPresignedTarget(null)}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Connect Gateway Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Connect Remote S3 Gateway</DialogTitle>
+            <DialogTitle>Connect S3 Storage Gateway</DialogTitle>
           </DialogHeader>
 
           <DialogSection className="space-y-4">
@@ -588,7 +985,7 @@ $objects = $s3->listObjectsV2(['Bucket' => 'uploads']);`
               <Label_Shadcn_ htmlFor="gw-name">Gateway Name</Label_Shadcn_>
               <Input_Shadcn_
                 id="gw-name"
-                placeholder="e.g. Client cPanel Storage, 20i Cloud Storage"
+                placeholder="e.g. cPanel Media Storage, 20i S3 Bucket"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
               />
@@ -598,12 +995,12 @@ $objects = $s3->listObjectsV2(['Bucket' => 'uploads']);`
               <Label_Shadcn_ htmlFor="gw-url">Endpoint URL</Label_Shadcn_>
               <Input_Shadcn_
                 id="gw-url"
-                placeholder="https://storage.yourdomain.com/socket-storage.php"
+                placeholder="https://storage.clientdomain.com/storage.php"
                 value={formEndpoint}
                 onChange={(e) => setFormEndpoint(e.target.value)}
               />
               <p className="text-[11px] text-foreground-lighter">
-                The full URL to your hosted <code className="font-mono">socket-storage.php</code> or any S3-compatible service URL.
+                The HTTPS URL where <code className="font-mono">socket-storage.php</code> was uploaded.
               </p>
             </div>
 
@@ -617,6 +1014,7 @@ $objects = $s3->listObjectsV2(['Bucket' => 'uploads']);`
                   onChange={(e) => setFormRegion(e.target.value)}
                 />
               </div>
+
               <div className="space-y-1.5">
                 <Label_Shadcn_ htmlFor="gw-ak">Access Key ID</Label_Shadcn_>
                 <Input_Shadcn_

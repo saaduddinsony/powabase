@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { Github } from 'lucide-react'
+import { Github, Globe } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { PropsWithChildren, ReactNode } from 'react'
@@ -116,7 +116,7 @@ export const BranchRow = ({
               target={external ? '_blank' : '_self'}
               rel={external ? 'noopener noreferrer' : undefined}
               href={navigateUrl}
-              className="flex items-center"
+              className="flex items-center font-medium"
             >
               {label || branch.name}
             </Link>
@@ -128,6 +128,31 @@ export const BranchRow = ({
             </TooltipContent>
           )}
         </Tooltip>
+
+        {/* Subdomain & SSL Indicator */}
+        {(() => {
+          const b = branch as any
+          const previewDomain =
+            b.custom_domain ||
+            b.subdomain ||
+            (branch.is_default
+              ? 'main.backend.freightsolution.xyz'
+              : `${branch.name.toLowerCase()}-preview.backend.freightsolution.xyz`)
+
+          return (
+            <a
+              href={`https://${previewDomain}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono bg-surface-200 hover:bg-surface-300 text-foreground-light transition-colors"
+              title="Open branch preview environment"
+            >
+              <Globe size={11} className="text-primary" />
+              <span className="truncate max-w-[200px]">{previewDomain}</span>
+              <span className="text-[9px] text-emerald-400 font-semibold uppercase">SSL</span>
+            </a>
+          )
+        })()}
       </div>
       <div className="flex items-center gap-x-4">
         {branch.deletion_scheduled_at ? (
