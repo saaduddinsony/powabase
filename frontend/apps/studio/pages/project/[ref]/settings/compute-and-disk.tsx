@@ -546,6 +546,13 @@ const ComputeAndDiskPage: NextPageWithLayout = () => {
             </Button>
           </div>
         </CardHeader>
+        <div className="bg-surface-200/50 border-y border-border px-4 py-2 flex items-center justify-between text-xs text-foreground-lighter">
+          <div className="flex items-center gap-2">
+            <Activity size={13} className="text-primary" />
+            <span>Connected nodes run <code className="font-mono text-foreground text-[11px]">socket-worker.sh</code> and pick up pending jobs automatically.</span>
+          </div>
+          <span className="font-mono text-[11px] text-foreground-lighter">Auto-refresh: 10s</span>
+        </div>
         <CardContent className="p-0">
           {tasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -558,6 +565,7 @@ const ComputeAndDiskPage: NextPageWithLayout = () => {
                 const isCompleted = task.status === 'completed'
                 const isFailed = task.status === 'failed'
                 const isRunning = task.status === 'running'
+                const isPending = task.status === 'pending'
 
                 return (
                   <div key={task.id} className="p-3.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:bg-surface-100/50 transition-colors">
@@ -566,8 +574,10 @@ const ComputeAndDiskPage: NextPageWithLayout = () => {
                         <span className="font-medium text-xs text-foreground">{task.title}</span>
                         <Badge
                           variant={isCompleted ? 'success' : isFailed ? 'destructive' : isRunning ? 'warning' : 'outline'}
-                          className="text-[10px] py-0 px-1.5 uppercase font-mono"
+                          className="text-[10px] py-0 px-1.5 uppercase font-mono flex items-center gap-1"
                         >
+                          {isRunning && <RefreshCw className="animate-spin" size={10} />}
+                          {isPending && <Clock className="animate-pulse" size={10} />}
                           {task.status}
                         </Badge>
                         <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-mono">
@@ -582,7 +592,7 @@ const ComputeAndDiskPage: NextPageWithLayout = () => {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      {task.output && (
+                      {task.output ? (
                         <Button
                           type="default"
                           size="tiny"
@@ -591,6 +601,10 @@ const ComputeAndDiskPage: NextPageWithLayout = () => {
                         >
                           View Logs
                         </Button>
+                      ) : (
+                        <span className="text-[11px] text-foreground-lighter font-mono italic">
+                          {isPending ? 'Waiting for node...' : 'Executing...'}
+                        </span>
                       )}
                     </div>
                   </div>

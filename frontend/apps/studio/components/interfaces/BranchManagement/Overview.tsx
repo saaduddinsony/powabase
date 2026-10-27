@@ -346,15 +346,28 @@ const PreviewBranchActions = ({
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="text"
-            icon={<MoreVertical />}
-            className="px-1"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </DropdownMenuTrigger>
+      <div className="flex items-center gap-1">
+        <Button
+          type="default"
+          size="tiny"
+          icon={<Globe size={12} />}
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowDomainModal(true)
+          }}
+          title="Configure Custom Domain & SSL"
+        >
+          Domain & SSL
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="text"
+              icon={<MoreVertical />}
+              className="px-1"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" side="bottom" align="end">
           {/* Edit Branch (gitless) */}
           {gitlessBranching && (
@@ -520,6 +533,7 @@ const PreviewBranchActions = ({
           </DropdownMenuItemTooltip>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
 
       {/* Custom Domain Modal */}
       <Dialog open={showDomainModal} onOpenChange={setShowDomainModal}>

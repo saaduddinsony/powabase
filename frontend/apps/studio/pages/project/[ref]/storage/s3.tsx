@@ -107,6 +107,7 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
   const [gateways, setGateways] = useState<StorageGateway[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [editingGateway, setEditingGateway] = useState<StorageGateway | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [testingId, setTestingId] = useState<number | null>(null)
@@ -218,6 +219,28 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
     }
   }
 
+  const handleOpenEditModal = (gw: StorageGateway) => {
+    setEditingGateway(gw)
+    setFormName(gw.name)
+    setFormEndpoint(gw.endpoint_url)
+    setFormRegion(gw.region || 'us-east-1')
+    setFormAccessKey(gw.access_key)
+    setFormSecretKey(gw.secret_key)
+    setModalTestMessage(null)
+    setIsAddModalOpen(true)
+  }
+
+  const handleOpenAddModal = () => {
+    setEditingGateway(null)
+    setFormName('')
+    setFormEndpoint('')
+    setFormRegion('us-east-1')
+    setFormAccessKey('')
+    setFormSecretKey('')
+    setModalTestMessage(null)
+    setIsAddModalOpen(true)
+  }
+
   const handleSaveGateway = async () => {
     if (!formName.trim() || !formEndpoint.trim() || !formAccessKey.trim() || !formSecretKey.trim()) {
       toast.error('Please fill in all required fields')
@@ -226,8 +249,13 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
 
     try {
       setIsSaving(true)
-      const res = await fetch(`/api/v1/projects/${projectRef}/storage/gateways`, {
-        method: 'POST',
+      const url = editingGateway
+        ? `/api/v1/projects/${projectRef}/storage/gateways/${editingGateway.id}`
+        : `/api/v1/projects/${projectRef}/storage/gateways`
+      const method = editingGateway ? 'PATCH' : 'POST'
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formName.trim(),
@@ -241,8 +269,13 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error?.message || 'Failed to save gateway')
 
-      toast.success(`Gateway "${data.name}" added successfully!`)
+      toast.success(
+        editingGateway
+          ? `Gateway "${data.name}" updated successfully!`
+          : `Gateway "${data.name}" added successfully!`
+      )
       setIsAddModalOpen(false)
+      setEditingGateway(null)
       setFormName('')
       setFormEndpoint('')
       setFormRegion('us-east-1')
@@ -513,7 +546,7 @@ $s3 = new S3Client([
           <Button
             type="primary"
             icon={<Plus size={14} />}
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={handleOpenAddModal}
           >
             Connect Remote Gateway
           </Button>
@@ -615,7 +648,7 @@ $s3 = new S3Client([
                 type="primary"
                 size="tiny"
                 icon={<Plus size={14} />}
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={handleOpenAddModal}
               >
                 Connect Remote Gateway
               </Button>
@@ -672,6 +705,14 @@ $s3 = new S3Client([
                         onClick={() => handleTestConnection(gw.endpoint_url, gw.access_key, gw.secret_key, gw.id)}
                       >
                         Test Ping
+                      </Button>
+                      <Button
+                        type="default"
+                        size="tiny"
+                        icon={<Pencil size={12} />}
+                        onClick={() => handleOpenEditModal(gw)}
+                      >
+                        Edit
                       </Button>
                       <Button
                         type="default"
@@ -973,11 +1014,17 @@ $s3 = new S3Client([
         </DialogContent>
       </Dialog>
 
-      {/* Connect Gateway Modal */}
-      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+      {/* Connect / Edit Gateway Modal */}
+      <Dialog
+        open={isAddModalOpen}
+        onOpenChange={(open) => {
+          setIsAddModalOpen(open)
+          if (!open) setEditingGateway(null)
+        }}
+      >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Connect S3 Storage Gateway</DialogTitle>
+            <DialogTitle>{editingGateway ? 'Edit S3 Storage Gateway' : 'Connect S3 Storage Gateway'}</DialogTitle>
           </DialogHeader>
 
           <DialogSection className="space-y-4">
@@ -1060,7 +1107,13 @@ $s3 = new S3Client([
             </Button>
 
             <div className="flex items-center gap-2">
-              <Button type="default" onClick={() => setIsAddModalOpen(false)}>
+              <Button
+                type="default"
+                onClick={() => {
+                  setIsAddModalOpen(false)
+                  setEditingGateway(null)
+                }}
+              >
                 Cancel
               </Button>
               <Button
@@ -1069,7 +1122,7 @@ $s3 = new S3Client([
                 disabled={isSaving || !formName || !formEndpoint || !formAccessKey || !formSecretKey}
                 onClick={handleSaveGateway}
               >
-                Save Gateway
+                {editingGateway ? 'Update Gateway' : 'Save Gateway'}
               </Button>
             </div>
           </DialogFooter>

@@ -1732,6 +1732,39 @@ export async function deleteSocketStorageGateway(id: number): Promise<boolean> {
   return true
 }
 
+export async function updateSocketStorageGateway(
+  id: number,
+  updates: Partial<Pick<SocketStorageGateway, 'name' | 'endpoint_url' | 'region' | 'access_key' | 'secret_key'>>
+): Promise<SocketStorageGateway> {
+  await ensureMetadataSchema()
+  const { data, error } = await executeQuery<SocketStorageGateway>({
+    query: `
+      UPDATE _socket_metadata.remote_storage_gateways
+      SET 
+        name = COALESCE($2, name),
+        endpoint_url = COALESCE($3, endpoint_url),
+        region = COALESCE($4, region),
+        access_key = COALESCE($5, access_key),
+        secret_key = COALESCE($6, secret_key),
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING *;
+    `,
+    parameters: [
+      id,
+      updates.name || null,
+      updates.endpoint_url || null,
+      updates.region || null,
+      updates.access_key || null,
+      updates.secret_key || null,
+    ],
+  })
+  if (error || !data || data.length === 0) {
+    throw new Error(error?.message || 'Failed to update storage gateway')
+  }
+  return data[0]
+}
+
 export async function getSocketStorageGatewayById(id: number): Promise<SocketStorageGateway | null> {
   await ensureMetadataSchema()
   const { data } = await executeQuery<SocketStorageGateway>({

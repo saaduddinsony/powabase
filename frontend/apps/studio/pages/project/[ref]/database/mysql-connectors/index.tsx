@@ -569,15 +569,18 @@ curl -X GET 'https://backend.freightsolution.xyz/rest/v1/${sampleSchema}.product
                       >
                         Auto-Sync
                       </Button>
-                      <Link href={`/project/${projectRef}/sql/new?content=SELECT * FROM "${c.foreign_schema}".tables LIMIT 10;`}>
-                        <Button
-                          type="default"
-                          size="tiny"
-                          icon={<ExternalLink size={12} />}
-                        >
-                          SQL
-                        </Button>
-                      </Link>
+                      <Button
+                        type="default"
+                        size="tiny"
+                        icon={<ExternalLink size={12} />}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const sql = `SELECT * FROM "${c.foreign_schema}".tables LIMIT 10;`
+                          window.open(`/project/${projectRef}/sql/new?content=${encodeURIComponent(sql)}`, '_blank')
+                        }}
+                      >
+                        SQL
+                      </Button>
                       <Button
                         type="outline"
                         size="tiny"
@@ -770,14 +773,18 @@ curl -X GET 'https://backend.freightsolution.xyz/rest/v1/${sampleSchema}.product
                         </button>
                       </div>
 
-                      <Link
-                        href={`/project/${projectRef}/sql/new?content=SELECT * FROM "${exploreConnector?.foreign_schema}"."${selectedTable}" LIMIT 100;`}
-                        target="_blank"
+                      <Button
+                        type="default"
+                        size="tiny"
+                        icon={<ExternalLink size={12} />}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const sql = `SELECT * FROM "${exploreConnector?.foreign_schema}"."${selectedTable}" LIMIT 100;`
+                          window.open(`/project/${projectRef}/sql/new?content=${encodeURIComponent(sql)}`, '_blank')
+                        }}
                       >
-                        <Button type="default" size="tiny" icon={<ExternalLink size={12} />}>
-                          SQL
-                        </Button>
-                      </Link>
+                        Open in SQL
+                      </Button>
                     </div>
                   </div>
 
