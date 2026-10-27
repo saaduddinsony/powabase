@@ -295,14 +295,9 @@ export function BlockPalette({ onAddBlock, existingBlockTypes, onClose }: BlockP
         )}
       </div>
 
-      {/* Bencho / Opal Footer with tactile cues */}
-      <div className="p-2.5 border-t border-default/40 bg-surface-100/50 flex items-center justify-between">
-        <div className="flex items-center -space-x-1">
-          <div className="w-3 h-3 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 border border-white dark:border-[#151619] shadow-2xs" />
-          <div className="w-3 h-3 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 border border-white dark:border-[#151619] shadow-2xs" />
-          <div className="w-3 h-3 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 border border-white dark:border-[#151619] shadow-2xs" />
-        </div>
-        <span className="text-[10px] text-foreground-lighter font-medium">
+      {/* Palette Footer */}
+      <div className="px-3.5 py-2.5 border-t border-default/40 bg-surface-100/50 flex items-center justify-center">
+        <span className="text-[11px] text-foreground-lighter font-medium">
           Drag to canvas or click + to add
         </span>
       </div>
