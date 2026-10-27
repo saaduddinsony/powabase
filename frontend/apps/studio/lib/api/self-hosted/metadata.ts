@@ -1962,8 +1962,8 @@ export async function recordSocketComputeHeartbeat(heartbeat: {
       )
       VALUES (
         'default', $1, COALESCE($2, 'Worker Node'), $3, COALESCE($4, 'worker'),
-        COALESCE($5, 1), COALESCE($6, 0), COALESCE($7, 1024), COALESCE($8, 256),
-        COALESCE($9, 10), $10, $11, 'online', NOW()
+        COALESCE($5, 1), COALESCE($6::numeric, 0), COALESCE($7, 1024), COALESCE($8, 256),
+        COALESCE($9::numeric, 10), $10, $11, 'online', NOW()
       )
       ON CONFLICT (node_id) DO UPDATE SET
         name = COALESCE(EXCLUDED.name, _socket_metadata.compute_nodes.name),
