@@ -262,8 +262,20 @@ export async function ensureMetadataSchema(): Promise<void> {
       password TEXT NOT NULL,
       foreign_schema TEXT NOT NULL,
       status TEXT DEFAULT 'active',
+      auto_sync_enabled BOOLEAN DEFAULT FALSE,
+      sync_interval_mins INTEGER DEFAULT 60,
+      last_synced_at TIMESTAMPTZ,
+      sync_status TEXT DEFAULT 'idle',
+      table_count INTEGER DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    ALTER TABLE _socket_metadata.remote_mysql_servers ADD COLUMN IF NOT EXISTS auto_sync_enabled BOOLEAN DEFAULT FALSE;
+    ALTER TABLE _socket_metadata.remote_mysql_servers ADD COLUMN IF NOT EXISTS sync_interval_mins INTEGER DEFAULT 60;
+    ALTER TABLE _socket_metadata.remote_mysql_servers ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMPTZ;
+    ALTER TABLE _socket_metadata.remote_mysql_servers ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'idle';
+    ALTER TABLE _socket_metadata.remote_mysql_servers ADD COLUMN IF NOT EXISTS table_count INTEGER DEFAULT 0;
+
 
     CREATE TABLE IF NOT EXISTS _socket_metadata.compute_nodes (
       id SERIAL PRIMARY KEY,
@@ -1684,17 +1696,236 @@ export interface SocketMySQLConnector {
   username: string
   foreign_schema: string
   status: string
+  auto_sync_enabled?: boolean
+  sync_interval_mins?: number
+  last_synced_at?: string
+  sync_status?: string
+  table_count?: number
   created_at: string
 }
 
 export async function getSocketMySQLConnectors(projectRef: string): Promise<SocketMySQLConnector[]> {
   await ensureMetadataSchema()
   const { data, error } = await executeQuery<SocketMySQLConnector>({
-    query: `SELECT id, project_ref, name, host, port, database_name, username, foreign_schema, status, created_at FROM _socket_metadata.remote_mysql_servers WHERE project_ref = $1 ORDER BY id DESC`,
+    query: `
+      SELECT id, project_ref, name, host, port, database_name, username, foreign_schema, status,
+             auto_sync_enabled, sync_interval_mins, last_synced_at, sync_status, table_count, created_at
+      FROM _socket_metadata.remote_mysql_servers
+      WHERE project_ref = $1
+      ORDER BY id DESC
+    `,
     parameters: [projectRef],
   })
   if (error || !data) return []
   return data
+}
+
+export async function syncSocketMySQLConnector(id: number): Promise<{
+  success: boolean
+  table_count: number
+  tables: Array<{ table_name: string; column_count: number }>
+}> {
+  await ensureMetadataSchema()
+  const { data: rows, error: fetchErr } = await executeQuery<{
+    id: number
+    host: string
+    port: number
+    database_name: string
+    username: string
+    password: string
+    foreign_schema: string
+  }>({
+    query: `SELECT id, host, port, database_name, username, password, foreign_schema FROM _socket_metadata.remote_mysql_servers WHERE id = $1`,
+    parameters: [id],
+  })
+
+  if (fetchErr || !rows || rows.length === 0) {
+    throw new Error('Connector not found')
+  }
+
+  const connector = rows[0]
+  const safeSchema = connector.foreign_schema
+  const serverName = `mysql_srv_${safeSchema}`
+  const port = connector.port || 3306
+
+  await executeQuery({
+    query: `UPDATE _socket_metadata.remote_mysql_servers SET sync_status = 'syncing' WHERE id = $1`,
+    parameters: [id],
+  })
+
+  try {
+    // 1. Ensure foreign server and mapping exist
+    await executeQuery({
+      query: `
+        CREATE EXTENSION IF NOT EXISTS mysql_fdw;
+        CREATE SCHEMA IF NOT EXISTS "${safeSchema}";
+        DROP SERVER IF EXISTS "${serverName}" CASCADE;
+        CREATE SERVER "${serverName}"
+          FOREIGN DATA WRAPPER mysql_fdw
+          OPTIONS (host '${connector.host.trim().replace(/'/g, "''")}', port '${port}');
+        CREATE USER MAPPING FOR postgres
+          SERVER "${serverName}"
+          OPTIONS (username '${connector.username.trim().replace(/'/g, "''")}', password '${connector.password.replace(/'/g, "''")}');
+        CREATE USER MAPPING FOR supabase_admin
+          SERVER "${serverName}"
+          OPTIONS (username '${connector.username.trim().replace(/'/g, "''")}', password '${connector.password.replace(/'/g, "''")}');
+      `,
+    })
+
+    // 2. Re-import Foreign Schema
+    await executeQuery({
+      query: `
+        IMPORT FOREIGN SCHEMA "${connector.database_name.trim().replace(/"/g, '""')}"
+          FROM SERVER "${serverName}"
+          INTO "${safeSchema}";
+        GRANT USAGE ON SCHEMA "${safeSchema}" TO postgres, anon, authenticated, service_role;
+        GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA "${safeSchema}" TO postgres, anon, authenticated, service_role;
+      `,
+    })
+
+    // 3. Query imported tables
+    const { data: tables } = await executeQuery<{ table_name: string; column_count: string }>({
+      query: `
+        SELECT 
+          c.relname as table_name,
+          (SELECT count(*)::text FROM information_schema.columns WHERE table_schema = $1 AND table_name = c.relname) as column_count
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = $1 AND c.relkind = 'f'
+        ORDER BY c.relname ASC
+      `,
+      parameters: [safeSchema],
+    })
+
+    const tableList = (tables || []).map((t) => ({
+      table_name: t.table_name,
+      column_count: parseInt(t.column_count || '0', 10),
+    }))
+
+    await executeQuery({
+      query: `
+        UPDATE _socket_metadata.remote_mysql_servers
+        SET sync_status = 'synced',
+            last_synced_at = NOW(),
+            table_count = $2
+        WHERE id = $1
+      `,
+      parameters: [id, tableList.length],
+    })
+
+    return {
+      success: true,
+      table_count: tableList.length,
+      tables: tableList,
+    }
+  } catch (err: any) {
+    await executeQuery({
+      query: `UPDATE _socket_metadata.remote_mysql_servers SET sync_status = 'error' WHERE id = $1`,
+      parameters: [id],
+    })
+    throw err
+  }
+}
+
+export async function getSocketMySQLConnectorTables(id: number): Promise<Array<{
+  table_name: string
+  column_count: number
+  columns: Array<{
+    column_name: string
+    data_type: string
+    is_nullable: string
+  }>
+}>> {
+  await ensureMetadataSchema()
+  const { data: rows } = await executeQuery<{ foreign_schema: string }>({
+    query: `SELECT foreign_schema FROM _socket_metadata.remote_mysql_servers WHERE id = $1`,
+    parameters: [id],
+  })
+  if (!rows || rows.length === 0) return []
+  const schema = rows[0].foreign_schema
+
+  const { data: cols } = await executeQuery<{
+    table_name: string
+    column_name: string
+    data_type: string
+    is_nullable: string
+  }>({
+    query: `
+      SELECT table_name, column_name, data_type, is_nullable
+      FROM information_schema.columns
+      WHERE table_schema = $1
+      ORDER BY table_name, ordinal_position
+    `,
+    parameters: [schema],
+  })
+
+  if (!cols) return []
+
+  const tableMap = new Map<string, Array<{ column_name: string; data_type: string; is_nullable: string }>>()
+  for (const c of cols) {
+    if (!tableMap.has(c.table_name)) {
+      tableMap.set(c.table_name, [])
+    }
+    tableMap.get(c.table_name)!.push({
+      column_name: c.column_name,
+      data_type: c.data_type,
+      is_nullable: c.is_nullable,
+    })
+  }
+
+  return Array.from(tableMap.entries()).map(([table_name, columns]) => ({
+    table_name,
+    column_count: columns.length,
+    columns,
+  }))
+}
+
+export async function getSocketMySQLConnectorTableData(
+  id: number,
+  tableName: string
+): Promise<{ columns: string[]; rows: any[] }> {
+  await ensureMetadataSchema()
+  const { data: rows } = await executeQuery<{ foreign_schema: string }>({
+    query: `SELECT foreign_schema FROM _socket_metadata.remote_mysql_servers WHERE id = $1`,
+    parameters: [id],
+  })
+  if (!rows || rows.length === 0) {
+    throw new Error('Connector not found')
+  }
+  const schema = rows[0].foreign_schema
+  const safeTable = tableName.replace(/[^a-zA-Z0-9_]/g, '')
+
+  const { data, error } = await executeQuery<any>({
+    query: `SELECT * FROM "${schema}"."${safeTable}" LIMIT 50;`,
+  })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  const columns = data && data.length > 0 ? Object.keys(data[0]) : []
+  return {
+    columns,
+    rows: data || [],
+  }
+}
+
+export async function updateSocketMySQLConnector(
+  id: number,
+  update: { auto_sync_enabled?: boolean; sync_interval_mins?: number }
+): Promise<boolean> {
+  await ensureMetadataSchema()
+  const { error } = await executeQuery({
+    query: `
+      UPDATE _socket_metadata.remote_mysql_servers
+      SET auto_sync_enabled = COALESCE($2, auto_sync_enabled),
+          sync_interval_mins = COALESCE($3, sync_interval_mins)
+      WHERE id = $1
+    `,
+    parameters: [id, update.auto_sync_enabled ?? null, update.sync_interval_mins ?? null],
+  })
+  if (error) throw new Error(error.message)
+  return true
 }
 
 export async function createSocketMySQLConnector(
@@ -1712,7 +1943,7 @@ export async function createSocketMySQLConnector(
   await ensureMetadataSchema()
   const port = connector.port || 3306
   const safeSchema = connector.foreign_schema.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_')
-  const serverName = `mysql_${safeSchema}_${Date.now().toString(36)}`
+  const serverName = `mysql_srv_${safeSchema}`
 
   // 1. Ensure mysql_fdw extension and foreign schema exist
   await executeQuery({
@@ -1760,14 +1991,27 @@ export async function createSocketMySQLConnector(
     throw new Error(`Failed to import MySQL schema: ${importError.message}`)
   }
 
+  // Count initial tables
+  const { data: countData } = await executeQuery<{ count: string }>({
+    query: `
+      SELECT count(*)::text as count FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = $1 AND c.relkind = 'f'
+    `,
+    parameters: [safeSchema],
+  })
+  const initialCount = parseInt(countData?.[0]?.count || '0', 10)
+
   // 5. Save to metadata table
   const { data, error } = await executeQuery<SocketMySQLConnector>({
     query: `
       INSERT INTO _socket_metadata.remote_mysql_servers (
-        project_ref, name, host, port, database_name, username, password, foreign_schema, status
+        project_ref, name, host, port, database_name, username, password, foreign_schema, status,
+        last_synced_at, sync_status, table_count
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active')
-      RETURNING id, project_ref, name, host, port, database_name, username, foreign_schema, status, created_at
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', NOW(), 'synced', $9)
+      RETURNING id, project_ref, name, host, port, database_name, username, foreign_schema, status,
+                auto_sync_enabled, sync_interval_mins, last_synced_at, sync_status, table_count, created_at
     `,
     parameters: [
       projectRef,
@@ -1778,6 +2022,7 @@ export async function createSocketMySQLConnector(
       connector.username.trim(),
       connector.password,
       safeSchema,
+      initialCount,
     ],
   })
 

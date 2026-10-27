@@ -21,6 +21,20 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
     }
   }
 
-  res.setHeader('Allow', ['DELETE'])
+  if (req.method === 'PATCH') {
+    try {
+      const { auto_sync_enabled, sync_interval_mins } = req.body || {}
+      const { updateSocketMySQLConnector } = await import('@/lib/api/self-hosted/metadata')
+      await updateSocketMySQLConnector(connectorId, {
+        auto_sync_enabled,
+        sync_interval_mins,
+      })
+      return res.status(200).json({ success: true, message: 'Sync settings updated' })
+    } catch (err: any) {
+      return res.status(500).json({ error: { message: err.message || 'Failed to update sync settings' } })
+    }
+  }
+
+  res.setHeader('Allow', ['DELETE', 'PATCH'])
   return res.status(405).json({ error: { message: `Method ${req.method} Not Allowed` } })
 }
