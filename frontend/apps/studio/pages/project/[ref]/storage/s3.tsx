@@ -35,10 +35,6 @@ import {
   DialogTitle,
   Input_Shadcn_,
   Label_Shadcn_,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
 } from 'ui'
 import { CodeBlock } from 'ui-patterns/CodeBlock'
 
@@ -77,6 +73,7 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
   const [formSecretKey, setFormSecretKey] = useState('')
   const [isModalTesting, setIsModalTesting] = useState(false)
   const [modalTestMessage, setModalTestMessage] = useState<{ success: boolean; text: string } | null>(null)
+  const [codeTab, setCodeTab] = useState<'node' | 'python' | 'php'>('node')
 
   // Fetch gateways
   const fetchGateways = async () => {
@@ -514,40 +511,68 @@ $objects = $s3->listObjectsV2(['Bucket' => 'uploads']);`
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="node">
-            <TabsList className="mb-4">
-              <TabsTrigger value="node">Node.js (@aws-sdk/client-s3)</TabsTrigger>
-              <TabsTrigger value="python">Python (boto3)</TabsTrigger>
-              <TabsTrigger value="php">PHP (aws-sdk-php)</TabsTrigger>
-            </TabsList>
+          <div className="flex items-center gap-2 mb-4 border-b border-border pb-2">
+            <button
+              type="button"
+              onClick={() => setCodeTab('node')}
+              className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                codeTab === 'node'
+                  ? 'bg-surface-300 text-foreground font-medium'
+                  : 'text-foreground-lighter hover:text-foreground'
+              }`}
+            >
+              Node.js (@aws-sdk/client-s3)
+            </button>
+            <button
+              type="button"
+              onClick={() => setCodeTab('python')}
+              className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                codeTab === 'python'
+                  ? 'bg-surface-300 text-foreground font-medium'
+                  : 'text-foreground-lighter hover:text-foreground'
+              }`}
+            >
+              Python (boto3)
+            </button>
+            <button
+              type="button"
+              onClick={() => setCodeTab('php')}
+              className={`px-3 py-1.5 text-xs rounded-md transition-colors ${
+                codeTab === 'php'
+                  ? 'bg-surface-300 text-foreground font-medium'
+                  : 'text-foreground-lighter hover:text-foreground'
+              }`}
+            >
+              PHP (aws-sdk-php)
+            </button>
+          </div>
 
-            <TabsContent value="node">
-              <CodeBlock
-                language="typescript"
-                value={nodeSnippet}
-                hideLineNumbers
-                className="max-w-none block !bg-surface-200/50 !py-3 !px-3.5 border border-border text-foreground rounded-lg"
-              />
-            </TabsContent>
+          {codeTab === 'node' && (
+            <CodeBlock
+              language="typescript"
+              value={nodeSnippet}
+              hideLineNumbers
+              className="max-w-none block !bg-surface-200/50 !py-3 !px-3.5 border border-border text-foreground rounded-lg"
+            />
+          )}
 
-            <TabsContent value="python">
-              <CodeBlock
-                language="python"
-                value={pythonSnippet}
-                hideLineNumbers
-                className="max-w-none block !bg-surface-200/50 !py-3 !px-3.5 border border-border text-foreground rounded-lg"
-              />
-            </TabsContent>
+          {codeTab === 'python' && (
+            <CodeBlock
+              language="python"
+              value={pythonSnippet}
+              hideLineNumbers
+              className="max-w-none block !bg-surface-200/50 !py-3 !px-3.5 border border-border text-foreground rounded-lg"
+            />
+          )}
 
-            <TabsContent value="php">
-              <CodeBlock
-                language="php"
-                value={phpSnippet}
-                hideLineNumbers
-                className="max-w-none block !bg-surface-200/50 !py-3 !px-3.5 border border-border text-foreground rounded-lg"
-              />
-            </TabsContent>
-          </Tabs>
+          {codeTab === 'php' && (
+            <CodeBlock
+              language="php"
+              value={phpSnippet}
+              hideLineNumbers
+              className="max-w-none block !bg-surface-200/50 !py-3 !px-3.5 border border-border text-foreground rounded-lg"
+            />
+          )}
         </CardContent>
       </Card>
 
