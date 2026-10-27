@@ -5,7 +5,7 @@ export default function RedirectToProject() {
   const router = useRouter()
   const ref = router.query.ref as string
   useEffect(() => {
-    if (ref) router.replace(`/project/${ref}/database/schemas`)
+    if (ref) router.replace(`/project/${ref}/database/import-export`)
   }, [ref, router])
   return null
 }

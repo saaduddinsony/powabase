@@ -38,6 +38,7 @@ export const useGenerateDatabaseMenu = (): ProductMenuGroup[] => {
         { name: 'Cron Jobs', key: 'cron', url: getDatabaseURL('cron') },
         { name: 'Queues', key: 'queues', url: getDatabaseURL('queues') },
         { name: 'Foreign Tables (MySQL)', key: 'mysql-connectors', url: getDatabaseURL('mysql-connectors'), label: 'FDW' },
+        { name: 'Import & Export / Migrations', key: 'import-export', url: getDatabaseURL('import-export'), label: 'NEW' },
         { name: 'Security & Performance Advisor', key: 'linter', url: getDatabaseURL('linter') },
       ],
     },

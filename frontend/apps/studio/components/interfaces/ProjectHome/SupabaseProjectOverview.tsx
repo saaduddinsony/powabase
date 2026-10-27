@@ -41,6 +41,11 @@ const RegionalWorldMap = dynamic(
   { ssr: false }
 )
 
+const InfrastructureDiagramCanvas = dynamic(
+  () => import('./InfrastructureDiagramCanvas').then((m) => m.InfrastructureDiagramCanvas),
+  { ssr: false }
+)
+
 dayjs.extend(relativeTime)
 
 interface ServerResourcesResponse {
@@ -350,89 +355,19 @@ export function SupabaseProjectOverview() {
 
                 {/* Viewport Area: Both views are absolute positioned inside the exact same frame */}
                 <div className="relative flex-1 w-full min-h-[280px] overflow-hidden">
-                  {/* Diagram / Workflow Node View */}
+                  {/* Diagram / Workflow Node View (Draggable Canvas) */}
                   <div
                     className={cn(
-                      'absolute inset-0 flex items-center justify-center p-5 transition-opacity duration-200',
+                      'absolute inset-0 transition-opacity duration-200',
                       canvasMode === 'node'
                         ? 'opacity-100 pointer-events-auto z-10'
                         : 'opacity-0 pointer-events-none z-0'
                     )}
-                    style={{
-                      backgroundImage:
-                        'radial-gradient(rgba(128, 128, 128, 0.22) 1.5px, transparent 1.5px)',
-                      backgroundSize: '18px 18px',
-                    }}
                   >
-                    <Link
-                      href={`/project/${projectRef}/infrastructure`}
-                      data-tour="database-card"
-                      aria-label="Primary Database Card"
-                      className="w-full max-w-sm rounded-xl border border-default bg-surface-100/95 backdrop-blur-sm p-4 shadow-md hover:border-foreground-muted hover:shadow-lg transition-all"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0 mt-0.5">
-                            <Database size={18} />
-                          </div>
-                          <div>
-                            <div className="text-sm font-semibold text-foreground">
-                              Primary Database
-                            </div>
-                            <div className="text-xs text-foreground-light mt-0.5">
-                              {serverResources?.host?.region || 'Southeast Asia (Singapore)'}
-                            </div>
-                            <div className="text-[11px] text-foreground-lighter font-mono mt-0.5">
-                              {serverResources?.host?.regionCode || 'ap-southeast-1'} ·{' '}
-                              {serverResources?.cpu?.model?.includes('Neoverse')
-                                ? 'Ampere Altra ARM64'
-                                : serverResources?.cpu?.model || 'ARM64 Dedicated'}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Country Flag Badge */}
-                        <img
-                          src="/img/regions/ap-southeast-1.svg"
-                          alt="Singapore"
-                          className="rounded-xs border border-default/80 mt-1 w-8 shadow-xs"
-                          title={serverResources?.host?.country || 'Singapore'}
-                        />
-                      </div>
-
-                      {/* Mini Resource Metrics Strip */}
-                      <div className="mt-3.5 pt-2.5 border-t border-default/70 flex items-center justify-between text-[11px] font-mono text-foreground-light">
-                        <span>
-                          CPU{' '}
-                          <strong className="text-foreground font-semibold">
-                            {serverResources ? `${serverResources.cpu.usagePercent}%` : '—'}
-                          </strong>
-                        </span>
-                        <span>·</span>
-                        <span>
-                          Disk{' '}
-                          <strong className="text-foreground font-semibold">
-                            {serverResources ? `${serverResources.disk.usedPercent}%` : '—'}
-                          </strong>
-                        </span>
-                        <span>·</span>
-                        <span>
-                          RAM{' '}
-                          <strong className="text-foreground font-semibold">
-                            {serverResources ? `${serverResources.memory.usedPercent}%` : '—'}
-                          </strong>
-                        </span>
-                        <span>·</span>
-                        <span>
-                          <strong className="text-foreground font-semibold">
-                            {serverResources?.database
-                              ? `${serverResources.database.activeConnections}/${serverResources.database.maxConnections}`
-                              : '—'}
-                          </strong>{' '}
-                          conns
-                        </span>
-                      </div>
-                    </Link>
+                    <InfrastructureDiagramCanvas
+                      projectRef={projectRef ?? 'default'}
+                      serverResources={serverResources}
+                    />
                   </div>
 
                   {/* Globe / Map View */}
