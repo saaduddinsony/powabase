@@ -137,7 +137,7 @@ export function InfrastructureDiagramCanvas({
             <div
               onClick={handleCopy}
               className={cn(
-                'group relative w-[270px] rounded-lg border border-default bg-surface-100/95 backdrop-blur-xs p-3 shadow-xs transition-all duration-150',
+                'group relative w-[255px] rounded-lg border border-default bg-surface-100/95 backdrop-blur-xs p-3 shadow-xs transition-all duration-150',
                 'hover:border-foreground-muted hover:shadow-md hover:bg-surface-100',
                 isDragging && 'shadow-lg border-brand-500/60 ring-1 ring-brand-500/20'
               )}
@@ -198,8 +198,8 @@ export function InfrastructureDiagramCanvas({
                 </span>
               </div>
 
-              {/* Hover Footer: Discrete "Go to database report" */}
-              <div className="mt-2 pt-1.5 border-t border-dashed border-default/50 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Floating "Go to database report" pill beneath card on hover */}
+              <div className="absolute -bottom-6 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-all duration-150 pointer-events-none group-hover:pointer-events-auto z-20">
                 <Link
                   href={`/project/${projectRef}/observability/database`}
                   onClick={(e) => {
@@ -208,10 +208,10 @@ export function InfrastructureDiagramCanvas({
                     }
                     e.stopPropagation()
                   }}
-                  className="w-full flex items-center justify-center gap-1 text-[11px] font-medium text-brand-500 hover:text-brand-600 transition-colors"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-100/95 backdrop-blur-xs border border-default shadow-xs text-[10px] font-medium text-foreground-light hover:text-foreground hover:border-foreground-muted transition-all"
                 >
                   <span>Go to database report</span>
-                  <ArrowUpRight size={11} />
+                  <ArrowUpRight size={10} className="text-foreground-lighter" />
                 </Link>
               </div>
             </div>
