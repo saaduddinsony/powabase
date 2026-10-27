@@ -4,7 +4,6 @@ import { Button, cn } from 'ui'
 import {
   copilotPhysicsActions,
   copilotPhysicsState,
-  TOUR_STEPS,
   useCopilotPhysicsSnapshot,
 } from '@/state/copilot-physics-state'
 import { InteractiveCopilotAvatar } from './InteractiveCopilotAvatar'
@@ -24,7 +23,7 @@ export const CopilotPhysicsOverlay = () => {
   // Tour spotlight target rect
   const [spotlightRect, setSpotlightRect] = useState<DOMRect | null>(null)
 
-  // 1. PHYSICS LOOP
+  // 1. GRAVITATIONAL BOUNCE PHYSICS LOOP
   useEffect(() => {
     if (!snap.isDetached || snap.mode !== 'falling') return
 
@@ -38,7 +37,7 @@ export const CopilotPhysicsOverlay = () => {
       const current = copilotPhysicsState
       let nextX = current.x + current.vx * dt
       let nextY = current.y + current.vy * dt
-      let nextVy = current.vy + 0.82 * dt // Gravity
+      let nextVy = current.vy + 0.82 * dt // Gravity acceleration
       let nextVx = current.vx * 0.988 // Air resistance
       let nextRotV = current.rotV * 0.98
       let nextRotation = current.rotation + nextRotV * dt
@@ -47,7 +46,7 @@ export const CopilotPhysicsOverlay = () => {
       const viewportHeight = window.innerHeight
       const floorY = viewportHeight - AVATAR_RADIUS - 12
 
-      // Wall bounce
+      // Left & right wall bounce
       if (nextX - AVATAR_RADIUS < 8) {
         nextX = 8 + AVATAR_RADIUS
         nextVx = Math.abs(nextVx) * 0.7
@@ -58,20 +57,20 @@ export const CopilotPhysicsOverlay = () => {
         nextRotV = -nextVy * 0.3
       }
 
-      // Check collisions against dashboard surface cards
+      // Check collisions against page surfaces / cards / tables / code blocks
       let hitSurface = false
-      let surfaceLabel = 'Dashboard'
+      let surfaceLabel = snap.currentTour.pageName
 
-      // Collect candidate obstacles
+      // Collect candidate obstacles on current page
       const obstacleElements = document.querySelectorAll<HTMLElement>(
-        '[data-tour], [role="region"], .border.rounded-xl, .border.rounded-2xl'
+        '[data-tour], [role="region"], [role="grid"], .monaco-editor, .react-flow, .border.rounded-xl, .border.rounded-2xl'
       )
 
       obstacleElements.forEach((el) => {
         if (hitSurface) return
         const r = el.getBoundingClientRect()
-        // If element is visible and large enough to be a card
-        if (r.width > 120 && r.height > 60) {
+        // Element must be visible and large enough to be a physical ledge
+        if (r.width > 120 && r.height > 50) {
           const isAboveCard =
             nextX >= r.left - 10 &&
             nextX <= r.right + 10 &&
@@ -84,12 +83,12 @@ export const CopilotPhysicsOverlay = () => {
             nextVy = -nextVy * 0.62 // Elastic restitution
             nextVx = nextVx * 0.75 // Surface friction
             nextRotV = nextVx * 0.8
-            surfaceLabel = el.getAttribute('aria-label') || 'Card'
+            surfaceLabel = el.getAttribute('aria-label') || el.title || snap.currentTour.pageName
           }
         }
       })
 
-      // Floor bounce
+      // Floor bounce (bottom of viewport)
       if (nextY >= floorY) {
         hitSurface = true
         nextY = floorY
@@ -99,13 +98,13 @@ export const CopilotPhysicsOverlay = () => {
         surfaceLabel = 'Bottom Dock'
       }
 
-      // Squash & stretch on bounce
+      // Squash & stretch on bounce impact
       if (hitSurface && Math.abs(nextVy) > 2) {
         setSquash({ x: 1.28, y: 0.72 })
         setTimeout(() => setSquash({ x: 1, y: 1 }), 140)
       }
 
-      // Rest condition
+      // Rest / settling condition
       if (hitSurface && Math.abs(nextVy) < 1.2 && Math.abs(nextVx) < 0.7) {
         current.x = nextX
         current.y = nextY
@@ -125,16 +124,19 @@ export const CopilotPhysicsOverlay = () => {
 
     animId = requestAnimationFrame(stepPhysics)
     return () => cancelAnimationFrame(animId)
-  }, [snap.isDetached, snap.mode])
+  }, [snap.isDetached, snap.mode, snap.currentTour.pageName])
 
-  // 2. TOUR AUTONOMOUS GUIDANCE
+  // 2. PAGE-AWARE GUIDED TOUR AUTONOMOUS FLIGHT
   useEffect(() => {
     if (!snap.isDetached || snap.mode !== 'tour') {
       setSpotlightRect(null)
       return
     }
 
-    const currentStep = TOUR_STEPS[snap.tourStep] || TOUR_STEPS[0]
+    const steps = snap.currentTour.steps
+    const currentStep = steps[snap.tourStep] || steps[0]
+    if (!currentStep) return
+
     let targetX = window.innerWidth * currentStep.fallbackCoords.xPercent
     let targetY = window.innerHeight * currentStep.fallbackCoords.yPercent
 
@@ -143,7 +145,7 @@ export const CopilotPhysicsOverlay = () => {
       if (el) {
         const r = el.getBoundingClientRect()
         setSpotlightRect(r)
-        // Position mascot floating just above / to the side of the target element
+        // Position mascot hovering gracefully near target
         targetX = Math.min(window.innerWidth - 80, Math.max(80, r.left + r.width / 2))
         targetY = Math.max(80, r.top - 45)
       } else {
@@ -167,7 +169,7 @@ export const CopilotPhysicsOverlay = () => {
 
     animId = requestAnimationFrame(glideToTarget)
     return () => cancelAnimationFrame(animId)
-  }, [snap.isDetached, snap.mode, snap.tourStep])
+  }, [snap.isDetached, snap.mode, snap.tourStep, snap.currentTour])
 
   // 3. RETURNING TO HEADER SLOT ANIMATION
   useEffect(() => {
@@ -196,8 +198,9 @@ export const CopilotPhysicsOverlay = () => {
     return () => cancelAnimationFrame(animId)
   }, [snap.isDetached, snap.mode, snap.slotRect])
 
-  // POINTER DRAG & TOSS HANDLERS
+  // POINTER DRAG & FLING HANDLERS ON DETACHED AVATAR
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return
     e.stopPropagation()
     e.preventDefault()
     isDraggingRef.current = true
@@ -238,14 +241,15 @@ export const CopilotPhysicsOverlay = () => {
     }
 
     window.addEventListener('pointermove', onPointerMove)
-    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointerup', onPointerUp, { once: true })
   }
 
   if (!snap.isDetached) return null
 
   const isTour = snap.mode === 'tour'
   const isLanded = snap.mode === 'landed'
-  const currentStep = TOUR_STEPS[snap.tourStep]
+  const tour = snap.currentTour
+  const currentStep = tour.steps[snap.tourStep] || tour.steps[0]
 
   return (
     <div
@@ -253,7 +257,7 @@ export const CopilotPhysicsOverlay = () => {
       className="fixed inset-0 pointer-events-none z-[9999] select-none"
       aria-hidden="true"
     >
-      {/* 1. TOUR SPOTLIGHT RING */}
+      {/* 1. TOUR SPOTLIGHT RING ON TARGET ELEMENT */}
       {isTour && spotlightRect && (
         <div
           className="absolute transition-all duration-300 rounded-2xl pointer-events-none border-2 border-brand-500 shadow-[0_0_40px_rgba(46,211,130,0.35)] ring-4 ring-brand-500/20 animate-pulse"
@@ -303,7 +307,7 @@ export const CopilotPhysicsOverlay = () => {
         />
       </div>
 
-      {/* 3. INTERACTIVE SPEECH DIALOGUE BUBBLE */}
+      {/* 3. INTERACTIVE PAGE-AWARE SPEECH DIALOGUE BUBBLE */}
       {snap.showSpeech && (
         <div
           className={cn(
@@ -319,7 +323,7 @@ export const CopilotPhysicsOverlay = () => {
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 dark:text-brand-400">
               <Sparkles size={14} />
-              <span>{isTour ? currentStep.title : 'Socket Copilot'}</span>
+              <span>{isTour ? currentStep?.title : `${tour.pageName} Copilot`}</span>
             </div>
             <button
               type="button"
@@ -344,7 +348,7 @@ export const CopilotPhysicsOverlay = () => {
                   icon={<Compass size={12} />}
                   onClick={() => copilotPhysicsActions.startTour()}
                 >
-                  Start Guided Tour
+                  Start {tour.pageName} Tour
                 </Button>
                 <Button
                   type="text"
@@ -358,7 +362,7 @@ export const CopilotPhysicsOverlay = () => {
             ) : isTour ? (
               <>
                 <span className="text-[10px] text-foreground-lighter font-medium">
-                  Step {snap.tourStep + 1} of {TOUR_STEPS.length}
+                  Step {snap.tourStep + 1} of {tour.steps.length}
                 </span>
                 <div className="flex items-center gap-1.5">
                   <Button
@@ -374,7 +378,7 @@ export const CopilotPhysicsOverlay = () => {
                     icon={<ArrowRight size={12} />}
                     onClick={() => copilotPhysicsActions.nextTourStep()}
                   >
-                    {snap.tourStep + 1 === TOUR_STEPS.length ? 'Return Home' : 'Next'}
+                    {snap.tourStep + 1 === tour.steps.length ? 'Return Home' : 'Next'}
                   </Button>
                 </div>
               </>
