@@ -21,4 +21,33 @@ declare global {
   }
 }
 
+declare module 'next' {
+  export interface NextApiRequest {
+    [key: string]: any
+    query: { [key: string]: string | string[] | undefined }
+    body: any
+    method?: string
+    headers: { [key: string]: string | string[] | undefined }
+    url?: string
+  }
+  export interface NextApiResponse<T = any> {
+    status(statusCode: number): NextApiResponse<T>
+    json(body: T): void
+    send(body: any): void
+    setHeader(name: string, value: string | string[] | number): void
+    end(): void
+    [key: string]: any
+  }
+  export type NextPage<P = {}, IP = P> = (props: P) => any
+}
+
+declare module 'next/app' {
+  export type AppProps<P = any> = {
+    Component: any
+    pageProps: P
+    router: any
+  }
+}
+
 export {}
+

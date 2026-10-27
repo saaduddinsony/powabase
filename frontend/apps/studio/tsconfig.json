@@ -1,12 +1,18 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "tsconfig/nextjs.json",
+  "extends": "../../packages/tsconfig/nextjs.json",
   "compilerOptions": {
     "allowJs": false,
     "lib": ["dom", "dom.iterable", "esnext"],
     "paths": {
       "@/*": ["./*"],
-      "@ui/*": ["./../../packages/ui/src/*"] // handle ui package paths
+      "@ui/*": ["./../../packages/ui/src/*"],
+      "common": ["./../../packages/common"],
+      "common/*": ["./../../packages/common/*"],
+      "ui": ["./../../packages/ui"],
+      "ui/*": ["./../../packages/ui/*"],
+      "ui-patterns": ["./../../packages/ui-patterns"],
+      "ui-patterns/*": ["./../../packages/ui-patterns/*"]
     },
     "plugins": [{ "name": "next" }]
   },
