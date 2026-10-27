@@ -251,6 +251,20 @@ export async function ensureMetadataSchema(): Promise<void> {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS _socket_metadata.remote_mysql_servers (
+      id SERIAL PRIMARY KEY,
+      project_ref TEXT NOT NULL,
+      name TEXT NOT NULL,
+      host TEXT NOT NULL,
+      port INTEGER DEFAULT 3306,
+      database_name TEXT NOT NULL,
+      username TEXT NOT NULL,
+      password TEXT NOT NULL,
+      foreign_schema TEXT NOT NULL,
+      status TEXT DEFAULT 'active',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
     SELECT setval(pg_get_serial_sequence('_socket_metadata.organizations', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organizations;
     SELECT setval(pg_get_serial_sequence('_socket_metadata.projects', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.projects;
     SELECT setval(pg_get_serial_sequence('_socket_metadata.organization_members', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organization_members;
@@ -1615,6 +1629,207 @@ export async function deleteSocketStorageGateway(id: number): Promise<boolean> {
   })
   if (error) throw new Error(error.message)
   return true
+}
+
+export interface SocketMySQLConnector {
+  id: number
+  project_ref: string
+  name: string
+  host: string
+  port: number
+  database_name: string
+  username: string
+  foreign_schema: string
+  status: string
+  created_at: string
+}
+
+export async function getSocketMySQLConnectors(projectRef: string): Promise<SocketMySQLConnector[]> {
+  await ensureMetadataSchema()
+  const { data, error } = await executeQuery<SocketMySQLConnector>({
+    query: `SELECT id, project_ref, name, host, port, database_name, username, foreign_schema, status, created_at FROM _socket_metadata.remote_mysql_servers WHERE project_ref = $1 ORDER BY id DESC`,
+    parameters: [projectRef],
+  })
+  if (error || !data) return []
+  return data
+}
+
+export async function createSocketMySQLConnector(
+  projectRef: string,
+  connector: {
+    name: string
+    host: string
+    port?: number
+    database_name: string
+    username: string
+    password: string
+    foreign_schema: string
+  }
+): Promise<SocketMySQLConnector> {
+  await ensureMetadataSchema()
+  const port = connector.port || 3306
+  const safeSchema = connector.foreign_schema.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_')
+  const serverName = `mysql_${safeSchema}_${Date.now().toString(36)}`
+
+  // 1. Ensure mysql_fdw extension and foreign schema exist
+  await executeQuery({
+    query: `
+      CREATE EXTENSION IF NOT EXISTS mysql_fdw;
+      CREATE SCHEMA IF NOT EXISTS "${safeSchema}";
+    `,
+  })
+
+  // 2. Create Foreign Server
+  await executeQuery({
+    query: `
+      DROP SERVER IF EXISTS "${serverName}" CASCADE;
+      CREATE SERVER "${serverName}"
+        FOREIGN DATA WRAPPER mysql_fdw
+        OPTIONS (host '${connector.host.trim().replace(/'/g, "''")}', port '${port}');
+    `,
+  })
+
+  // 3. Create User Mappings for both postgres and supabase_admin
+  await executeQuery({
+    query: `
+      CREATE USER MAPPING FOR postgres
+        SERVER "${serverName}"
+        OPTIONS (username '${connector.username.trim().replace(/'/g, "''")}', password '${connector.password.replace(/'/g, "''")}');
+      CREATE USER MAPPING FOR supabase_admin
+        SERVER "${serverName}"
+        OPTIONS (username '${connector.username.trim().replace(/'/g, "''")}', password '${connector.password.replace(/'/g, "''")}');
+    `,
+  })
+
+  // 4. Import Foreign Schema from MySQL into PostgreSQL
+  const { error: importError } = await executeQuery({
+    query: `
+      IMPORT FOREIGN SCHEMA "${connector.database_name.trim().replace(/"/g, '""')}"
+        FROM SERVER "${serverName}"
+        INTO "${safeSchema}";
+      GRANT USAGE ON SCHEMA "${safeSchema}" TO postgres, anon, authenticated, service_role;
+      GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA "${safeSchema}" TO postgres, anon, authenticated, service_role;
+    `,
+  })
+
+  if (importError) {
+    await executeQuery({ query: `DROP SERVER IF EXISTS "${serverName}" CASCADE;` })
+    throw new Error(`Failed to import MySQL schema: ${importError.message}`)
+  }
+
+  // 5. Save to metadata table
+  const { data, error } = await executeQuery<SocketMySQLConnector>({
+    query: `
+      INSERT INTO _socket_metadata.remote_mysql_servers (
+        project_ref, name, host, port, database_name, username, password, foreign_schema, status
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active')
+      RETURNING id, project_ref, name, host, port, database_name, username, foreign_schema, status, created_at
+    `,
+    parameters: [
+      projectRef,
+      connector.name.trim(),
+      connector.host.trim(),
+      port,
+      connector.database_name.trim(),
+      connector.username.trim(),
+      connector.password,
+      safeSchema,
+    ],
+  })
+
+  if (error || !data || data.length === 0) {
+    throw new Error(error?.message || 'Failed to save MySQL connector metadata')
+  }
+
+  return data[0]
+}
+
+export async function deleteSocketMySQLConnector(id: number): Promise<boolean> {
+  await ensureMetadataSchema()
+  const { data } = await executeQuery<{ foreign_schema: string }>({
+    query: `SELECT foreign_schema FROM _socket_metadata.remote_mysql_servers WHERE id = $1`,
+    parameters: [id],
+  })
+
+  if (data && data.length > 0) {
+    const safeSchema = data[0].foreign_schema
+    await executeQuery({
+      query: `DROP SCHEMA IF EXISTS "${safeSchema}" CASCADE;`,
+    })
+  }
+
+  const { error } = await executeQuery({
+    query: `DELETE FROM _socket_metadata.remote_mysql_servers WHERE id = $1`,
+    parameters: [id],
+  })
+  if (error) throw new Error(error.message)
+  return true
+}
+
+export async function testSocketMySQLConnector(connector: {
+  host: string
+  port?: number
+  database_name: string
+  username: string
+  password: string
+}): Promise<{ success: boolean; message: string; tableCount?: number }> {
+  await ensureMetadataSchema()
+  const port = connector.port || 3306
+  const testServer = `test_mysql_${Date.now().toString(36)}`
+  const testSchema = `_test_${Date.now().toString(36)}`
+
+  try {
+    await executeQuery({
+      query: `
+        CREATE EXTENSION IF NOT EXISTS mysql_fdw;
+        CREATE SCHEMA IF NOT EXISTS "${testSchema}";
+        CREATE SERVER "${testServer}"
+          FOREIGN DATA WRAPPER mysql_fdw
+          OPTIONS (host '${connector.host.trim().replace(/'/g, "''")}', port '${port}');
+        CREATE USER MAPPING FOR postgres
+          SERVER "${testServer}"
+          OPTIONS (username '${connector.username.trim().replace(/'/g, "''")}', password '${connector.password.replace(/'/g, "''")}');
+        IMPORT FOREIGN SCHEMA "${connector.database_name.trim().replace(/"/g, '""')}"
+          FROM SERVER "${testServer}"
+          INTO "${testSchema}";
+      `,
+    })
+
+    const { data: tables } = await executeQuery<{ table_name: string }>({
+      query: `
+        SELECT table_name FROM information_schema.tables WHERE table_schema = $1
+      `,
+      parameters: [testSchema],
+    })
+
+    const count = tables ? tables.length : 0
+
+    await executeQuery({
+      query: `
+        DROP SCHEMA IF EXISTS "${testSchema}" CASCADE;
+        DROP SERVER IF EXISTS "${testServer}" CASCADE;
+      `,
+    })
+
+    return {
+      success: true,
+      message: `Connection successful! Discovered ${count} table(s) in remote MySQL database '${connector.database_name}'.`,
+      tableCount: count,
+    }
+  } catch (err: any) {
+    await executeQuery({
+      query: `
+        DROP SCHEMA IF EXISTS "${testSchema}" CASCADE;
+        DROP SERVER IF EXISTS "${testServer}" CASCADE;
+      `,
+    }).catch(() => {})
+
+    return {
+      success: false,
+      message: err.message || 'Failed to connect to remote MySQL database',
+    }
+  }
 }
 
 
