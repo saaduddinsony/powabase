@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Button } from 'ui'
 
 import { DatabaseDiffPanel } from '@/components/interfaces/BranchManagement/DatabaseDiffPanel'
+import { DefaultLayout } from '@/components/layouts/DefaultLayout'
 import { ProjectLayout } from '@/components/layouts/ProjectLayout'
 import { useBranchDiffQuery } from '@/data/branches/branch-diff-query'
 import { useBranchQuery } from '@/data/branches/branch-query'
@@ -86,9 +87,11 @@ const MergeBranchPage: NextPageWithLayout = () => {
 }
 
 MergeBranchPage.getLayout = (page) => (
-  <ProjectLayout product="Branching" isBlocking={false}>
-    {page}
-  </ProjectLayout>
+  <DefaultLayout>
+    <ProjectLayout product="Branching" isBlocking={false}>
+      {page}
+    </ProjectLayout>
+  </DefaultLayout>
 )
 
 export default MergeBranchPage

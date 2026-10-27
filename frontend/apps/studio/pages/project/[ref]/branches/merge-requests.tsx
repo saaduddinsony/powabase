@@ -5,6 +5,7 @@ import { Button } from 'ui'
 
 import { ReviewRow } from '@/components/interfaces/BranchManagement/ReviewRow'
 import BranchLayout from '@/components/layouts/BranchLayout/BranchLayout'
+import { DefaultLayout } from '@/components/layouts/DefaultLayout'
 import { useBranchesQuery } from '@/data/branches/branches-query'
 import type { NextPageWithLayout } from '@/types'
 
@@ -55,6 +56,10 @@ const MergeRequestsPage: NextPageWithLayout = () => {
   )
 }
 
-MergeRequestsPage.getLayout = (page) => <BranchLayout>{page}</BranchLayout>
+MergeRequestsPage.getLayout = (page) => (
+  <DefaultLayout>
+    <BranchLayout>{page}</BranchLayout>
+  </DefaultLayout>
+)
 
 export default MergeRequestsPage

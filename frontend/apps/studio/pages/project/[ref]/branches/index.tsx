@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { Overview } from '@/components/interfaces/BranchManagement/Overview'
 import BranchLayout from '@/components/layouts/BranchLayout/BranchLayout'
+import { DefaultLayout } from '@/components/layouts/DefaultLayout'
 import { TextConfirmModal } from '@/components/ui/TextConfirmModalWrapper'
 import { useBranchDeleteMutation } from '@/data/branches/branch-delete-mutation'
 import { useBranchesQuery, type Branch } from '@/data/branches/branches-query'
@@ -93,6 +94,10 @@ const BranchesPage: NextPageWithLayout = () => {
   )
 }
 
-BranchesPage.getLayout = (page) => <BranchLayout>{page}</BranchLayout>
+BranchesPage.getLayout = (page) => (
+  <DefaultLayout>
+    <BranchLayout>{page}</BranchLayout>
+  </DefaultLayout>
+)
 
 export default BranchesPage
