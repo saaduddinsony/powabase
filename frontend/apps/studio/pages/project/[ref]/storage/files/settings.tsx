@@ -5,7 +5,7 @@ export default function RedirectToStorage() {
   const router = useRouter()
   const ref = router.query.ref as string
   useEffect(() => {
-    if (ref) router.replace(`/project/${ref}/storage/files`)
+    if (ref) router.replace(`/project/${ref}/storage/s3`)
   }, [ref, router])
   return null
 }

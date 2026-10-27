@@ -239,6 +239,18 @@ export async function ensureMetadataSchema(): Promise<void> {
     )
     ON CONFLICT (project_ref, name) DO NOTHING;
 
+    CREATE TABLE IF NOT EXISTS _socket_metadata.remote_storage_gateways (
+      id SERIAL PRIMARY KEY,
+      project_ref TEXT NOT NULL,
+      name TEXT NOT NULL,
+      endpoint_url TEXT NOT NULL,
+      region TEXT DEFAULT 'us-east-1',
+      access_key TEXT NOT NULL,
+      secret_key TEXT NOT NULL,
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
     SELECT setval(pg_get_serial_sequence('_socket_metadata.organizations', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organizations;
     SELECT setval(pg_get_serial_sequence('_socket_metadata.projects', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.projects;
     SELECT setval(pg_get_serial_sequence('_socket_metadata.organization_members', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organization_members;
@@ -1537,6 +1549,72 @@ export async function getSocketBranchByIdOrRef(branchIdOrRef: string): Promise<a
     created_at: b.created_at,
     updated_at: b.updated_at,
   }
+}
+
+export interface SocketStorageGateway {
+  id: number
+  project_ref: string
+  name: string
+  endpoint_url: string
+  region: string
+  access_key: string
+  secret_key: string
+  is_active: boolean
+  created_at: string
+}
+
+export async function getSocketStorageGateways(projectRef: string): Promise<SocketStorageGateway[]> {
+  await ensureMetadataSchema()
+  const { data, error } = await executeQuery<SocketStorageGateway>({
+    query: `SELECT * FROM _socket_metadata.remote_storage_gateways WHERE project_ref = $1 ORDER BY id DESC`,
+    parameters: [projectRef],
+  })
+  if (error || !data) return []
+  return data
+}
+
+export async function createSocketStorageGateway(
+  projectRef: string,
+  gateway: {
+    name: string
+    endpoint_url: string
+    region?: string
+    access_key: string
+    secret_key: string
+  }
+): Promise<SocketStorageGateway> {
+  await ensureMetadataSchema()
+  const { data, error } = await executeQuery<SocketStorageGateway>({
+    query: `
+      INSERT INTO _socket_metadata.remote_storage_gateways (
+        project_ref, name, endpoint_url, region, access_key, secret_key
+      )
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `,
+    parameters: [
+      projectRef,
+      gateway.name,
+      gateway.endpoint_url.trim(),
+      gateway.region || 'us-east-1',
+      gateway.access_key.trim(),
+      gateway.secret_key.trim(),
+    ],
+  })
+  if (error || !data || data.length === 0) {
+    throw new Error(error?.message || 'Failed to save storage gateway')
+  }
+  return data[0]
+}
+
+export async function deleteSocketStorageGateway(id: number): Promise<boolean> {
+  await ensureMetadataSchema()
+  const { error } = await executeQuery({
+    query: `DELETE FROM _socket_metadata.remote_storage_gateways WHERE id = $1`,
+    parameters: [id],
+  })
+  if (error) throw new Error(error.message)
+  return true
 }
 
 

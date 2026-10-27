@@ -54,7 +54,17 @@ export const StorageMenuV2 = () => {
           })}
         </div>
 
-        {/* S3 Configuration — gated: local disk storage, no S3 backend */}
+        <div className="md:mx-3">
+          <Menu.Group title={<span className="uppercase font-mono">Configuration</span>} />
+          <Link href={`/project/${ref}/storage/s3`}>
+            <Menu.Item rounded active={page === 's3'}>
+              <div className="flex items-center justify-between">
+                <p className="truncate">S3 & Gateways</p>
+                <Badge variant="success">Socket</Badge>
+              </div>
+            </Menu.Item>
+          </Link>
+        </div>
       </div>
     </Menu>
   )
