@@ -47,31 +47,31 @@ const iconMap: Record<string, React.ComponentType<{ className?: string; strokeWi
 };
 
 const iconColorMap: Record<string, string> = {
-  emerald: "text-emerald-400 dark:text-emerald-300",
-  violet: "text-violet-500 dark:text-[#c4b5fd]",
-  amber: "text-amber-500 dark:text-[#fcd34d]",
-  orange: "text-orange-500 dark:text-[#fdba74]",
-  blue: "text-blue-500 dark:text-[#93c5fd]",
-  teal: "text-teal-400 dark:text-teal-300",
-  cyan: "text-cyan-400 dark:text-cyan-300",
-  sky: "text-sky-400 dark:text-sky-300",
-  indigo: "text-indigo-400 dark:text-[#a5b4fc]",
-  rose: "text-rose-400 dark:text-rose-300",
-  slate: "text-slate-400 dark:text-slate-200",
+  emerald: "text-emerald-600 dark:text-emerald-400",
+  violet: "text-violet-600 dark:text-violet-400",
+  amber: "text-amber-600 dark:text-amber-400",
+  orange: "text-orange-600 dark:text-orange-400",
+  blue: "text-blue-600 dark:text-blue-400",
+  teal: "text-teal-600 dark:text-teal-400",
+  cyan: "text-cyan-600 dark:text-cyan-400",
+  sky: "text-sky-600 dark:text-sky-400",
+  indigo: "text-indigo-600 dark:text-indigo-400",
+  rose: "text-rose-600 dark:text-rose-400",
+  slate: "text-slate-600 dark:text-slate-400",
 };
 
 const tileBgMap: Record<string, string> = {
-  emerald: "bg-emerald-500/10 border-emerald-500/25 shadow-emerald-500/10",
-  violet: "bg-violet-500/10 border-violet-500/25 shadow-violet-500/10",
-  amber: "bg-amber-500/10 border-amber-500/25 shadow-amber-500/10",
-  orange: "bg-orange-500/10 border-orange-500/25 shadow-orange-500/10",
-  blue: "bg-blue-500/10 border-blue-500/25 shadow-blue-500/10",
-  teal: "bg-teal-500/10 border-teal-500/25 shadow-teal-500/10",
-  cyan: "bg-cyan-500/10 border-cyan-500/25 shadow-cyan-500/10",
-  sky: "bg-sky-500/10 border-sky-500/25 shadow-sky-500/10",
-  indigo: "bg-indigo-500/10 border-indigo-500/25 shadow-indigo-500/10",
-  rose: "bg-rose-500/10 border-rose-500/25 shadow-rose-500/10",
-  slate: "bg-slate-500/10 border-slate-500/25 shadow-slate-500/10",
+  emerald: "bg-emerald-500/10 border-emerald-500/20",
+  violet: "bg-violet-500/10 border-violet-500/20",
+  amber: "bg-amber-500/10 border-amber-500/20",
+  orange: "bg-orange-500/10 border-orange-500/20",
+  blue: "bg-blue-500/10 border-blue-500/20",
+  teal: "bg-teal-500/10 border-teal-500/20",
+  cyan: "bg-cyan-500/10 border-cyan-500/20",
+  sky: "bg-sky-500/10 border-sky-500/20",
+  indigo: "bg-indigo-500/10 border-indigo-500/20",
+  rose: "bg-rose-500/10 border-rose-500/20",
+  slate: "bg-slate-500/10 border-slate-500/20",
 };
 
 function formatConfigValue(value: unknown, sb: SubBlockConfig): string {
@@ -231,27 +231,27 @@ function getCategoryBadge(blockType: string) {
       return {
         label: "Trigger",
         icon: "⚡",
-        badgeClass: "bg-amber-500/10 text-amber-600 border-amber-500/30 dark:bg-amber-400/10 dark:text-amber-400 dark:border-amber-400/25",
+        badgeClass: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
       };
     case "agent":
     case "llm":
       return {
-        label: "Agent",
+        label: "AI Agent",
         icon: "🤖",
-        badgeClass: "bg-blue-500/10 text-blue-600 border-blue-500/30 dark:bg-blue-400/10 dark:text-blue-400 dark:border-blue-400/25",
+        badgeClass: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
       };
     case "condition":
     case "split":
       return {
         label: "Logic",
         icon: "🔀",
-        badgeClass: "bg-violet-500/10 text-violet-600 border-violet-500/30 dark:bg-violet-400/10 dark:text-violet-400 dark:border-violet-400/25",
+        badgeClass: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20",
       };
     case "response":
       return {
         label: "Response",
         icon: "📨",
-        badgeClass: "bg-rose-500/10 text-rose-600 border-rose-500/30 dark:bg-rose-400/10 dark:text-rose-400 dark:border-rose-400/25",
+        badgeClass: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
       };
     case "code":
     case "tool":
@@ -260,7 +260,7 @@ function getCategoryBadge(blockType: string) {
       return {
         label: "Tool",
         icon: "🛠",
-        badgeClass: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30 dark:bg-emerald-400/10 dark:text-emerald-400 dark:border-emerald-400/25",
+        badgeClass: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
       };
   }
 }
@@ -387,17 +387,17 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
       key={`${id}:${(data as any).layoutVersion ?? outputHandlesKey}`}
       ref={nodeRef}
       className={`
-        relative group transition-all duration-300 ease-out select-none
-        border bg-white/95 dark:bg-[#151619]/95 backdrop-blur-md
+        relative group transition-all duration-200 select-none
+        border bg-white dark:bg-[#18191c]
         ${
           isExpanded
-            ? "w-[340px] rounded-[26px]"
-            : "w-[285px] rounded-[22px] cursor-pointer"
+            ? "w-[350px] rounded-2xl"
+            : "w-[290px] rounded-2xl cursor-pointer"
         }
         ${
           selected
-            ? "ring-2 ring-brand-500 border-brand-500 shadow-[0_12px_40px_rgba(37,99,235,0.22)]"
-            : "border-neutral-200/90 dark:border-neutral-800 shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.12)] hover:border-pink-500/40 dark:hover:border-pink-500/35 hover:shadow-[0_0_24px_rgba(236,72,153,0.15)]"
+            ? "border-brand-500 ring-2 ring-brand-500/25 shadow-md"
+            : "border-neutral-200/90 dark:border-neutral-800 shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-md hover:border-neutral-300 dark:hover:border-neutral-700"
         }
       `}
       onClick={!isExpanded ? () => toggleExpand() : undefined}
@@ -407,40 +407,40 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
         <Handle
           type="target"
           position={Position.Top}
-          className="!w-3 !h-3 !rounded-full !bg-white dark:!bg-[#151619] !border-2 !border-neutral-400 dark:!border-neutral-500 hover:!border-brand-500 hover:!scale-125 !transition-all shadow-xs"
+          className="!w-2.5 !h-2.5 !rounded-full !bg-white dark:!bg-[#18191c] !border-2 !border-neutral-400 dark:!border-neutral-500 hover:!border-brand-500 hover:!scale-125 !transition-all shadow-xs"
         />
       )}
 
       {/* ======================================================== */}
-      {/* A) COLLAPSED CAPSULE VIEW (Bencho Sound Card collapsed)  */}
+      {/* A) COLLAPSED CAPSULE VIEW (StackAI-style)                */}
       {/* ======================================================== */}
       {!isExpanded ? (
-        <div className="p-2.5 flex items-center justify-between gap-2.5 h-[68px]">
-          {/* Left: Squircle Icon Tile with Bencho vibrant glow */}
+        <div className="px-3.5 py-2.5 flex items-center justify-between gap-2.5 h-[62px]">
+          {/* Left: Squircle Icon Tile */}
           <div
-            className={`h-11 w-11 rounded-2xl border flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105 ${
-              tileBgMap[color] ?? "bg-slate-500/10 border-slate-500/25"
+            className={`h-9 w-9 rounded-xl border flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-102 ${
+              tileBgMap[color] ?? "bg-slate-500/10 border-slate-500/20"
             }`}
           >
-            <Icon className={`h-5 w-5 ${iconColorMap[color] ?? "text-slate-200"}`} />
+            <Icon className={`h-4.5 w-4.5 ${iconColorMap[color] ?? "text-slate-400"}`} />
           </div>
 
           {/* Center: Title + Dynamic Subtitle Preview */}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-foreground tracking-tight truncate">
+              <span className="text-xs font-semibold text-foreground tracking-tight truncate">
                 {data.label || typeConfig?.name || data.blockType}
               </span>
             </div>
-            <div className="text-[11px] text-foreground-lighter truncate mt-0.5 font-medium flex items-center gap-1">
-              <span>{collapsedSubtitle}</span>
+            <div className="text-[11px] text-foreground-lighter truncate mt-0.5 font-normal">
+              {collapsedSubtitle}
             </div>
           </div>
 
           {/* Right: Category Badge + Expand Toggle Button */}
           <div className="flex items-center gap-1.5 shrink-0">
             <div
-              className={`px-2 py-0.5 rounded-full text-[9px] font-semibold border shadow-2xs flex items-center gap-1 ${categoryBadge.badgeClass}`}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-medium border flex items-center gap-1 ${categoryBadge.badgeClass}`}
             >
               <span>{categoryBadge.icon}</span>
               <span className="hidden sm:inline">{categoryBadge.label}</span>
@@ -451,31 +451,28 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
               title="Expand Node"
               aria-label="Expand Node"
               onClick={toggleExpand}
-              className="h-7 w-7 rounded-xl bg-surface-200/90 hover:bg-surface-300 text-foreground-lighter hover:text-foreground flex items-center justify-center transition border border-default/40 shadow-2xs active:scale-95"
+              className="h-7 w-7 rounded-lg bg-surface-100 hover:bg-surface-200 text-foreground-lighter hover:text-foreground flex items-center justify-center transition border border-default/30 active:scale-95"
             >
               <ChevronDown size={14} className="transition-transform group-hover:translate-y-0.5" />
             </button>
           </div>
-
-          {/* Bencho Audio Track Glowing Meter along bottom edge */}
-          <div className="absolute bottom-0 left-4 right-4 h-[2px] rounded-full bg-gradient-to-r from-brand-500 via-pink-500 to-amber-400 opacity-60 group-hover:opacity-100 transition-opacity" />
         </div>
       ) : (
         /* ======================================================== */
-        /* B) EXPANDED STUDIO CARD VIEW (Bencho Sound Card expanded)*/
+        /* B) EXPANDED STUDIO CARD VIEW (StackAI-style)             */
         /* ======================================================== */
-        <div className="p-4 space-y-3">
-          {/* Top Bar: Category badge on left, Bencho studio controls on right */}
+        <div className="p-3.5 space-y-3">
+          {/* Top Bar: Category badge on left, studio controls on right */}
           <div className="flex items-center justify-between gap-2">
             <div
-              className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border shadow-2xs flex items-center gap-1.5 ${categoryBadge.badgeClass}`}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-medium tracking-wide border flex items-center gap-1.5 ${categoryBadge.badgeClass}`}
             >
               <span>{categoryBadge.icon}</span>
               <span>{categoryBadge.label}</span>
             </div>
 
             {/* Studio Action Controls */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 text-foreground-lighter">
               <button
                 type="button"
                 title="Configure Node Drawer"
@@ -484,7 +481,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                   e.stopPropagation();
                   openConfig?.(id);
                 }}
-                className="h-6.5 w-6.5 rounded-lg bg-surface-200/90 hover:bg-surface-300 text-foreground-lighter hover:text-foreground flex items-center justify-center transition border border-default/40 shadow-2xs"
+                className="h-6 w-6 rounded-md hover:bg-surface-200 hover:text-foreground flex items-center justify-center transition"
               >
                 <Settings size={12} />
               </button>
@@ -496,7 +493,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                   e.stopPropagation();
                   duplicateNode?.(id);
                 }}
-                className="h-6.5 w-6.5 rounded-lg bg-surface-200/90 hover:bg-surface-300 text-foreground-lighter hover:text-foreground flex items-center justify-center transition border border-default/40 shadow-2xs"
+                className="h-6 w-6 rounded-md hover:bg-surface-200 hover:text-foreground flex items-center justify-center transition"
               >
                 <Copy size={12} />
               </button>
@@ -508,7 +505,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                   e.stopPropagation();
                   deleteNode?.(id);
                 }}
-                className="h-6.5 w-6.5 rounded-lg bg-surface-200/90 hover:bg-rose-500/10 text-foreground-lighter hover:text-rose-500 flex items-center justify-center transition border border-default/40 shadow-2xs"
+                className="h-6 w-6 rounded-md hover:bg-destructive-500/10 hover:text-destructive-500 flex items-center justify-center transition"
               >
                 <Trash2 size={12} />
               </button>
@@ -517,7 +514,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                 title="Collapse Node"
                 aria-label="Collapse Node"
                 onClick={toggleExpand}
-                className="h-6.5 w-6.5 rounded-lg bg-surface-200/90 hover:bg-surface-300 text-foreground-lighter hover:text-foreground flex items-center justify-center transition border border-default/40 shadow-2xs"
+                className="h-6 w-6 rounded-md hover:bg-surface-200 hover:text-foreground flex items-center justify-center transition"
               >
                 <ChevronUp size={13} />
               </button>
@@ -525,19 +522,19 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
           </div>
 
           {/* Header Identity: squircle icon + title + description */}
-          <div className="flex items-start gap-3 pt-0.5">
+          <div className="flex items-start gap-2.5 pt-0.5">
             <div
-              className={`h-10 w-10 rounded-2xl border flex items-center justify-center shrink-0 shadow-sm ${
-                tileBgMap[color] ?? "bg-slate-500/10 border-slate-500/25"
+              className={`h-9 w-9 rounded-xl border flex items-center justify-center shrink-0 shadow-2xs ${
+                tileBgMap[color] ?? "bg-slate-500/10 border-slate-500/20"
               }`}
             >
-              <Icon className={`h-5 w-5 ${iconColorMap[color] ?? "text-slate-200"}`} />
+              <Icon className={`h-4.5 w-4.5 ${iconColorMap[color] ?? "text-slate-400"}`} />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-sm font-bold text-foreground tracking-tight truncate">
+              <div className="text-xs font-semibold text-foreground tracking-tight truncate">
                 {data.label || typeConfig?.name || data.blockType}
               </div>
-              <div className="text-[11px] text-foreground-lighter line-clamp-2 mt-0.5 leading-relaxed">
+              <div className="text-[11px] text-foreground-lighter line-clamp-2 mt-0.5 leading-relaxed font-normal">
                 {typeConfig?.description || data.blockType}
               </div>
             </div>
@@ -710,26 +707,22 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
             </div>
           )}
 
-          {/* Bencho Footer: Colorful connection dots + Model/Status tag + Quick Collapse */}
-          <div className="pt-2 border-t border-default/50 flex items-center justify-between">
-            <div className="flex items-center -space-x-1">
-              <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 border border-white dark:border-[#151619] shadow-2xs" />
-              <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 border border-white dark:border-[#151619] shadow-2xs" />
-              <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 border border-white dark:border-[#151619] shadow-2xs" />
+          {/* StackAI-style Clean Footer */}
+          <div className="pt-2.5 border-t border-neutral-200/60 dark:border-neutral-800/60 flex items-center justify-between text-[11px]">
+            <div className="flex items-center gap-1.5 text-foreground-muted">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span className="font-medium text-[10px]">Ready</span>
             </div>
 
             <button
               type="button"
               onClick={toggleExpand}
-              className="text-[10px] font-semibold text-foreground-muted hover:text-foreground px-2.5 py-1 rounded-lg bg-surface-200/80 hover:bg-surface-300 border border-default/40 transition flex items-center gap-1 shadow-2xs"
+              className="text-[10px] font-medium text-foreground-lighter hover:text-foreground px-2 py-0.5 rounded-md hover:bg-surface-200 transition flex items-center gap-1"
             >
               <span>Collapse</span>
               <ChevronUp size={11} />
             </button>
           </div>
-
-          {/* Bencho glowing bottom track */}
-          <div className="absolute bottom-0 left-4 right-4 h-[2px] rounded-full bg-gradient-to-r from-brand-500 via-pink-500 to-amber-400 opacity-70" />
         </div>
       )}
 
@@ -738,7 +731,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
         <Handle
           type="source"
           position={Position.Bottom}
-          className="!w-3 !h-3 !rounded-full !bg-white dark:!bg-[#151619] !border-2 !border-neutral-400 dark:!border-neutral-500 hover:!border-brand-500 hover:!scale-125 !transition-all shadow-xs"
+          className="!w-2.5 !h-2.5 !rounded-full !bg-white dark:!bg-[#18191c] !border-2 !border-neutral-400 dark:!border-neutral-500 hover:!border-brand-500 hover:!scale-125 !transition-all shadow-xs"
         />
       )}
 
@@ -753,7 +746,7 @@ function BlockNodeComponent({ id, data, selected }: NodeProps<BlockNodeData>) {
                 position={Position.Bottom}
                 id={handle}
                 style={{ left: leftPct }}
-                className="!w-3 !h-3 !rounded-full !bg-white dark:!bg-[#151619] !border-2 !border-neutral-400 dark:!border-neutral-500 hover:!border-brand-500 hover:!scale-125 !transition-all shadow-xs"
+                className="!w-2.5 !h-2.5 !rounded-full !bg-white dark:!bg-[#18191c] !border-2 !border-neutral-400 dark:!border-neutral-500 hover:!border-brand-500 hover:!scale-125 !transition-all shadow-xs"
               />
               <div
                 className="pointer-events-none absolute text-[10px] text-foreground-muted whitespace-nowrap font-medium"
