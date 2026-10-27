@@ -1,6 +1,6 @@
 import { PermissionAction } from '@supabase/shared-types/out/constants'
 import { useParams } from 'common'
-import { MoreVertical, Redo2, Trash } from 'lucide-react'
+import { Copy, MoreVertical, Redo2, Trash } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -29,6 +29,7 @@ import { usePermissionsQuery } from '@/data/permissions/permissions-query'
 import { useAsyncCheckPermissions } from '@/hooks/misc/useCheckPermissions'
 import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
+import { IS_PLATFORM } from '@/lib/constants'
 import { useProfile } from '@/lib/profile'
 
 interface MemberActionsProps {
@@ -64,21 +65,21 @@ export const MemberActions = ({ member }: MemberActionsProps) => {
   )
 
   const roleId = member.role_ids?.[0] ?? -1
-  const canRemoveMember = member.role_ids.every((id) => rolesRemovable.includes(id))
+  const canRemoveMember = !IS_PLATFORM || member.role_ids.every((id) => rolesRemovable.includes(id))
 
   const { can: canCreateUserInvites } = useAsyncCheckPermissions(
     PermissionAction.CREATE,
     'user_invites',
     { resource: { role_id: roleId } }
   )
-  const canResendInvite = canCreateUserInvites && hasOrgRole
+  const canResendInvite = !IS_PLATFORM || (canCreateUserInvites && hasOrgRole)
 
   const { can: canDeleteUserInvites } = useAsyncCheckPermissions(
     PermissionAction.DELETE,
     'user_invites',
     { resource: { role_id: roleId } }
   )
-  const canRevokeInvite = canDeleteUserInvites && hasOrgRole
+  const canRevokeInvite = !IS_PLATFORM || (canDeleteUserInvites && hasOrgRole)
 
   const { mutate: deleteOrganizationMember, isPending: isDeletingMember } =
     useOrganizationMemberDeleteMutation({
@@ -151,6 +152,18 @@ export const MemberActions = ({ member }: MemberActionsProps) => {
     )
   }
 
+  const handleCopyInviteLink = (member: OrganizationMember) => {
+    if (!slug) return
+    const token = member.token
+    if (!token) {
+      toast.error('Invitation token is not available')
+      return
+    }
+    const inviteUrl = `${window.location.origin}/join?token=${token}&slug=${slug}`
+    navigator.clipboard.writeText(inviteUrl)
+    toast.success('Invitation link copied to clipboard!')
+  }
+
   if (memberIsUser) {
     return (
       <div className="flex items-center justify-end">
@@ -190,10 +203,23 @@ export const MemberActions = ({ member }: MemberActionsProps) => {
               icon={<MoreVertical />}
             />
           </DropdownMenuTrigger>
-          <DropdownMenuContent side="bottom" align="end" className="w-40">
+          <DropdownMenuContent side="bottom" align="end" className="w-44">
             <>
               {isPendingInviteAcceptance ? (
                 <>
+                  {member.token && (
+                    <>
+                      <DropdownMenuItemTooltip
+                        className="gap-x-2"
+                        onClick={() => handleCopyInviteLink(member)}
+                      >
+                        <Copy size={14} />
+                        <p>Copy invite link</p>
+                      </DropdownMenuItemTooltip>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+
                   <DropdownMenuItemTooltip
                     className="gap-x-2"
                     disabled={!canResendInvite}

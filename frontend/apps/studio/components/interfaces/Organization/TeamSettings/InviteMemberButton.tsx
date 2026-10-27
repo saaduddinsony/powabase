@@ -220,15 +220,32 @@ export const InviteMemberButton = () => {
       )
     )
 
-    const successCount = results.filter((r) => r.status === 'fulfilled').length
+    const fulfilled = results.filter(
+      (r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled'
+    )
+    const successCount = fulfilled.length
     const failedEmails = toInvite.filter((_, i) => results[i].status === 'rejected')
 
     if (successCount > 0) {
-      toast.success(
-        successCount === 1
-          ? 'Successfully sent invitation to new member'
-          : `Successfully sent invitations to ${successCount} new members`
-      )
+      const firstInvite = fulfilled[0]?.value
+      if (successCount === 1 && firstInvite?.token) {
+        const inviteUrl = `${window.location.origin}/join?token=${firstInvite.token}&slug=${slug}`
+        try {
+          await navigator.clipboard.writeText(inviteUrl)
+          toast.success(
+            `Invitation created and link copied to clipboard: ${inviteUrl}`,
+            { duration: 8000 }
+          )
+        } catch {
+          toast.success(`Invitation created! Share link: ${inviteUrl}`, { duration: 8000 })
+        }
+      } else {
+        toast.success(
+          successCount === 1
+            ? 'Successfully sent invitation to new member'
+            : `Successfully sent invitations to ${successCount} new members`
+        )
+      }
       closeInviteDialog()
     }
     if (failedEmails.length > 0) {
@@ -339,7 +356,7 @@ export const InviteMemberButton = () => {
                         <SelectContent_Shadcn_>
                           <SelectGroup_Shadcn_>
                             {orgScopedRoles.map((role) => {
-                              const canAssignRole = rolesAddable.includes(role.id)
+                              const canAssignRole = !IS_PLATFORM || rolesAddable.includes(role.id)
 
                               return (
                                 <SelectItem_Shadcn_

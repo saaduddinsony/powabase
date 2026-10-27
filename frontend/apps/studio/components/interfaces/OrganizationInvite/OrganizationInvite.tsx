@@ -20,6 +20,9 @@ export const OrganizationInvite = () => {
 
   const isSignUpEnabled = useIsFeatureEnabled('dashboard_auth:sign_up')
 
+  const rawSlug = slug as string | undefined
+  const effectiveSlug = rawSlug || 'default-org-slug'
+
   const {
     data,
     error,
@@ -27,11 +30,11 @@ export const OrganizationInvite = () => {
     isError: isErrorInvitation,
     isPending: isLoadingInvitation,
   } = useOrganizationInvitationTokenQuery(
-    { slug, token },
+    { slug: effectiveSlug, token },
     {
       retry: false,
       refetchOnWindowFocus: false,
-      enabled: !!profile,
+      enabled: !!profile && !!token,
     }
   )
   const hasError =
@@ -40,9 +43,10 @@ export const OrganizationInvite = () => {
   const inviteIsNoLongerValid =
     error?.code === 401 && error?.message.includes('Failed to retrieve organization')
 
+  const targetSlug = data?.organization_slug || effectiveSlug
   const organizationName = isSuccessInvitation ? data?.organization_name : 'An organization'
-  const loginRedirectLink = `/sign-in?returnTo=${encodeURIComponent(`/join?token=${token}&slug=${slug}`)}`
-  const signupRedirectLink = `/sign-up?returnTo=${encodeURIComponent(`/join?token=${token}&slug=${slug}`)}`
+  const loginRedirectLink = `/sign-in?returnTo=${encodeURIComponent(`/join?token=${token}&slug=${targetSlug}`)}`
+  const signupRedirectLink = `/sign-up?returnTo=${encodeURIComponent(`/join?token=${token}&slug=${targetSlug}`)}`
 
   const { mutate: joinOrganization, isPending: isJoining } =
     useOrganizationAcceptInvitationMutation({
@@ -55,9 +59,8 @@ export const OrganizationInvite = () => {
     })
 
   async function handleJoinOrganization() {
-    if (!slug) return console.error('Slug is required')
     if (!token) return console.error('Token is required')
-    joinOrganization({ slug, token })
+    joinOrganization({ slug: targetSlug, token })
   }
 
   return (

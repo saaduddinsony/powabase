@@ -18,9 +18,9 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       { id: 4, name: 'Read-only', description: 'View access to database contents, tables, and AI logs', projects: [] },
     ],
     project_scoped_roles: [
-      { id: 101, name: 'Project Administrator', description: 'Administrator privileges restricted to specific projects', projects: [] },
-      { id: 102, name: 'Project Developer', description: 'Developer privileges restricted to specific projects', projects: [] },
-      { id: 103, name: 'Project Read-only', description: 'Read-only access restricted to specific projects', projects: [] },
+      { id: 101, name: 'Project Administrator', base_role_id: 2, description: 'Administrator privileges restricted to specific projects', projects: [] },
+      { id: 102, name: 'Project Developer', base_role_id: 3, description: 'Developer privileges restricted to specific projects', projects: [] },
+      { id: 103, name: 'Project Read-only', base_role_id: 4, description: 'Read-only access restricted to specific projects', projects: [] },
     ],
   })
 }

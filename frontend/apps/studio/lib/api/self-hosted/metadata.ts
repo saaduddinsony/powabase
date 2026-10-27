@@ -785,6 +785,56 @@ export async function deleteSocketOrganizationMember(slug: string, gotrueIdOrId:
   return true
 }
 
+export async function updateSocketOrganizationMemberRole(
+  slug: string,
+  gotrueIdOrId: string | number,
+  roleId: number,
+  projectScopedRoles?: string[]
+): Promise<SocketMember> {
+  await ensureMetadataSchema()
+
+  const org = await getSocketOrganizationBySlug(slug)
+  if (!org) {
+    throw new Error('Organization not found')
+  }
+
+  const isNumeric = typeof gotrueIdOrId === 'number' || /^\d+$/.test(String(gotrueIdOrId))
+
+  const { data, error } = await executeQuery<SocketMember>({
+    query: isNumeric
+      ? `
+        UPDATE _socket_metadata.organization_members
+        SET role_id = $1,
+            project_scoped_roles = CASE WHEN $2::jsonb IS NOT NULL THEN $2::jsonb ELSE project_scoped_roles END
+        WHERE organization_id = $3 AND id = $4
+        RETURNING id, organization_id, primary_email, username, role_id,
+                  coalesce(project_scoped_roles, '[]'::jsonb) as project_scoped_roles,
+                  mfa_enabled, gotrue_id, created_at
+      `
+      : `
+        UPDATE _socket_metadata.organization_members
+        SET role_id = $1,
+            project_scoped_roles = CASE WHEN $2::jsonb IS NOT NULL THEN $2::jsonb ELSE project_scoped_roles END
+        WHERE organization_id = $3 AND (gotrue_id = $4 OR primary_email = $4)
+        RETURNING id, organization_id, primary_email, username, role_id,
+                  coalesce(project_scoped_roles, '[]'::jsonb) as project_scoped_roles,
+                  mfa_enabled, gotrue_id, created_at
+      `,
+    parameters: [
+      roleId,
+      projectScopedRoles !== undefined ? JSON.stringify(projectScopedRoles) : null,
+      org.id,
+      gotrueIdOrId,
+    ],
+  })
+
+  if (error || !data || data.length === 0) {
+    throw new Error(error?.message || 'Failed to update member role')
+  }
+
+  return data[0]
+}
+
 export async function getSocketInvitationByToken(token: string) {
   await ensureMetadataSchema()
 
@@ -858,18 +908,19 @@ export async function acceptSocketInvitation(token: string, userEmail?: string, 
   const email = userEmail || invite.invited_email
   const gotrueId = userId || `user-${Date.now()}`
   const username = email.split('@')[0]
+  const projectRoles = invite.role_scoped_projects || []
 
   // Add to members
   await executeQuery({
     query: `
       INSERT INTO _socket_metadata.organization_members (
-        organization_id, primary_email, username, role_id, gotrue_id
+        organization_id, primary_email, username, role_id, gotrue_id, project_scoped_roles
       )
-      VALUES ($1, $2, $3, $4, $5)
+      VALUES ($1, $2, $3, $4, $5, $6::jsonb)
       ON CONFLICT (organization_id, primary_email)
-      DO UPDATE SET role_id = EXCLUDED.role_id, gotrue_id = EXCLUDED.gotrue_id
+      DO UPDATE SET role_id = EXCLUDED.role_id, gotrue_id = EXCLUDED.gotrue_id, project_scoped_roles = EXCLUDED.project_scoped_roles
     `,
-    parameters: [invite.organization_id, email, username, invite.role_id, gotrueId],
+    parameters: [invite.organization_id, email, username, invite.role_id, gotrueId, JSON.stringify(projectRoles)],
   })
 
   // Mark invite as accepted

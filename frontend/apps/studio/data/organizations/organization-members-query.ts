@@ -13,6 +13,7 @@ export type Member = components['schemas']['Member']
 export interface OrganizationMember extends Member {
   invited_at?: string
   invited_id?: number
+  token?: string
 }
 
 export async function getOrganizationMembers(
@@ -40,6 +41,7 @@ export async function getOrganizationMembers(
     const member = {
       invited_at: invite.invited_at,
       invited_id: invite.id,
+      token: invite.token,
       mfa_enabled: false,
       username: invite.invited_email.slice(0, 1),
       primary_email: invite.invited_email,
