@@ -12,10 +12,12 @@ import {
   Search,
   Database,
   Layers,
+  Mic,
+  MicOff,
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { Button } from 'ui'
+import { Button, cn } from 'ui'
 import { useSessionAccessTokenQuery } from '@/data/auth/session-access-token-query'
 import {
   CopilotPaymentRequiredError,
@@ -143,7 +145,114 @@ export const ProjectCopilotPanel = () => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, statusTool, reasoning])
 
+  // =========================================================
+  // Speech-to-Text (Web Speech API, Gemini-style hands-free)
+  // =========================================================
+  const [isListening, setIsListening] = useState(false)
+  const [speechError, setSpeechError] = useState<string | null>(null)
+  const recognitionRef = useRef<any>(null)
+  const inputBaseRef = useRef<string>('')
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop()
+      } catch {
+        // ignore
+      }
+      recognitionRef.current = null
+    }
+    setIsListening(false)
+  }, [])
+
+  const startListening = useCallback(() => {
+    setSpeechError(null)
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setSpeechError('Speech recognition is not supported in this browser. Please use Chrome, Safari, or Edge.')
+      return
+    }
+
+    try {
+      const recognition = new SpeechRecognition()
+      recognition.continuous = true
+      recognition.interimResults = true
+      recognition.lang = 'en-US'
+
+      // Prepend previous input if user already typed something
+      inputBaseRef.current = input ? (input.endsWith(' ') ? input : `${input} `) : ''
+
+      recognition.onstart = () => {
+        setIsListening(true)
+        setSpeechError(null)
+      }
+
+      recognition.onresult = (event: any) => {
+        let interimTranscript = ''
+        let finalTranscript = ''
+
+        for (let i = 0; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' '
+          } else {
+            interimTranscript += event.results[i][0].transcript
+          }
+        }
+
+        const combined = (finalTranscript + interimTranscript).trim()
+        if (combined) {
+          setInput(inputBaseRef.current + combined)
+        }
+      }
+
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition error:', event.error)
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setSpeechError('Microphone permission denied. Please allow microphone access.')
+          setIsListening(false)
+        } else if (event.error === 'no-speech') {
+          // Allow pause
+        } else {
+          setIsListening(false)
+        }
+      }
+
+      recognition.onend = () => {
+        setIsListening(false)
+      }
+
+      recognitionRef.current = recognition
+      recognition.start()
+    } catch (err) {
+      console.error('Failed to start speech recognition:', err)
+      setSpeechError('Could not initialize microphone.')
+      setIsListening(false)
+    }
+  }, [input])
+
+  const toggleListening = useCallback(() => {
+    if (isListening) {
+      stopListening()
+    } else {
+      startListening()
+    }
+  }, [isListening, startListening, stopListening])
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop()
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [])
+
   const handleReset = useCallback(async () => {
+    stopListening()
     if (!hasAiAuth(token) || !ref || isResetting) return
     setIsResetting(true)
     abortRef.current?.abort()
@@ -173,10 +282,11 @@ export const ProjectCopilotPanel = () => {
     } finally {
       if (mountedRef.current) setIsResetting(false)
     }
-  }, [token, ref, isResetting])
+  }, [token, ref, isResetting, stopListening])
 
   const send = useCallback(
     async (text: string) => {
+      stopListening()
       const message = text.trim()
       if (!message || isStreaming || !hasAiAuth(token) || !ref || !sessionId) return
       const turnSessionId = sessionId
@@ -471,7 +581,12 @@ export const ProjectCopilotPanel = () => {
       {/* ========================================================= */}
       <div className="p-3 border-t border-default/40 bg-surface-100/30 flex-shrink-0">
         <form
-          className="relative rounded-[22px] border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#191a1d] shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all focus-within:ring-2 focus-within:ring-brand-500/25 focus-within:border-brand-500/80 p-2.5 space-y-2"
+          className={cn(
+            'relative rounded-[22px] border bg-white dark:bg-[#191a1d] shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all p-2.5 space-y-2',
+            isListening
+              ? 'border-red-500/50 ring-2 ring-red-500/20'
+              : 'border-neutral-200 dark:border-neutral-800 focus-within:ring-2 focus-within:ring-brand-500/25 focus-within:border-brand-500/80'
+          )}
           onSubmit={(e) => {
             e.preventDefault()
             void send(input)
@@ -490,7 +605,9 @@ export const ProjectCopilotPanel = () => {
             }}
             rows={input.split('\n').length > 2 ? Math.min(5, input.split('\n').length) : 2}
             placeholder={
-              sessionId
+              isListening
+                ? 'Listening… Speak whatever you like hands-free…'
+                : sessionId
                 ? 'Ask Copilot or type @ for tools…'
                 : isResetting
                 ? 'Connecting…'
@@ -499,6 +616,31 @@ export const ProjectCopilotPanel = () => {
             className="w-full resize-none bg-transparent px-1.5 text-xs text-foreground placeholder:text-foreground-lighter/60 focus:outline-none leading-relaxed"
             disabled={isStreaming}
           />
+
+          {/* Gemini-style Live Audio Wave / Listening Banner */}
+          {isListening && (
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-[11px] animate-in fade-in duration-200">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+              </span>
+              <span className="font-medium tracking-tight">Listening hands-free… Speak now</span>
+              {/* Animated audio equalizer wave */}
+              <div className="flex items-center gap-0.5 ml-auto">
+                <span className="w-0.5 h-2.5 bg-red-500 rounded-full animate-[pulse_0.5s_ease-in-out_infinite]" />
+                <span className="w-0.5 h-4 bg-red-500 rounded-full animate-[pulse_0.7s_ease-in-out_infinite_0.1s]" />
+                <span className="w-0.5 h-1.5 bg-red-500 rounded-full animate-[pulse_0.4s_ease-in-out_infinite_0.2s]" />
+                <span className="w-0.5 h-3.5 bg-red-500 rounded-full animate-[pulse_0.6s_ease-in-out_infinite_0.3s]" />
+                <span className="w-0.5 h-2 bg-red-500 rounded-full animate-[pulse_0.5s_ease-in-out_infinite_0.15s]" />
+              </div>
+            </div>
+          )}
+
+          {speechError && (
+            <div className="px-2 py-1 rounded-lg bg-warning-200/60 border border-warning-400 text-warning-700 dark:text-warning-300 text-[10px]">
+              {speechError}
+            </div>
+          )}
 
           {/* Bottom Controls Row inside Tray */}
           <div className="flex items-center justify-between pt-1">
@@ -556,11 +698,32 @@ export const ProjectCopilotPanel = () => {
               )}
             </div>
 
-            {/* Right: Model Tag + Send Button */}
+            {/* Right: Model Tag + Speech-to-Text Mic Button + Send Button */}
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-foreground-lighter px-2 py-0.5 rounded-full bg-surface-200/70 border border-default/40 font-medium select-none">
                 Copilot Pro
               </span>
+
+              {/* Gemini-inspired Speech-to-Text Microphone Button */}
+              <button
+                type="button"
+                onClick={toggleListening}
+                disabled={isStreaming}
+                title={isListening ? 'Stop listening' : 'Speech to text (hands-free)'}
+                aria-label={isListening ? 'Stop listening' : 'Speech to text (hands-free)'}
+                className={cn(
+                  'w-7 h-7 rounded-full flex items-center justify-center transition-all active:scale-95 shadow-xs',
+                  isListening
+                    ? 'bg-red-500 text-white shadow-red-500/30 animate-pulse'
+                    : 'bg-surface-200 hover:bg-surface-300 text-foreground-lighter hover:text-foreground'
+                )}
+              >
+                {isListening ? (
+                  <MicOff size={14} strokeWidth={2} />
+                ) : (
+                  <Mic size={14} strokeWidth={2} />
+                )}
+              </button>
 
               <button
                 type="submit"
