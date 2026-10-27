@@ -43,7 +43,7 @@ import {
 import { CodeBlock } from 'ui-patterns/CodeBlock'
 
 import DefaultLayout from '@/components/layouts/DefaultLayout'
-import ProjectSettingsLayout from '@/components/layouts/ProjectSettingsLayout/ProjectSettingsLayout'
+import SettingsLayout from '@/components/layouts/ProjectSettingsLayout/SettingsLayout'
 import type { NextPageWithLayout } from '@/types'
 
 interface ComputeNode {
@@ -531,7 +531,7 @@ const ComputeAndDiskPage: NextPageWithLayout = () => {
 
 ComputeAndDiskPage.getLayout = (page) => (
   <DefaultLayout>
-    <ProjectSettingsLayout title="Compute & Cluster Nodes">{page}</ProjectSettingsLayout>
+    <SettingsLayout title="Compute & Cluster Nodes">{page}</SettingsLayout>
   </DefaultLayout>
 )
 
