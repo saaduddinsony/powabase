@@ -3,6 +3,7 @@ import {
   Activity,
   Check,
   CheckCircle2,
+  Clock,
   Copy,
   Cpu,
   Download,
@@ -11,6 +12,7 @@ import {
   Globe,
   HardDrive,
   Layers,
+  Play,
   Plus,
   Radio,
   RefreshCw,
@@ -65,10 +67,29 @@ interface ComputeNode {
   created_at: string
 }
 
+interface ComputeTask {
+  id: number
+  task_id: string
+  project_ref: string
+  node_id: string
+  node_name?: string
+  title: string
+  task_type: string
+  command?: string
+  payload?: any
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  output?: string
+  exit_code?: number
+  created_at: string
+  started_at?: string
+  completed_at?: string
+}
+
 const ComputeAndDiskPage: NextPageWithLayout = () => {
   const { ref: projectRef = 'default' } = useParams()
 
   const [nodes, setNodes] = useState<ComputeNode[]>([])
+  const [tasks, setTasks] = useState<ComputeTask[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
@@ -77,26 +98,53 @@ const ComputeAndDiskPage: NextPageWithLayout = () => {
   const [generatedNode, setGeneratedNode] = useState<ComputeNode | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
 
+  // Dispatch Workload State
+  const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false)
+  const [dispatchTitle, setDispatchTitle] = useState('')
+  const [dispatchTargetNode, setDispatchTargetNode] = useState('any')
+  const [dispatchType, setDispatchType] = useState('bash_command')
+  const [dispatchCommand, setDispatchCommand] = useState('uname -a && uptime && free -m')
+  const [isDispatching, setIsDispatching] = useState(false)
+
+  // View Task Output State
+  const [viewTask, setViewTask] = useState<ComputeTask | null>(null)
+
   const fetchNodes = async () => {
     try {
-      setIsLoading(true)
       const res = await fetch(`/api/v1/projects/${projectRef}/compute/nodes`)
       const data = await res.json()
-      if (Array.isArray(data)) {
-        setNodes(data)
-      } else {
-        setNodes([])
-      }
+      if (Array.isArray(data)) setNodes(data)
+      else setNodes([])
     } catch (err: any) {
       toast.error('Failed to load compute nodes')
-    } finally {
-      setIsLoading(false)
     }
+  }
+
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch(`/api/v1/projects/${projectRef}/compute/tasks`)
+      const data = await res.json()
+      if (Array.isArray(data)) setTasks(data)
+      else setTasks([])
+    } catch (err: any) {
+      console.error('Failed to load tasks', err)
+    }
+  }
+
+  const refreshAll = async () => {
+    setIsLoading(true)
+    await Promise.all([fetchNodes(), fetchTasks()])
+    setIsLoading(false)
   }
 
   useEffect(() => {
     if (projectRef) {
-      fetchNodes()
+      refreshAll()
+      const timer = setInterval(() => {
+        fetchNodes()
+        fetchTasks()
+      }, 5000)
+      return () => clearInterval(timer)
     }
   }, [projectRef])
 
@@ -145,6 +193,40 @@ const ComputeAndDiskPage: NextPageWithLayout = () => {
     }
   }
 
+  const handleDispatchTask = async () => {
+    if (!dispatchTitle.trim() || !dispatchCommand.trim()) {
+      toast.error('Please enter a title and command to dispatch')
+      return
+    }
+
+    try {
+      setIsDispatching(true)
+      const res = await fetch(`/api/v1/projects/${projectRef}/compute/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: dispatchTitle.trim(),
+          node_id: dispatchTargetNode,
+          task_type: dispatchType,
+          command: dispatchCommand.trim(),
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error?.message || 'Failed to dispatch workload')
+
+      toast.success(`Task "${data.title}" queued for execution!`)
+      setIsDispatchModalOpen(false)
+      setDispatchTitle('')
+      setDispatchCommand('uname -a && uptime && free -m')
+      fetchTasks()
+    } catch (err: any) {
+      toast.error(err.message || 'Error dispatching task')
+    } finally {
+      setIsDispatching(false)
+    }
+  }
+
   // Aggregate stats
   const totalCores = 4 + nodes.reduce((sum, n) => sum + (n.cpu_cores || 1), 0)
   const totalMemGB = Math.round(24 + nodes.reduce((sum, n) => sum + (n.memory_total_mb || 1024) / 1024, 0))
@@ -172,9 +254,20 @@ const ComputeAndDiskPage: NextPageWithLayout = () => {
           <Button
             type="default"
             icon={<RefreshCw className={isLoading ? 'animate-spin' : ''} size={14} />}
-            onClick={fetchNodes}
+            onClick={refreshAll}
           >
             Refresh
+          </Button>
+          <Button
+            type="default"
+            icon={<Play size={14} />}
+            onClick={() => {
+              setDispatchTitle('System Diagnostic Benchmark')
+              setDispatchCommand('uname -a && uptime && free -m && df -h .')
+              setIsDispatchModalOpen(true)
+            }}
+          >
+            Dispatch Task
           </Button>
           <Button
             type="primary"
@@ -270,7 +363,7 @@ const ComputeAndDiskPage: NextPageWithLayout = () => {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 size={14} className="text-emerald-500" />
-                  <span>Pure Bash & curl (under 10MB RAM)</span>
+                  <span>Live Workload & Job Dispatcher</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 size={14} className="text-emerald-500" />
@@ -401,6 +494,19 @@ const ComputeAndDiskPage: NextPageWithLayout = () => {
 
                   <div className="flex items-center gap-2 shrink-0">
                     <Button
+                      type="default"
+                      size="tiny"
+                      icon={<Play size={12} />}
+                      onClick={() => {
+                        setDispatchTargetNode(node.node_id)
+                        setDispatchTitle(`Workload for ${node.name}`)
+                        setDispatchCommand('uname -a && uptime && free -m')
+                        setIsDispatchModalOpen(true)
+                      }}
+                    >
+                      Dispatch Job
+                    </Button>
+                    <Button
                       type="outline"
                       size="tiny"
                       className="text-destructive hover:bg-destructive/10"
@@ -414,6 +520,210 @@ const ComputeAndDiskPage: NextPageWithLayout = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Task Execution Queue Table */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-base font-semibold">Cluster Workloads & Task Execution Queue</CardTitle>
+            <CardDescription className="text-xs">
+              Distributed background jobs and commands dispatched to connected cluster nodes
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{tasks.length} Dispatched Tasks</Badge>
+            <Button
+              type="primary"
+              size="tiny"
+              icon={<Play size={12} />}
+              onClick={() => {
+                setDispatchTitle('System Diagnostic Benchmark')
+                setDispatchCommand('uname -a && uptime && free -m && df -h .')
+                setIsDispatchModalOpen(true)
+              }}
+            >
+              + Dispatch Task
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {tasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+              <Clock size={20} className="text-foreground-lighter mb-2" />
+              <p className="text-xs text-foreground-lighter">No cluster workloads dispatched yet.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border overflow-x-auto">
+              {tasks.map((task) => {
+                const isCompleted = task.status === 'completed'
+                const isFailed = task.status === 'failed'
+                const isRunning = task.status === 'running'
+
+                return (
+                  <div key={task.id} className="p-3.5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:bg-surface-100/50 transition-colors">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-xs text-foreground">{task.title}</span>
+                        <Badge
+                          variant={isCompleted ? 'success' : isFailed ? 'destructive' : isRunning ? 'warning' : 'outline'}
+                          className="text-[10px] py-0 px-1.5 uppercase font-mono"
+                        >
+                          {task.status}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-mono">
+                          Target: {task.node_name || task.node_id}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-foreground-lighter font-mono">
+                        <span className="truncate max-w-md">$ {task.command || task.task_type}</span>
+                        <span>•</span>
+                        <span>{new Date(task.created_at).toLocaleTimeString()}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {task.output && (
+                        <Button
+                          type="default"
+                          size="tiny"
+                          icon={<Terminal size={12} />}
+                          onClick={() => setViewTask(task)}
+                        >
+                          View Logs
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dispatch Workload Modal */}
+      <Dialog open={isDispatchModalOpen} onOpenChange={setIsDispatchModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Dispatch Cluster Workload</DialogTitle>
+          </DialogHeader>
+
+          <DialogSection className="space-y-4">
+            <div className="space-y-1.5">
+              <Label_Shadcn_ htmlFor="t-title">Workload Title</Label_Shadcn_>
+              <Input_Shadcn_
+                id="t-title"
+                placeholder="e.g. Memory Benchmark, DB Backup Sync, Cache Warmup"
+                value={dispatchTitle}
+                onChange={(e) => setDispatchTitle(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label_Shadcn_ htmlFor="t-node">Target Node</Label_Shadcn_>
+                <select
+                  id="t-node"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={dispatchTargetNode}
+                  onChange={(e) => setDispatchTargetNode(e.target.value)}
+                >
+                  <option value="any">Any Available Worker (Round-Robin)</option>
+                  {nodes.map((n) => (
+                    <option key={n.node_id} value={n.node_id}>
+                      {n.name} ({n.status})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label_Shadcn_ htmlFor="t-type">Task Type</Label_Shadcn_>
+                <select
+                  id="t-type"
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={dispatchType}
+                  onChange={(e) => setDispatchType(e.target.value)}
+                >
+                  <option value="bash_command">Shell Script / Command</option>
+                  <option value="edge_function">Edge Function Runner</option>
+                  <option value="db_maintenance">DB Sync / Backup</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label_Shadcn_ htmlFor="t-cmd">Command / Script to Execute</Label_Shadcn_>
+              <textarea
+                id="t-cmd"
+                rows={3}
+                className="flex w-full rounded-md border border-input bg-surface-200/50 p-2.5 font-mono text-xs text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={dispatchCommand}
+                onChange={(e) => setDispatchCommand(e.target.value)}
+              />
+              <p className="text-[11px] text-foreground-lighter">
+                Executes in user-space on the remote node and captures stdout/stderr in real time.
+              </p>
+            </div>
+          </DialogSection>
+
+          <DialogFooter className="flex items-center justify-end gap-2">
+            <Button type="default" onClick={() => setIsDispatchModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              loading={isDispatching}
+              disabled={isDispatching || !dispatchTitle || !dispatchCommand}
+              onClick={handleDispatchTask}
+            >
+              Dispatch to Cluster
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Output Logs Modal */}
+      <Dialog open={viewTask !== null} onOpenChange={(open) => !open && setViewTask(null)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span>Task Execution Logs</span>
+              {viewTask && (
+                <Badge
+                  variant={viewTask.status === 'completed' ? 'success' : 'destructive'}
+                  className="text-[10px]"
+                >
+                  Exit Code: {viewTask.exit_code ?? 0}
+                </Badge>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          <DialogSection className="space-y-3">
+            {viewTask && (
+              <>
+                <div className="flex items-center justify-between text-xs text-foreground-lighter font-mono">
+                  <span>Task: {viewTask.title}</span>
+                  <span>Node: {viewTask.node_name || viewTask.node_id}</span>
+                </div>
+                <CodeBlock
+                  language="bash"
+                  value={viewTask.output || '(No output recorded)'}
+                  hideLineNumbers
+                  className="max-w-none block max-h-96 overflow-y-auto !bg-surface-200/50 !py-3 !px-3.5 border border-border text-foreground rounded-lg font-mono text-xs"
+                />
+              </>
+            )}
+          </DialogSection>
+
+          <DialogFooter className="flex items-center justify-end">
+            <Button type="default" onClick={() => setViewTask(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Remote Worker Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>

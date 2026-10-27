@@ -3,7 +3,7 @@
 # Socket Multi-Node Compute Worker Agent (Zero-Root Required)
 # ==============================================================================
 # Turns any VPS, shared hosting terminal, cPanel account, or Raspberry Pi into
-# an active compute node in your Socket cluster.
+# an active compute node in your Socket cluster with live task execution.
 #
 # Requirements: bash, curl, grep, awk (standard on every Unix/Linux system).
 # No root privileges, no open inbound ports, no sudo required!
@@ -71,15 +71,10 @@ get_cpu_cores() {
 }
 
 get_cpu_usage() {
-    if command -v top >/dev/null 2>&1; then
-        # Quick 1-iteration top check or fallback to load average
-        if [ -f /proc/loadavg ]; then
-            awk '{print $1 * 10}' /proc/loadavg | cut -d. -f1
-        else
-            echo "5"
-        fi
+    if [ -f /proc/loadavg ]; then
+        awk '{print $1 * 10}' /proc/loadavg | cut -d. -f1
     else
-        echo "0"
+        echo "5"
     fi
 }
 
@@ -108,6 +103,51 @@ NODE_ID="node_$(echo -n "${WORKER_NAME}_${WORKER_TOKEN}" | md5sum 2>/dev/null | 
 echo "[*] Worker initialized. Node ID: $NODE_ID"
 echo "[*] Registering heartbeat loop with hub..."
 
+execute_task() {
+    local task_id="$1"
+    local command="$2"
+    local title="$3"
+
+    echo "[*] [TASK RECEIVED] ID: $task_id | Title: $title"
+    local output=""
+    local exit_code=0
+    local status="completed"
+
+    if [ -n "$command" ]; then
+        echo "[*] Executing command: $command"
+        output=$(eval "$command" 2>&1) || exit_code=$?
+        if [ $exit_code -ne 0 ]; then
+            status="failed"
+        fi
+    else
+        output="Job executed successfully with default payload."
+    fi
+
+    echo "[*] Task finished (Exit: $exit_code, Status: $status)"
+
+    # Escape output for JSON
+    local escaped_output
+    if command -v python3 >/dev/null 2>&1; then
+        escaped_output=$(python3 -c "import json, sys; print(json.dumps(sys.argv[1]))" "$output")
+    else
+        escaped_output="\"$(echo "$output" | tr '\n' ' ' | sed 's/"/\\"/g')\""
+    fi
+
+    # Post result back to hub
+    local result_json=$(cat <<EOF
+{
+  "status": "$status",
+  "output": $escaped_output,
+  "exit_code": $exit_code
+}
+EOF
+)
+
+    curl -s -X POST "$HUB_URL/api/v1/projects/default/compute/tasks/$task_id/result" \
+        -H "Content-Type: application/json" \
+        -d "$result_json" >/dev/null 2>&1 || true
+}
+
 while true; do
     CORES=$(get_cpu_cores)
     CPU_USAGE=$(get_cpu_usage)
@@ -116,7 +156,6 @@ while true; do
     DISK_FREE=$(get_disk_free)
     OS_INFO=$(get_os_info)
 
-    # Send heartbeat payload
     JSON_PAYLOAD=$(cat <<EOF
 {
   "node_id": "$NODE_ID",
@@ -137,9 +176,23 @@ EOF
         -H "Content-Type: application/json" \
         -d "$JSON_PAYLOAD" 2>/dev/null || echo '{"error":"unreachable"}')
 
-    # Log heartbeat status
     if echo "$RESPONSE" | grep -q '"success":true'; then
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Heartbeat OK | CPU: ${CPU_USAGE}% | RAM: ${MEM_USED}/${MEM_TOTAL}MB"
+
+        # Check for assigned tasks
+        if command -v python3 >/dev/null 2>&1; then
+            TASK_COUNT=$(echo "$RESPONSE" | python3 -c "import sys, json; data=json.load(sys.stdin); print(len(data.get('tasks', [])))" 2>/dev/null || echo 0)
+            if [ "$TASK_COUNT" -gt 0 ]; then
+                echo "[*] Found $TASK_COUNT pending task(s)! Processing..."
+                # Process each task
+                for ((i=0; i<$TASK_COUNT; i++)); do
+                    TASK_ID=$(echo "$RESPONSE" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['tasks'][$i].get('task_id', ''))" 2>/dev/null)
+                    TASK_CMD=$(echo "$RESPONSE" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['tasks'][$i].get('command', ''))" 2>/dev/null)
+                    TASK_TITLE=$(echo "$RESPONSE" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data['tasks'][$i].get('title', ''))" 2>/dev/null)
+                    execute_task "$TASK_ID" "$TASK_CMD" "$TASK_TITLE"
+                done
+            fi
+        fi
     else
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Hub Response: $RESPONSE"
     fi

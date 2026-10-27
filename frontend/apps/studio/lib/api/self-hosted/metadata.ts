@@ -286,15 +286,27 @@ export async function ensureMetadataSchema(): Promise<void> {
 
     CREATE TABLE IF NOT EXISTS _socket_metadata.compute_tasks (
       id SERIAL PRIMARY KEY,
+      task_id TEXT UNIQUE NOT NULL DEFAULT ('task_' || floor(random()*1000000)::text),
       project_ref TEXT NOT NULL,
-      node_id TEXT,
-      task_type TEXT NOT NULL,
+      node_id TEXT DEFAULT 'any',
+      title TEXT NOT NULL DEFAULT 'Compute Task',
+      task_type TEXT NOT NULL DEFAULT 'bash_command',
+      command TEXT,
       payload JSONB DEFAULT '{}'::jsonb,
       status TEXT DEFAULT 'pending',
-      result JSONB,
+      output TEXT,
+      exit_code INTEGER,
+      started_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       completed_at TIMESTAMPTZ
     );
+
+    ALTER TABLE _socket_metadata.compute_tasks ADD COLUMN IF NOT EXISTS task_id TEXT;
+    ALTER TABLE _socket_metadata.compute_tasks ADD COLUMN IF NOT EXISTS title TEXT;
+    ALTER TABLE _socket_metadata.compute_tasks ADD COLUMN IF NOT EXISTS command TEXT;
+    ALTER TABLE _socket_metadata.compute_tasks ADD COLUMN IF NOT EXISTS output TEXT;
+    ALTER TABLE _socket_metadata.compute_tasks ADD COLUMN IF NOT EXISTS exit_code INTEGER;
+    ALTER TABLE _socket_metadata.compute_tasks ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;
 
     SELECT setval(pg_get_serial_sequence('_socket_metadata.organizations', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organizations;
     SELECT setval(pg_get_serial_sequence('_socket_metadata.projects', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.projects;
@@ -1990,6 +2002,122 @@ export async function recordSocketComputeHeartbeat(heartbeat: {
       heartbeat.os_info || 'Linux',
       heartbeat.ip_address || '',
     ],
+  })
+  if (error) throw new Error(error.message)
+  return true
+}
+
+export interface SocketComputeTask {
+  id: number
+  task_id: string
+  project_ref: string
+  node_id: string
+  node_name?: string
+  title: string
+  task_type: string
+  command?: string
+  payload?: any
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  output?: string
+  exit_code?: number
+  created_at: string
+  started_at?: string
+  completed_at?: string
+}
+
+export async function dispatchSocketComputeTask(
+  projectRef: string,
+  task: {
+    node_id?: string
+    title: string
+    task_type: string
+    command?: string
+    payload?: any
+  }
+): Promise<SocketComputeTask> {
+  await ensureMetadataSchema()
+  const taskId = `task_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+
+  const { data, error } = await executeQuery<SocketComputeTask>({
+    query: `
+      INSERT INTO _socket_metadata.compute_tasks (
+        task_id, project_ref, node_id, title, task_type, command, payload, status
+      )
+      VALUES ($1, $2, COALESCE($3, 'any'), $4, $5, $6, $7, 'pending')
+      RETURNING *
+    `,
+    parameters: [
+      taskId,
+      projectRef,
+      task.node_id || 'any',
+      task.title,
+      task.task_type || 'bash_command',
+      task.command || '',
+      JSON.stringify(task.payload || {}),
+    ],
+  })
+
+  if (error || !data || data.length === 0) {
+    throw new Error(error?.message || 'Failed to dispatch compute task')
+  }
+
+  return data[0]
+}
+
+export async function getSocketComputeTasks(projectRef: string): Promise<SocketComputeTask[]> {
+  await ensureMetadataSchema()
+  const { data, error } = await executeQuery<SocketComputeTask>({
+    query: `
+      SELECT t.id, t.task_id, t.project_ref, t.node_id, t.title, t.task_type, t.command,
+             t.payload, t.status, t.output, t.exit_code, t.created_at, t.started_at, t.completed_at,
+             COALESCE(n.name, t.node_id) as node_name
+      FROM _socket_metadata.compute_tasks t
+      LEFT JOIN _socket_metadata.compute_nodes n ON t.node_id = n.node_id
+      WHERE t.project_ref = $1
+      ORDER BY t.id DESC
+      LIMIT 100
+    `,
+    parameters: [projectRef],
+  })
+  if (error || !data) return []
+  return data
+}
+
+export async function pullPendingComputeTasks(nodeId: string): Promise<SocketComputeTask[]> {
+  await ensureMetadataSchema()
+  const { data } = await executeQuery<SocketComputeTask>({
+    query: `
+      UPDATE _socket_metadata.compute_tasks
+      SET status = 'running', started_at = NOW(), node_id = $1
+      WHERE id IN (
+        SELECT id FROM _socket_metadata.compute_tasks
+        WHERE (node_id = $1 OR node_id = 'any') AND status = 'pending'
+        ORDER BY id ASC
+        LIMIT 5
+      )
+      RETURNING *
+    `,
+    parameters: [nodeId],
+  })
+  return data || []
+}
+
+export async function completeSocketComputeTask(
+  taskId: string,
+  result: {
+    status: 'completed' | 'failed'
+    output: string
+    exit_code?: number
+  }
+): Promise<boolean> {
+  await ensureMetadataSchema()
+  const { error } = await executeQuery({
+    query: `
+      UPDATE _socket_metadata.compute_tasks
+      SET status = $2, output = $3, exit_code = $4, completed_at = NOW()
+      WHERE task_id = $1
+    `,
+    parameters: [taskId, result.status, result.output, result.exit_code ?? 0],
   })
   if (error) throw new Error(error.message)
   return true

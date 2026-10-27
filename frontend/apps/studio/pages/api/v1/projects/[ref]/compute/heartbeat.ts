@@ -1,6 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import apiWrapper from '@/lib/api/apiWrapper'
-import { recordSocketComputeHeartbeat } from '@/lib/api/self-hosted/metadata'
+import {
+  pullPendingComputeTasks,
+  recordSocketComputeHeartbeat,
+} from '@/lib/api/self-hosted/metadata'
 
 export default (req: NextApiRequest, res: NextApiResponse) => apiWrapper(req, res, handler)
 
@@ -45,11 +48,13 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       ip_address: ip || '',
     })
 
+    const tasks = await pullPendingComputeTasks(node_id)
+
     return res.status(200).json({
       success: true,
       message: 'Heartbeat acknowledged',
       timestamp: new Date().toISOString(),
-      tasks: [],
+      tasks,
     })
   } catch (err: any) {
     return res.status(500).json({ error: { message: err.message || 'Heartbeat processing failed' } })
