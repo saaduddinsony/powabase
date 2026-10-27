@@ -176,7 +176,7 @@ export function SupabaseProjectOverview() {
             {/* Main 2-Column Hero Grid: 6 Status Cards (Left) + Topology Canvas (Right) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
               {/* Left Column: 2x3 Grid of Metadata Cards */}
-              <div className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div data-tour="metrics-card" className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {/* 1. STATUS */}
                 <Link
                   href={`/project/${projectRef}/observability`}
@@ -366,6 +366,8 @@ export function SupabaseProjectOverview() {
                   >
                     <Link
                       href={`/project/${projectRef}/infrastructure`}
+                      data-tour="database-card"
+                      aria-label="Primary Database Card"
                       className="w-full max-w-sm rounded-xl border border-default bg-surface-100/95 backdrop-blur-sm p-4 shadow-md hover:border-foreground-muted hover:shadow-lg transition-all"
                     >
                       <div className="flex items-start justify-between gap-3">
