@@ -28,7 +28,7 @@ import {
   Upload,
   XCircle,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
   Badge,
@@ -192,7 +192,7 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
       if (res.ok && data.success) {
         const msg = data.message || 'Gateway connected successfully!'
         if (gatewayId) {
-          setTestResult((prev) => ({ ...prev, [gatewayId]: { success: true, message: msg } }))
+          setTestResult((prev: Record<number, { success: boolean; message: string }>) => ({ ...prev, [gatewayId]: { success: true, message: msg } }))
         } else {
           setModalTestMessage({ success: true, text: msg })
         }
@@ -200,7 +200,7 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
       } else {
         const errMsg = data.error?.message || 'Connection test failed'
         if (gatewayId) {
-          setTestResult((prev) => ({ ...prev, [gatewayId]: { success: false, message: errMsg } }))
+          setTestResult((prev: Record<number, { success: boolean; message: string }>) => ({ ...prev, [gatewayId]: { success: false, message: errMsg } }))
         } else {
           setModalTestMessage({ success: false, text: errMsg })
         }
@@ -209,7 +209,7 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
     } catch (err: any) {
       const msg = err.message || 'Network error testing gateway'
       if (gatewayId) {
-        setTestResult((prev) => ({ ...prev, [gatewayId]: { success: false, message: msg } }))
+        setTestResult((prev: Record<number, { success: boolean; message: string }>) => ({ ...prev, [gatewayId]: { success: false, message: msg } }))
       } else {
         setModalTestMessage({ success: false, text: msg })
       }
@@ -467,7 +467,7 @@ const StorageS3GatewaysPage: NextPageWithLayout = () => {
     }
   }
 
-  const filteredFiles = remoteFiles.filter((f) =>
+  const filteredFiles = remoteFiles.filter((f: RemoteFile) =>
     f.key.toLowerCase().includes(fileFilter.toLowerCase())
   )
 
@@ -656,7 +656,7 @@ $s3 = new S3Client([
             </div>
           ) : (
             <div className="divide-y divide-border overflow-x-auto">
-              {gateways.map((gw) => {
+              {gateways.map((gw: StorageGateway) => {
                 const result = testResult[gw.id]
                 const isTesting = testingId === gw.id
 
@@ -840,12 +840,12 @@ $s3 = new S3Client([
               <select
                 className="h-8 rounded-md border border-input bg-background px-2.5 text-xs font-mono shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 value={selectedBucket}
-                onChange={(e) => {
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                   setSelectedBucket(e.target.value)
                   if (explorerGateway) fetchRemoteFiles(explorerGateway.id, e.target.value)
                 }}
               >
-                {remoteBuckets.map((b) => (
+                {remoteBuckets.map((b: string) => (
                   <option key={b} value={b}>
                     {b}
                   </option>
@@ -859,7 +859,7 @@ $s3 = new S3Client([
                 placeholder="Filter files..."
                 className="pl-8 text-xs h-8 font-mono"
                 value={fileFilter}
-                onChange={(e) => setFileFilter(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFileFilter(e.target.value)}
               />
             </div>
           </div>
@@ -889,7 +889,7 @@ $s3 = new S3Client([
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {filteredFiles.map((f) => (
+                    {filteredFiles.map((f: RemoteFile) => (
                       <tr key={f.key} className="hover:bg-surface-100/50 transition-colors">
                         <td className="p-2.5">
                           <div className="flex items-center gap-2">
@@ -945,7 +945,7 @@ $s3 = new S3Client([
       </Dialog>
 
       {/* Presigned URL Modal */}
-      <Dialog open={presignedTarget !== null} onOpenChange={(open) => !open && setPresignedTarget(null)}>
+      <Dialog open={presignedTarget !== null} onOpenChange={(open: boolean) => !open && setPresignedTarget(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -965,7 +965,7 @@ $s3 = new S3Client([
                 id="p-exp"
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 value={presignedExpiry}
-                onChange={(e) => handlePresignedExpiryChange(parseInt(e.target.value, 10))}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handlePresignedExpiryChange(parseInt(e.target.value, 10))}
               >
                 <option value={3600}>1 Hour (Standard)</option>
                 <option value={86400}>24 Hours (1 Day)</option>
@@ -1018,7 +1018,7 @@ $s3 = new S3Client([
       {/* Connect / Edit Gateway Modal */}
       <Dialog
         open={isAddModalOpen}
-        onOpenChange={(open) => {
+        onOpenChange={(open: boolean) => {
           setIsAddModalOpen(open)
           if (!open) setEditingGateway(null)
         }}
@@ -1035,7 +1035,7 @@ $s3 = new S3Client([
                 id="gw-name"
                 placeholder="e.g. cPanel Media Storage, 20i S3 Bucket"
                 value={formName}
-                onChange={(e) => setFormName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormName(e.target.value)}
               />
             </div>
 
@@ -1045,7 +1045,7 @@ $s3 = new S3Client([
                 id="gw-url"
                 placeholder="https://storage.clientdomain.com/storage.php"
                 value={formEndpoint}
-                onChange={(e) => setFormEndpoint(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormEndpoint(e.target.value)}
               />
               <p className="text-[11px] text-foreground-lighter">
                 The HTTPS URL where <code className="font-mono">socket-storage.php</code> was uploaded.
@@ -1059,7 +1059,7 @@ $s3 = new S3Client([
                   id="gw-region"
                   placeholder="us-east-1"
                   value={formRegion}
-                  onChange={(e) => setFormRegion(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormRegion(e.target.value)}
                 />
               </div>
 
@@ -1069,7 +1069,7 @@ $s3 = new S3Client([
                   id="gw-ak"
                   placeholder="SOCKET_AK_..."
                   value={formAccessKey}
-                  onChange={(e) => setFormAccessKey(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormAccessKey(e.target.value)}
                 />
               </div>
             </div>
@@ -1081,7 +1081,7 @@ $s3 = new S3Client([
                 type="password"
                 placeholder="SOCKET_SK_..."
                 value={formSecretKey}
-                onChange={(e) => setFormSecretKey(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormSecretKey(e.target.value)}
               />
             </div>
 
@@ -1131,7 +1131,7 @@ $s3 = new S3Client([
       </Dialog>
 
       {/* Delete Confirmation Modal */}
-      <Dialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <Dialog open={deleteId !== null} onOpenChange={(open: boolean) => !open && setDeleteId(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Disconnect Gateway</DialogTitle>
@@ -1155,7 +1155,7 @@ $s3 = new S3Client([
   )
 }
 
-StorageS3GatewaysPage.getLayout = (page) => (
+StorageS3GatewaysPage.getLayout = (page: React.ReactElement) => (
   <DefaultLayout>
     <StorageLayout title="S3 & Remote Gateways">{page}</StorageLayout>
   </DefaultLayout>
