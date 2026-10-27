@@ -26,6 +26,12 @@ export const useGenerateSettingsMenu = () => {
           items: [],
           disabled: !isProjectActive,
         },
+        {
+          name: 'Compute & Cluster Nodes',
+          key: 'compute-and-disk',
+          url: `/project/${ref}/settings/compute-and-disk`,
+          items: [],
+        },
       ],
     },
     {

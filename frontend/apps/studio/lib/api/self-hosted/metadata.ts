@@ -265,6 +265,37 @@ export async function ensureMetadataSchema(): Promise<void> {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS _socket_metadata.compute_nodes (
+      id SERIAL PRIMARY KEY,
+      project_ref TEXT NOT NULL,
+      node_id TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      auth_token TEXT NOT NULL,
+      role TEXT DEFAULT 'worker',
+      cpu_cores INTEGER DEFAULT 1,
+      cpu_usage_pct NUMERIC(5,2) DEFAULT 0,
+      memory_total_mb INTEGER DEFAULT 1024,
+      memory_used_mb INTEGER DEFAULT 256,
+      disk_free_gb NUMERIC(6,2) DEFAULT 10,
+      os_info TEXT,
+      ip_address TEXT,
+      status TEXT DEFAULT 'online',
+      last_heartbeat TIMESTAMPTZ DEFAULT NOW(),
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS _socket_metadata.compute_tasks (
+      id SERIAL PRIMARY KEY,
+      project_ref TEXT NOT NULL,
+      node_id TEXT,
+      task_type TEXT NOT NULL,
+      payload JSONB DEFAULT '{}'::jsonb,
+      status TEXT DEFAULT 'pending',
+      result JSONB,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      completed_at TIMESTAMPTZ
+    );
+
     SELECT setval(pg_get_serial_sequence('_socket_metadata.organizations', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organizations;
     SELECT setval(pg_get_serial_sequence('_socket_metadata.projects', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.projects;
     SELECT setval(pg_get_serial_sequence('_socket_metadata.organization_members', 'id'), coalesce(max(id), 1)) FROM _socket_metadata.organization_members;
@@ -1830,6 +1861,138 @@ export async function testSocketMySQLConnector(connector: {
       message: err.message || 'Failed to connect to remote MySQL database',
     }
   }
+}
+
+export interface SocketComputeNode {
+  id: number
+  project_ref: string
+  node_id: string
+  name: string
+  auth_token: string
+  role: string
+  cpu_cores: number
+  cpu_usage_pct: number
+  memory_total_mb: number
+  memory_used_mb: number
+  disk_free_gb: number
+  os_info: string
+  ip_address?: string
+  status: string
+  last_heartbeat: string
+  created_at: string
+}
+
+export async function getSocketComputeNodes(projectRef: string): Promise<SocketComputeNode[]> {
+  await ensureMetadataSchema()
+  const { data, error } = await executeQuery<SocketComputeNode>({
+    query: `
+      SELECT id, project_ref, node_id, name, auth_token, role, cpu_cores, cpu_usage_pct,
+             memory_total_mb, memory_used_mb, disk_free_gb, os_info, ip_address,
+             CASE
+               WHEN last_heartbeat > NOW() - INTERVAL '30 seconds' THEN 'online'
+               ELSE 'offline'
+             END AS status,
+             last_heartbeat, created_at
+      FROM _socket_metadata.compute_nodes
+      WHERE project_ref = $1
+      ORDER BY last_heartbeat DESC
+    `,
+    parameters: [projectRef],
+  })
+  if (error || !data) return []
+  return data
+}
+
+export async function registerSocketComputeNode(
+  projectRef: string,
+  name: string,
+  role: string = 'worker'
+): Promise<SocketComputeNode> {
+  await ensureMetadataSchema()
+  const token = `sk_cluster_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
+  const nodeId = `node_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+
+  const { data, error } = await executeQuery<SocketComputeNode>({
+    query: `
+      INSERT INTO _socket_metadata.compute_nodes (
+        project_ref, node_id, name, auth_token, role, status
+      )
+      VALUES ($1, $2, $3, $4, $5, 'pending')
+      RETURNING *
+    `,
+    parameters: [projectRef, nodeId, name.trim(), token, role],
+  })
+
+  if (error || !data || data.length === 0) {
+    throw new Error(error?.message || 'Failed to register compute node')
+  }
+
+  return data[0]
+}
+
+export async function deleteSocketComputeNode(id: number): Promise<boolean> {
+  await ensureMetadataSchema()
+  const { error } = await executeQuery({
+    query: `DELETE FROM _socket_metadata.compute_nodes WHERE id = $1`,
+    parameters: [id],
+  })
+  if (error) throw new Error(error.message)
+  return true
+}
+
+export async function recordSocketComputeHeartbeat(heartbeat: {
+  node_id: string
+  name?: string
+  auth_token: string
+  cpu_cores?: number
+  cpu_usage_pct?: number
+  memory_total_mb?: number
+  memory_used_mb?: number
+  disk_free_gb?: number
+  os_info?: string
+  role?: string
+  ip_address?: string
+}): Promise<boolean> {
+  await ensureMetadataSchema()
+  const { error } = await executeQuery({
+    query: `
+      INSERT INTO _socket_metadata.compute_nodes (
+        project_ref, node_id, name, auth_token, role, cpu_cores, cpu_usage_pct,
+        memory_total_mb, memory_used_mb, disk_free_gb, os_info, ip_address, status, last_heartbeat
+      )
+      VALUES (
+        'default', $1, COALESCE($2, 'Worker Node'), $3, COALESCE($4, 'worker'),
+        COALESCE($5, 1), COALESCE($6, 0), COALESCE($7, 1024), COALESCE($8, 256),
+        COALESCE($9, 10), $10, $11, 'online', NOW()
+      )
+      ON CONFLICT (node_id) DO UPDATE SET
+        name = COALESCE(EXCLUDED.name, _socket_metadata.compute_nodes.name),
+        cpu_cores = EXCLUDED.cpu_cores,
+        cpu_usage_pct = EXCLUDED.cpu_usage_pct,
+        memory_total_mb = EXCLUDED.memory_total_mb,
+        memory_used_mb = EXCLUDED.memory_used_mb,
+        disk_free_gb = EXCLUDED.disk_free_gb,
+        os_info = COALESCE(EXCLUDED.os_info, _socket_metadata.compute_nodes.os_info),
+        ip_address = COALESCE(EXCLUDED.ip_address, _socket_metadata.compute_nodes.ip_address),
+        status = 'online',
+        last_heartbeat = NOW();
+    `,
+    parameters: [
+      heartbeat.node_id,
+      heartbeat.name || 'Remote Worker',
+      heartbeat.auth_token,
+      heartbeat.role || 'worker',
+      heartbeat.cpu_cores || 1,
+      heartbeat.cpu_usage_pct || 0,
+      heartbeat.memory_total_mb || 1024,
+      heartbeat.memory_used_mb || 256,
+      heartbeat.disk_free_gb || 10,
+      heartbeat.os_info || 'Linux',
+      heartbeat.ip_address || '',
+    ],
+  })
+  if (error) throw new Error(error.message)
+  return true
 }
 
 
