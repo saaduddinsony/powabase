@@ -28,8 +28,8 @@ import { EXAMPLE_PROJECTS } from '@/components/interfaces/Home/Home.constants'
 import { OverviewStats } from '@/components/interfaces/ProjectHome/OverviewStats'
 import { ProjectConnectionPopover } from '@/components/interfaces/ProjectHome/ProjectConnectionPopover'
 import { ScaffoldContainer, ScaffoldSection } from '@/components/layouts/Scaffold'
-import { useBranchesQuery } from '@/data/branches/branches-query'
-import { useBackupsQuery } from '@/data/database/backups-query'
+import { useBranchesQuery, type Branch } from '@/data/branches/branches-query'
+import { useBackupsQuery, type DatabaseBackup } from '@/data/database/backups-query'
 import { useMigrationsQuery } from '@/data/database/migrations-query'
 import { useCustomContent } from '@/hooks/custom-content/useCustomContent'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
@@ -118,12 +118,12 @@ export function SupabaseProjectOverview() {
     projectRef: project?.parent_project_ref ?? project?.ref,
   })
   const latestNonDefaultBranch = useMemo(() => {
-    const list = (branchesData ?? []).filter((b) => !b.is_default)
+    const list = (branchesData ?? []).filter((b: Branch) => !b.is_default)
     if (list.length === 0) return undefined
     return list
       .slice()
       .sort(
-        (a, b) =>
+        (a: Branch, b: Branch) =>
           new Date(b.created_at ?? b.updated_at).valueOf() -
           new Date(a.created_at ?? a.updated_at).valueOf()
       )[0]
@@ -147,7 +147,7 @@ export function SupabaseProjectOverview() {
     if (list.length === 0) return undefined
     return list
       .slice()
-      .sort((a, b) => new Date(b.inserted_at).valueOf() - new Date(a.inserted_at).valueOf())[0]
+      .sort((a: DatabaseBackup, b: DatabaseBackup) => new Date(b.inserted_at).valueOf() - new Date(a.inserted_at).valueOf())[0]
   }, [backupsData])
 
   // Client libraries
