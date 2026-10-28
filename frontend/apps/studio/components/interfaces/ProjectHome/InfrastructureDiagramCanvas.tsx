@@ -8,8 +8,6 @@ import {
   Server,
   Copy,
   Trash2,
-  Check,
-  Globe2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -102,28 +100,39 @@ export function InfrastructureDiagramCanvas({
     }
   }
 
-  // Node Positions (Center is 0,0)
-  const defaultPrimaryPos = replicas.length > 0 ? { x: -140, y: 0 } : { x: 0, y: 0 }
-  const [primaryPos, setPrimaryPos] = useState<{ x: number; y: number }>(defaultPrimaryPos)
+  // Calculate clean default layout coordinates
+  const getDefaultPositions = (reps: ReplicaNode[]) => {
+    const isNarrow = !canvasRef.current || canvasRef.current.clientWidth < 680
+    if (reps.length === 0) {
+      return { primary: { x: 0, y: 0 }, replicas: {} }
+    }
+    if (isNarrow) {
+      // Vertical stacking layout when width is restricted
+      const repMap: Record<string, { x: number; y: number }> = {}
+      reps.forEach((rep, idx) => {
+        repMap[rep.id] = { x: 0, y: 70 + idx * 125 }
+      })
+      return { primary: { x: 0, y: -65 }, replicas: repMap }
+    } else {
+      // Horizontal side-by-side layout when width is generous
+      const repMap: Record<string, { x: number; y: number }> = {}
+      reps.forEach((rep, idx) => {
+        const offset = (idx - (reps.length - 1) / 2) * 110
+        repMap[rep.id] = { x: 175, y: offset }
+      })
+      return { primary: { x: -175, y: 0 }, replicas: repMap }
+    }
+  }
+
+  const [primaryPos, setPrimaryPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [replicaPositions, setReplicaPositions] = useState<Record<string, { x: number; y: number }>>({})
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
 
-  // Recalculate default positions when replicas change
+  // Re-layout when replicas list changes
   useEffect(() => {
-    if (replicas.length === 0) {
-      setPrimaryPos({ x: 0, y: 0 })
-    } else {
-      setPrimaryPos((prev) => (prev.x === 0 && prev.y === 0 ? { x: -140, y: 0 } : prev))
-      setReplicaPositions((prev) => {
-        const next = { ...prev }
-        replicas.forEach((rep, idx) => {
-          if (!next[rep.id]) {
-            next[rep.id] = { x: 140, y: (idx - (replicas.length - 1) / 2) * 110 }
-          }
-        })
-        return next
-      })
-    }
+    const defaults = getDefaultPositions(replicas)
+    setPrimaryPos(defaults.primary)
+    setReplicaPositions(defaults.replicas)
   }, [replicas.length])
 
   // Dragging state
@@ -145,7 +154,7 @@ export function InfrastructureDiagramCanvas({
 
   const handlePointerDown = (e: React.PointerEvent, nodeId: string) => {
     if (e.button !== 0) return
-    const init = nodeId === 'primary' ? primaryPos : replicaPositions[nodeId] || { x: 140, y: 0 }
+    const init = nodeId === 'primary' ? primaryPos : replicaPositions[nodeId] || { x: 0, y: 70 }
     dragRef.current = {
       nodeId,
       startX: e.clientX,
@@ -192,16 +201,9 @@ export function InfrastructureDiagramCanvas({
   }
 
   const handleResetView = () => {
-    if (replicas.length === 0) {
-      setPrimaryPos({ x: 0, y: 0 })
-    } else {
-      setPrimaryPos({ x: -140, y: 0 })
-      const resetMap: Record<string, { x: number; y: number }> = {}
-      replicas.forEach((rep, idx) => {
-        resetMap[rep.id] = { x: 140, y: (idx - (replicas.length - 1) / 2) * 110 }
-      })
-      setReplicaPositions(resetMap)
-    }
+    const defaults = getDefaultPositions(replicas)
+    setPrimaryPos(defaults.primary)
+    setReplicaPositions(defaults.replicas)
     toast.success('Reset canvas view to center')
   }
 
@@ -264,7 +266,7 @@ export function InfrastructureDiagramCanvas({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
-      {/* Top Left Controls: Reset View & Add Location (Matching Supabase) */}
+      {/* Top Left Controls: Reset View & Add Location */}
       <div className="absolute top-3.5 left-3.5 z-20 flex items-center gap-1.5">
         <button
           type="button"
@@ -291,31 +293,31 @@ export function InfrastructureDiagramCanvas({
       {replicas.length > 0 && (
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
           {replicas.map((rep) => {
-            const repPos = replicaPositions[rep.id] || { x: 140, y: 0 }
-            // Translate relative center offsets to SVG coords
-            const centerW = canvasRef.current ? canvasRef.current.clientWidth / 2 : 400
-            const centerH = canvasRef.current ? canvasRef.current.clientHeight / 2 : 180
+            const repPos = replicaPositions[rep.id] || { x: 0, y: 70 }
+            const centerW = canvasRef.current ? canvasRef.current.clientWidth / 2 : 275
+            const centerH = canvasRef.current ? canvasRef.current.clientHeight / 2 : 170
 
-            const x1 = centerW + primaryPos.x + 120
-            const y1 = centerH + primaryPos.y
-            const x2 = centerW + repPos.x - 120
-            const y2 = centerH + repPos.y
+            const isVertical = Math.abs(primaryPos.x - repPos.x) < 80
+            const x1 = centerW + primaryPos.x + (isVertical ? 0 : primaryPos.x < repPos.x ? 150 : -150)
+            const y1 = centerH + primaryPos.y + (isVertical ? (primaryPos.y < repPos.y ? 55 : -55) : 0)
+            const x2 = centerW + repPos.x + (isVertical ? 0 : repPos.x < primaryPos.x ? 150 : -150)
+            const y2 = centerH + repPos.y + (isVertical ? (repPos.y < primaryPos.y ? 55 : -55) : 0)
             const mx = (x1 + x2) / 2
+            const my = (y1 + y2) / 2
 
             return (
               <g key={`edge-${rep.id}`}>
                 <path
-                  d={`M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`}
+                  d={`M ${x1} ${y1} Q ${mx} ${my}, ${x2} ${y2}`}
                   fill="none"
                   stroke="var(--colors-border-stronger, #94a3b8)"
                   strokeWidth="1.5"
                   strokeDasharray="4 4"
                   className="opacity-70 dark:opacity-40"
                 />
-                {/* Latency Pill */}
                 <rect
                   x={mx - 22}
-                  y={(y1 + y2) / 2 - 9}
+                  y={my - 9}
                   width="44"
                   height="18"
                   rx="4"
@@ -323,7 +325,7 @@ export function InfrastructureDiagramCanvas({
                 />
                 <text
                   x={mx}
-                  y={(y1 + y2) / 2 + 3}
+                  y={my + 3}
                   textAnchor="middle"
                   className="text-[9px] fill-foreground-lighter font-mono font-medium"
                 >
@@ -338,12 +340,12 @@ export function InfrastructureDiagramCanvas({
       {/* Primary Database Card Node */}
       <div
         style={{
-          transform: `translate3d(${primaryPos.x}px, ${primaryPos.y}px, 0)`,
+          transform: `translate3d(calc(-50% + ${primaryPos.x}px), calc(-50% + ${primaryPos.y}px), 0)`,
           touchAction: 'none',
         }}
         onPointerDown={(e) => handlePointerDown(e, 'primary')}
         className={cn(
-          'transition-shadow duration-150',
+          'absolute left-1/2 top-1/2 transition-shadow duration-150',
           activeDragId === 'primary' ? 'cursor-grabbing z-30 scale-[1.01]' : 'cursor-grab z-10'
         )}
       >
@@ -470,17 +472,17 @@ export function InfrastructureDiagramCanvas({
 
       {/* Additional Location / Read Replica Nodes */}
       {replicas.map((rep) => {
-        const repPos = replicaPositions[rep.id] || { x: 140, y: 0 }
+        const repPos = replicaPositions[rep.id] || { x: 0, y: 70 }
         return (
           <div
             key={rep.id}
             style={{
-              transform: `translate3d(${repPos.x}px, ${repPos.y}px, 0)`,
+              transform: `translate3d(calc(-50% + ${repPos.x}px), calc(-50% + ${repPos.y}px), 0)`,
               touchAction: 'none',
             }}
             onPointerDown={(e) => handlePointerDown(e, rep.id)}
             className={cn(
-              'transition-shadow duration-150 absolute',
+              'absolute left-1/2 top-1/2 transition-shadow duration-150',
               activeDragId === rep.id ? 'cursor-grabbing z-30 scale-[1.01]' : 'cursor-grab z-10'
             )}
           >
