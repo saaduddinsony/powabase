@@ -177,14 +177,13 @@ const ObservabilityMenu = () => {
             </Fragment>
           ))}
 
-          {IS_PLATFORM && (
-            <Fragment>
-              <div className="h-px w-full bg-border-overlay" />
-              <div className="mx-2">
-                <Menu.Group
-                  title={
-                    <span className="flex w-full items-center justify-between relative h-6">
-                      <span className="uppercase font-mono">Custom Reports</span>
+          <Fragment>
+            <div className="h-px w-full bg-border-overlay" />
+            <div className="mx-2">
+              <Menu.Group
+                title={
+                  <span className="flex w-full items-center justify-between relative h-6">
+                    <span className="uppercase font-mono">Custom Reports</span>
                       {reportMenuItems.length > 0 && (
                         <ButtonTooltip
                           type="default"
@@ -255,7 +254,6 @@ const ObservabilityMenu = () => {
                 )}
               </div>
             </Fragment>
-          )}
 
           <UpdateCustomReportModal
             onCancel={() => setSelectedReportToUpdate(undefined)}

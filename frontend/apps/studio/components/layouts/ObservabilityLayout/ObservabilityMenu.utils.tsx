@@ -34,15 +34,11 @@ export function generateObservabilityMenuItems(
   } = options
 
   const generalItems: ObservabilityMenuItem[] = [
-    ...(showOverview
-      ? [
-          {
-            name: 'Overview',
-            key: 'observability',
-            url: `/project/${ref}/observability${preservedQueryParams}`,
-          },
-        ]
-      : []),
+    {
+      name: 'Overview',
+      key: 'observability',
+      url: `/project/${ref}/observability${preservedQueryParams}`,
+    },
     ...(isSupamonitorEnabled
       ? [
           {
@@ -58,15 +54,16 @@ export function generateObservabilityMenuItems(
             url: `/project/${ref}/observability/query-performance${preservedQueryParams}`,
           },
         ]),
-    ...(isPlatform
-      ? [
-          {
-            name: 'API Gateway',
-            key: 'api-overview',
-            url: `/project/${ref}/observability/api-overview${preservedQueryParams}`,
-          },
-        ]
-      : []),
+    {
+      name: 'API Gateway',
+      key: 'api-overview',
+      url: `/project/${ref}/observability/api-overview${preservedQueryParams}`,
+    },
+    {
+      name: 'Database Connections',
+      key: 'connections',
+      url: `/project/${ref}/observability/connections${preservedQueryParams}`,
+    },
   ]
 
   const productItems: ObservabilityMenuItem[] = [
