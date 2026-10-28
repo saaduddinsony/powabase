@@ -134,7 +134,7 @@ export function UserDropdown({
           <DropdownMenuItem
             className="cursor-pointer flex items-center gap-2 text-xs"
             onSelect={() => {
-              window.open('https://github.com/supabase/supabase/releases', '_blank')
+              window.open('https://github.com/saaduddinsony/socket/releases', '_blank')
             }}
           >
             <FileText size={14} className="text-foreground-lighter" />

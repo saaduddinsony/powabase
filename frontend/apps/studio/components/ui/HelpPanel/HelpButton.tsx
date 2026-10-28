@@ -22,10 +22,10 @@ export const HelpButton = () => {
       type="outline"
       size="tiny"
       className={cn(
-        'rounded-full w-[32px] h-[32px] flex items-center justify-center p-0 group transition-all',
+        'rounded-full w-[32px] h-[32px] flex items-center justify-center p-0 group transition-all duration-200',
         isOpen
           ? 'bg-surface-300 dark:bg-surface-300 border-stronger text-foreground shadow-sm hover:bg-surface-300'
-          : 'text-foreground-light hover:text-foreground hover:bg-surface-200'
+          : 'hover:border-stronger hover:bg-surface-200/80 text-foreground-light hover:text-foreground'
       )}
       onClick={() => {
         toggleSidebar(SIDEBAR_KEYS.HELP_PANEL)
