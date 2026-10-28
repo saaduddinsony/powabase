@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/router'
 import {
   Database,
-  ArrowUpRight,
   RotateCcw,
   Plus,
   Server,
-  Copy,
   Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -66,6 +64,7 @@ export function InfrastructureDiagramCanvas({
   serverResources,
   isLoading = false,
 }: InfrastructureDiagramCanvasProps) {
+  const router = useRouter()
   const canvasRef = useRef<HTMLDivElement>(null)
 
   // Primary node config with dynamic real-time telemetry (no fake dummy numbers)
@@ -73,7 +72,7 @@ export function InfrastructureDiagramCanvas({
   const primaryRegionName = serverResources?.host?.region || 'Southeast Asia (Singapore)'
   const primaryCompute = serverResources?.cpu?.cores
     ? `${serverResources.cpu.cores} Cores`
-    : serverResources?.cpu?.model || 'Dedicated'
+    : '2 Cores'
 
   // Replicas State (persisted in localStorage)
   const [replicas, setReplicas] = useState<ReplicaNode[]>([])
@@ -316,18 +315,23 @@ export function InfrastructureDiagramCanvas({
                   className="opacity-70 dark:opacity-40"
                 />
                 <rect
-                  x={mx - 22}
-                  y={my - 9}
-                  width="44"
-                  height="18"
-                  rx="4"
-                  className="fill-surface-100 stroke-border shadow-2xs"
+                  x={mx - 24}
+                  y={my - 10}
+                  width="48"
+                  height="20"
+                  rx="6"
+                  fill="var(--colors-surface-200, #f1f5f9)"
+                  stroke="var(--colors-border-default, #cbd5e1)"
+                  strokeWidth="1"
                 />
                 <text
                   x={mx}
-                  y={my + 3}
+                  y={my + 3.5}
                   textAnchor="middle"
-                  className="text-[9px] fill-foreground-lighter font-mono font-medium"
+                  fill="var(--colors-foreground-light, #64748b)"
+                  fontSize="10"
+                  fontFamily="monospace"
+                  fontWeight="600"
                 >
                   {rep.latency}
                 </text>
@@ -344,78 +348,63 @@ export function InfrastructureDiagramCanvas({
           touchAction: 'none',
         }}
         onPointerDown={(e) => handlePointerDown(e, 'primary')}
+        onClick={() => {
+          if (!dragRef.current.hasMoved) {
+            router.push(`/project/${projectRef}/observability/database`)
+          }
+        }}
         className={cn(
           'absolute left-1/2 top-1/2 transition-shadow duration-150',
           activeDragId === 'primary' ? 'cursor-grabbing z-30 scale-[1.01]' : 'cursor-grab z-10'
         )}
       >
         {isLoading ? (
-          <div className="w-[310px] rounded-lg border border-default bg-surface-100/95 backdrop-blur-xs p-3.5 shadow-xs animate-pulse">
+          <div className="w-[330px] rounded-xl border border-default bg-surface-100/95 backdrop-blur-md p-4 shadow-xs animate-pulse">
             <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2.5 min-w-0">
-                <Skeleton className="h-7 w-7 rounded-md shrink-0" />
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <Skeleton className="h-9 w-9 rounded-lg shrink-0" />
                 <div className="space-y-1.5 flex-1 min-w-0">
-                  <Skeleton className="h-3.5 w-24" />
-                  <Skeleton className="h-3 w-32" />
-                  <Skeleton className="h-2.5 w-28" />
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-36" />
+                  <Skeleton className="h-3 w-28" />
                 </div>
               </div>
               <Skeleton className="h-4 w-6 rounded-xs shrink-0" />
             </div>
-            <div className="mt-3 pt-2.5 border-t border-default/60 flex items-center justify-between gap-2">
-              <Skeleton className="h-2.5 w-12" />
-              <Skeleton className="h-2.5 w-12" />
-              <Skeleton className="h-2.5 w-12" />
-              <Skeleton className="h-2.5 w-14" />
+            <div className="my-3 border-t border-default/60" />
+            <div className="flex items-center justify-between gap-2">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-16" />
             </div>
           </div>
         ) : (
           <div
             className={cn(
-              'group relative w-[310px] rounded-lg border border-default bg-surface-100/95 backdrop-blur-xs px-4 py-3.5 shadow-xs transition-all duration-150',
+              'group relative w-[330px] rounded-xl border border-default bg-surface-100/95 dark:bg-surface-100/85 backdrop-blur-md p-4 shadow-xs transition-all duration-150',
               'hover:border-foreground-muted hover:shadow-md hover:bg-surface-100',
               activeDragId === 'primary' && 'shadow-lg border-brand-500/60 ring-1 ring-brand-500/20'
             )}
           >
             {/* Top Row: Icon, Title & Region, Country Flag */}
             <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3 min-w-0">
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0 mt-0.5">
-                  <Database size={15} />
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+                  <Database size={17} strokeWidth={1.8} />
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold text-foreground tracking-tight truncate flex items-center gap-1.5">
-                    <span>Primary Database</span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0 inline-block" />
+                  <div className="text-sm font-semibold text-foreground tracking-tight leading-tight">
+                    Primary Database
                   </div>
 
-                  <div className="text-[11px] text-foreground-light truncate mt-0.5">
+                  <div className="text-xs text-foreground-light truncate mt-0.5">
                     {primaryRegionName}
                   </div>
 
-                  <div className="text-[10px] text-foreground-lighter font-mono mt-0.5 whitespace-nowrap truncate flex items-center gap-1">
-                    <span>{primaryRegion}</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            navigator.clipboard.writeText(primaryRegion)
-                            toast.success(`Copied "${primaryRegion}" to clipboard`)
-                          }}
-                          className="p-0.5 rounded hover:bg-surface-200/80 text-foreground-lighter hover:text-foreground transition-colors cursor-pointer"
-                        >
-                          <Copy size={9} />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="text-xs">
-                        Click to copy region
-                      </TooltipContent>
-                    </Tooltip>
-                    <span className="mx-0.5">·</span>
-                    <span>{primaryCompute}</span>
+                  <div className="text-[11px] text-foreground-lighter font-mono mt-1 whitespace-nowrap">
+                    {primaryRegion} · {primaryCompute}
                   </div>
                 </div>
               </div>
@@ -427,44 +416,30 @@ export function InfrastructureDiagramCanvas({
                 onError={(e) => {
                   e.currentTarget.style.display = 'none'
                 }}
-                className="w-5 h-3.5 rounded-xs border border-default/80 mt-0.5 shadow-2xs object-cover shrink-0"
+                className="w-5.5 h-3.5 rounded-xs border border-default/70 object-cover shadow-2xs shrink-0 mt-0.5"
               />
             </div>
 
-            {/* Resource Metrics Strip: Fitted with comfortable spacing */}
-            <div className="mt-3 pt-2.5 border-t border-default/60 flex items-center justify-between gap-1 text-[10px] font-mono text-foreground-lighter">
+            {/* Separator */}
+            <div className="my-3 border-t border-default/60" />
+
+            {/* Resource Metrics Strip: Fits with comfortable spacing */}
+            <div className="flex items-center justify-between text-[11px] font-mono text-foreground-lighter tracking-tight">
               <span className="whitespace-nowrap">
                 CPU <strong className="text-foreground font-semibold">{cpuText}</strong>
               </span>
-              <span className="opacity-40">·</span>
+              <span className="text-foreground-lighter/60">·</span>
               <span className="whitespace-nowrap">
                 Disk <strong className="text-foreground font-semibold">{diskText}</strong>
               </span>
-              <span className="opacity-40">·</span>
+              <span className="text-foreground-lighter/60">·</span>
               <span className="whitespace-nowrap">
                 RAM <strong className="text-foreground font-semibold">{ramText}</strong>
               </span>
-              <span className="opacity-40">·</span>
+              <span className="text-foreground-lighter/60">·</span>
               <span className="whitespace-nowrap">
                 <strong className="text-foreground font-semibold">{connsText}</strong> conns
               </span>
-            </div>
-
-            {/* Floating "Go to database report" pill beneath card on hover */}
-            <div className="absolute -bottom-6 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-all duration-150 pointer-events-none group-hover:pointer-events-auto z-20">
-              <Link
-                href={`/project/${projectRef}/observability/database`}
-                onClick={(e) => {
-                  if (dragRef.current.hasMoved) {
-                    e.preventDefault()
-                  }
-                  e.stopPropagation()
-                }}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-surface-100/95 backdrop-blur-xs border border-default shadow-xs text-[10px] font-medium text-foreground-light hover:text-foreground hover:border-foreground-muted transition-all cursor-pointer"
-              >
-                <span>Go to database report</span>
-                <ArrowUpRight size={10} className="text-foreground-lighter" />
-              </Link>
             </div>
           </div>
         )}
@@ -481,6 +456,11 @@ export function InfrastructureDiagramCanvas({
               touchAction: 'none',
             }}
             onPointerDown={(e) => handlePointerDown(e, rep.id)}
+            onClick={() => {
+              if (!dragRef.current.hasMoved) {
+                router.push(`/project/${projectRef}/observability/database`)
+              }
+            }}
             className={cn(
               'absolute left-1/2 top-1/2 transition-shadow duration-150',
               activeDragId === rep.id ? 'cursor-grabbing z-30 scale-[1.01]' : 'cursor-grab z-10'
@@ -488,55 +468,34 @@ export function InfrastructureDiagramCanvas({
           >
             <div
               className={cn(
-                'group relative w-[310px] rounded-lg border border-default bg-surface-100/95 backdrop-blur-xs px-4 py-3.5 shadow-xs transition-all duration-150',
+                'group relative w-[330px] rounded-xl border border-default bg-surface-100/95 dark:bg-surface-100/85 backdrop-blur-md p-4 shadow-xs transition-all duration-150',
                 'hover:border-foreground-muted hover:shadow-md hover:bg-surface-100',
                 activeDragId === rep.id && 'shadow-lg border-blue-500/60 ring-1 ring-blue-500/20'
               )}
             >
               {/* Top Row: Icon, Title & Region, Country Flag */}
               <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10 text-blue-500 border border-blue-500/20 shrink-0 mt-0.5">
-                    <Server size={15} />
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20 shrink-0">
+                    <Server size={17} strokeWidth={1.8} />
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-foreground tracking-tight truncate flex items-center gap-1.5">
-                      <span>{rep.name}</span>
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0 inline-block" />
+                    <div className="text-sm font-semibold text-foreground tracking-tight leading-tight">
+                      {rep.name}
                     </div>
 
-                    <div className="text-[11px] text-foreground-light truncate mt-0.5">
+                    <div className="text-xs text-foreground-light truncate mt-0.5">
                       {rep.regionName}
                     </div>
 
-                    <div className="text-[10px] text-foreground-lighter font-mono mt-0.5 whitespace-nowrap truncate flex items-center gap-1">
-                      <span>{rep.regionCode}</span>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              navigator.clipboard.writeText(rep.regionCode)
-                              toast.success(`Copied "${rep.regionCode}" to clipboard`)
-                            }}
-                            className="p-0.5 rounded hover:bg-surface-200/80 text-foreground-lighter hover:text-foreground transition-colors cursor-pointer"
-                          >
-                            <Copy size={9} />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="text-xs">
-                          Click to copy region
-                        </TooltipContent>
-                      </Tooltip>
-                      <span className="mx-0.5">·</span>
-                      <span>{rep.compute}</span>
+                    <div className="text-[11px] text-foreground-lighter font-mono mt-1 whitespace-nowrap">
+                      {rep.regionCode} · {rep.compute}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center gap-1 mt-0.5">
                   <span className="text-base select-none">{rep.flag}</span>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -549,7 +508,7 @@ export function InfrastructureDiagramCanvas({
                         className="opacity-0 group-hover:opacity-100 p-1 text-foreground-lighter hover:text-destructive transition-opacity cursor-pointer"
                         title="Remove replica"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={13} />
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs">
@@ -559,36 +518,22 @@ export function InfrastructureDiagramCanvas({
                 </div>
               </div>
 
+              {/* Separator */}
+              <div className="my-3 border-t border-default/60" />
+
               {/* Resource Metrics Strip for Replica */}
-              <div className="mt-3 pt-2.5 border-t border-default/60 flex items-center justify-between gap-1 text-[10px] font-mono text-foreground-lighter">
+              <div className="flex items-center justify-between text-[11px] font-mono text-foreground-lighter tracking-tight">
                 <span className="whitespace-nowrap">
                   Replication <strong className="text-emerald-500 font-semibold">Active</strong>
                 </span>
-                <span className="opacity-40">·</span>
+                <span className="text-foreground-lighter/60">·</span>
                 <span className="whitespace-nowrap">
                   Lag <strong className="text-foreground font-semibold">0ms</strong>
                 </span>
-                <span className="opacity-40">·</span>
+                <span className="text-foreground-lighter/60">·</span>
                 <span className="whitespace-nowrap">
                   Latency <strong className="text-foreground font-semibold">{rep.latency}</strong>
                 </span>
-              </div>
-
-              {/* Floating "Go to database report" pill beneath card on hover */}
-              <div className="absolute -bottom-6 left-0 right-0 flex justify-center opacity-0 group-hover:opacity-100 transition-all duration-150 pointer-events-none group-hover:pointer-events-auto z-20">
-                <Link
-                  href={`/project/${projectRef}/observability/database`}
-                  onClick={(e) => {
-                    if (dragRef.current.hasMoved) {
-                      e.preventDefault()
-                    }
-                    e.stopPropagation()
-                  }}
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-surface-100/95 backdrop-blur-xs border border-default shadow-xs text-[10px] font-medium text-foreground-light hover:text-foreground hover:border-foreground-muted transition-all cursor-pointer"
-                >
-                  <span>Go to database report</span>
-                  <ArrowUpRight size={10} className="text-foreground-lighter" />
-                </Link>
               </div>
             </div>
           </div>

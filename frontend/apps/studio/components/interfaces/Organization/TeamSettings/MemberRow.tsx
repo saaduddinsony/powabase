@@ -50,8 +50,9 @@ export const MemberRow = ({ member }: MemberRowProps) => {
   const isEmailUser = member.username === member.primary_email
   const isFlyUser = Boolean(member.primary_email?.endsWith('customer.fly.io'))
 
-  // Use generic avatar for all team members instead of attempting to fetch from GitHub
-  const profileImageUrl = undefined
+  // Use user avatar or fallback to profile image
+  const profileImageUrl =
+    (member as any).avatar_url || (member as any).profile_image_url || undefined
 
   return (
     <TableRow>
@@ -73,7 +74,9 @@ export const MemberRow = ({ member }: MemberRowProps) => {
             }
           />
           <div className="flex items-center gap-x-3">
-            <p className="text-foreground-light truncate">{member.primary_email}</p>
+            <p className="text-foreground-light truncate">
+              {member.primary_email ?? member.username ?? 'Team Member'}
+            </p>
             <div className="flex items-center gap-x-2">
               {member.gotrue_id === profile?.gotrue_id && <Badge>You</Badge>}
               {isInvitedUser && member.invited_at && (
@@ -88,7 +91,7 @@ export const MemberRow = ({ member }: MemberRowProps) => {
                     managed_by:
                       MEMBER_ORIGIN_TO_MANAGED_BY[
                         (member.metadata as any).origin as keyof typeof MEMBER_ORIGIN_TO_MANAGED_BY
-                      ] ?? 'supabase',
+                      ] ?? 'socket',
                   }}
                   tooltipText="Managed by Vercel Marketplace."
                 />
@@ -117,8 +120,10 @@ export const MemberRow = ({ member }: MemberRowProps) => {
       <TableCell className="max-w-64">
         {isLoadingRoles ? (
           <ShimmeringLoader className="w-32" />
+        ) : (member.role_ids ?? []).length === 0 ? (
+          <span className="text-foreground-lighter text-xs">Member</span>
         ) : (
-          member.role_ids.map((id) => {
+          (member.role_ids ?? []).map((id) => {
             const orgScopedRole = (roles?.org_scoped_roles ?? []).find((role) => role.id === id)
             const projectScopedRole = (roles?.project_scoped_roles ?? []).find(
               (role) => role.id === id

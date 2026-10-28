@@ -163,9 +163,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       totalRam: totalRamMb,
     })
 
+    const committedVal = Number((1.1 + (i % 7 === 0 ? 0.1 : 0)).toFixed(1))
     commitmentTimeseries.push({
       timestamp,
-      committed: 1.1 + (i % 7 === 0 ? 0.1 : 0),
+      committed: committedVal,
       threshold50: 1.2,
       capacity: 1.4,
     })
@@ -187,6 +188,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   const provisionedDiskGb = 8 // Standard provisioned disk size
   const spaceUsedGb = (dbSizeBytes / (1024 * 1024 * 1024)).toFixed(2)
 
+  const lastCommitted = commitmentTimeseries[commitmentTimeseries.length - 1].committed
+  const commitmentStatus =
+    lastCommitted >= 1.4 ? 'CRITICAL' : lastCommitted >= 1.2 ? 'WARNING' : 'HEALTHY'
+
   return res.status(200).json({
     databaseSize: {
       usedBytes: dbSizeBytes,
@@ -205,10 +210,10 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       timeseries: memoryTimeseries,
     },
     memoryCommitment: {
-      currentFormatted: '1.1 GB',
+      currentFormatted: `${lastCommitted} GB`,
       threshold50Formatted: '1.2 GB',
       capacityFormatted: '1.4 GB',
-      status: 'WARNING',
+      status: commitmentStatus,
       timeseries: commitmentTimeseries,
     },
     diskThroughput: {
