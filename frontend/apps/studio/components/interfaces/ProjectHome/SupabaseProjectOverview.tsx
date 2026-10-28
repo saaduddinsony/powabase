@@ -185,7 +185,7 @@ export function SupabaseProjectOverview() {
             <div
               className={cn(
                 'grid gap-6 items-stretch transition-all duration-300 ease-in-out',
-                isSidebarOpen ? 'grid-cols-1 2xl:grid-cols-12' : 'grid-cols-1 lg:grid-cols-12'
+                isSidebarOpen ? 'grid-cols-1 min-[1800px]:grid-cols-12' : 'grid-cols-1 lg:grid-cols-12'
               )}
             >
               {/* Left Column: Adaptive Grid of Metadata Cards */}
@@ -194,14 +194,14 @@ export function SupabaseProjectOverview() {
                 className={cn(
                   'grid gap-3.5 transition-all duration-300 ease-in-out',
                   isSidebarOpen
-                    ? '2xl:col-span-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 2xl:grid-cols-2'
+                    ? 'min-[1800px]:col-span-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 min-[1800px]:grid-cols-2'
                     : 'lg:col-span-6 grid-cols-1 sm:grid-cols-2'
                 )}
               >
                 {/* 1. STATUS */}
                 <Link
                   href={`/project/${projectRef}/observability`}
-                  className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted transition-all group"
+                  className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group"
                 >
                   <div className="h-11 w-11 rounded-lg bg-surface-200/80 border border-default flex items-center justify-center shrink-0">
                     <div className="grid grid-cols-3 gap-1 p-0.5">
@@ -232,7 +232,7 @@ export function SupabaseProjectOverview() {
                 {/* 2. COMPUTE SIZE */}
                 <Link
                   href={`/project/${projectRef}/infrastructure`}
-                  className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted transition-all group"
+                  className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group"
                 >
                   <div className="h-11 w-11 rounded-lg bg-surface-200/80 border border-default flex items-center justify-center shrink-0 text-foreground-light">
                     <Cpu size={18} />
@@ -260,7 +260,7 @@ export function SupabaseProjectOverview() {
                 {/* 3. GITHUB */}
                 <Link
                   href={`/project/${projectRef}/settings/integrations`}
-                  className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted transition-all group"
+                  className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group"
                 >
                   <div className="h-11 w-11 rounded-lg bg-surface-200/80 border border-default flex items-center justify-center shrink-0 text-foreground-light">
                     <Github size={18} />
@@ -278,7 +278,7 @@ export function SupabaseProjectOverview() {
                 {/* 4. RECENT BRANCH */}
                 <Link
                   href={`/project/${projectRef}/branches`}
-                  className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted transition-all group"
+                  className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group"
                 >
                   <div className="h-11 w-11 rounded-lg bg-surface-200/80 border border-default flex items-center justify-center shrink-0 text-foreground-light">
                     <GitBranch size={18} />
@@ -300,7 +300,7 @@ export function SupabaseProjectOverview() {
                 {/* 5. LAST MIGRATION */}
                 <Link
                   href={`/project/${projectRef}/database/migrations`}
-                  className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted transition-all group"
+                  className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group"
                 >
                   <div className="h-11 w-11 rounded-lg bg-surface-200/80 border border-default flex items-center justify-center shrink-0 text-foreground-light">
                     <Database size={18} />
@@ -324,7 +324,7 @@ export function SupabaseProjectOverview() {
                 {/* 6. LAST BACKUP */}
                 <Link
                   href={`/project/${projectRef}/database/backups/scheduled`}
-                  className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted transition-all group"
+                  className="rounded-xl border border-default bg-surface-100 p-4 flex items-center gap-3.5 shadow-sm hover:border-foreground-muted hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group"
                 >
                   <div className="h-11 w-11 rounded-lg bg-surface-200/80 border border-default flex items-center justify-center shrink-0 text-foreground-light">
                     <Archive size={18} />
@@ -351,7 +351,7 @@ export function SupabaseProjectOverview() {
               <div
                 className={cn(
                   'relative flex flex-col justify-between rounded-xl border border-default bg-surface-100/40 h-full min-h-[340px] shadow-sm overflow-hidden transition-all duration-300 ease-in-out',
-                  isSidebarOpen ? '2xl:col-span-6' : 'lg:col-span-6'
+                  isSidebarOpen ? 'min-[1800px]:col-span-6' : 'lg:col-span-6'
                 )}
               >
                 {/* Top Right Canvas Mode Toggle Controls */}
