@@ -115,7 +115,7 @@ export const ProjectCopilotWelcomeModal = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-x-2">
             <Sparkles size={18} className="text-brand" />
-            Welcome to your Powabase project
+            Welcome to your Socket project
           </DialogTitle>
         </DialogHeader>
         <DialogSection>
