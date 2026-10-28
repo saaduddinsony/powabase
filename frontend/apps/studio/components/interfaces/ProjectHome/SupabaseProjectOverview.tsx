@@ -34,6 +34,7 @@ import { useMigrationsQuery } from '@/data/database/migrations-query'
 import { useCustomContent } from '@/hooks/custom-content/useCustomContent'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
+import { useSidebarManagerSnapshot } from '@/state/sidebar-manager-state'
 import { EMPTY_ARR } from '@/lib/void'
 
 const RegionalWorldMap = dynamic(
@@ -86,6 +87,8 @@ export function SupabaseProjectOverview() {
 
   const [showExplorerCallout, setShowExplorerCallout] = useState(false)
   const [canvasMode, setCanvasMode] = useState<'node' | 'map'>('node')
+  const { activeSidebar } = useSidebarManagerSnapshot()
+  const isSidebarOpen = Boolean(activeSidebar)
 
   useEffect(() => {
     try {
@@ -108,7 +111,7 @@ export function SupabaseProjectOverview() {
   }
 
   // Fetch real-time hardware telemetry from Socket server
-  const { data: serverResources } = useQuery<ServerResourcesResponse>({
+  const { data: serverResources, isPending: isLoadingResources } = useQuery<ServerResourcesResponse>({
     queryKey: ['project-overview-server-resources'],
     queryFn: async () => {
       const res = await fetch('/api/platform/infrastructure/server-resources')
@@ -179,9 +182,22 @@ export function SupabaseProjectOverview() {
             </div>
 
             {/* Main 2-Column Hero Grid: 6 Status Cards (Left) + Topology Canvas (Right) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-              {/* Left Column: 2x3 Grid of Metadata Cards */}
-              <div data-tour="metrics-card" className="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div
+              className={cn(
+                'grid gap-6 items-stretch transition-all duration-300 ease-in-out',
+                isSidebarOpen ? 'grid-cols-1 2xl:grid-cols-12' : 'grid-cols-1 lg:grid-cols-12'
+              )}
+            >
+              {/* Left Column: Adaptive Grid of Metadata Cards */}
+              <div
+                data-tour="metrics-card"
+                className={cn(
+                  'grid gap-3.5 transition-all duration-300 ease-in-out',
+                  isSidebarOpen
+                    ? '2xl:col-span-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 2xl:grid-cols-2'
+                    : 'lg:col-span-6 grid-cols-1 sm:grid-cols-2'
+                )}
+              >
                 {/* 1. STATUS */}
                 <Link
                   href={`/project/${projectRef}/observability`}
@@ -202,7 +218,13 @@ export function SupabaseProjectOverview() {
                       STATUS
                     </div>
                     <div className="text-sm font-medium text-foreground truncate mt-0.5">
-                      {isHealthy ? 'Healthy' : 'Unhealthy'}
+                      {isLoadingResources ? (
+                        <Skeleton className="h-4 w-16" />
+                      ) : isHealthy ? (
+                        'Healthy'
+                      ) : (
+                        'Unhealthy'
+                      )}
                     </div>
                   </div>
                 </Link>
@@ -220,11 +242,17 @@ export function SupabaseProjectOverview() {
                       COMPUTE SIZE
                     </div>
                     <div className="text-sm font-medium text-foreground truncate mt-0.5 flex items-center gap-1.5">
-                      <Badge variant="outline" className="text-[10px] uppercase font-mono px-1.5 py-0">
-                        {serverResources?.cpu?.cores
-                          ? `${serverResources.cpu.cores} Cores · ${serverResources.memory.totalFormatted}`
-                          : 'DEDICATED'}
-                      </Badge>
+                      {isLoadingResources ? (
+                        <Skeleton className="h-5 w-28 rounded-xs" />
+                      ) : serverResources?.cpu?.cores ? (
+                        <Badge variant="outline" className="text-[10px] uppercase font-mono px-1.5 py-0">
+                          {serverResources.cpu.cores} Cores · {serverResources.memory.totalFormatted}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] uppercase font-mono px-1.5 py-0">
+                          DEDICATED
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </Link>
@@ -320,7 +348,12 @@ export function SupabaseProjectOverview() {
 
               {/* Right Column: Interactive Dot-Matrix Canvas with Primary Database Card */}
               {/* Right Column: Unified Infrastructure Canvas & World Map */}
-              <div className="lg:col-span-6 relative flex flex-col justify-between rounded-xl border border-default bg-surface-100/40 h-full min-h-[340px] shadow-sm overflow-hidden">
+              <div
+                className={cn(
+                  'relative flex flex-col justify-between rounded-xl border border-default bg-surface-100/40 h-full min-h-[340px] shadow-sm overflow-hidden transition-all duration-300 ease-in-out',
+                  isSidebarOpen ? '2xl:col-span-6' : 'lg:col-span-6'
+                )}
+              >
                 {/* Top Right Canvas Mode Toggle Controls */}
                 <div className="absolute top-3.5 right-3.5 z-20">
                   <div className="inline-flex items-center bg-surface-100/90 backdrop-blur-md rounded-lg border border-default p-1 shadow-sm gap-1">
@@ -367,6 +400,7 @@ export function SupabaseProjectOverview() {
                     <InfrastructureDiagramCanvas
                       projectRef={projectRef ?? 'default'}
                       serverResources={serverResources}
+                      isLoading={isLoadingResources}
                     />
                   </div>
 

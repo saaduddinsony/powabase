@@ -19,9 +19,14 @@ export const HelpButton = () => {
   return (
     <ButtonTooltip
       id="help-dropdown-button"
-      type={isOpen ? 'secondary' : 'outline'}
+      type="outline"
       size="tiny"
-      className={cn('rounded-full w-[32px] h-[32px] flex items-center justify-center p-0 group')}
+      className={cn(
+        'rounded-full w-[32px] h-[32px] flex items-center justify-center p-0 group transition-all',
+        isOpen
+          ? 'bg-surface-300 dark:bg-surface-300 border-stronger text-foreground shadow-sm hover:bg-surface-300'
+          : 'text-foreground-light hover:text-foreground hover:bg-surface-200'
+      )}
       onClick={() => {
         toggleSidebar(SIDEBAR_KEYS.HELP_PANEL)
         // Don't send telemetry event if dropdown is already open
@@ -38,8 +43,8 @@ export const HelpButton = () => {
         size={16}
         strokeWidth={1.5}
         className={cn(
-          'text-foreground-light group-hover:text-foreground',
-          isOpen && 'text-background group-hover:text-background'
+          'transition-colors',
+          isOpen ? 'text-foreground' : 'text-foreground-light group-hover:text-foreground'
         )}
       />
     </ButtonTooltip>
