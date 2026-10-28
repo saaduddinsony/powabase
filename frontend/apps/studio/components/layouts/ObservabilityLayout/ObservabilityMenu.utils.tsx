@@ -114,13 +114,11 @@ export function generateObservabilityMenuItems(
     },
   ]
 
-  if (isPlatform) {
-    sections.push({
-      title: 'PRODUCT',
-      key: 'product-section',
-      items: productItems,
-    })
-  }
+  sections.push({
+    title: 'PRODUCT',
+    key: 'product-section',
+    items: productItems,
+  })
 
   return sections
 }

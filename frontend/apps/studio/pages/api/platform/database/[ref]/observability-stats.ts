@@ -190,7 +190,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   return res.status(200).json({
     databaseSize: {
       usedBytes: dbSizeBytes,
-      usedFormatted: `${spaceUsedGb} GB`,
+      usedFormatted: formatBytes(dbSizeBytes),
       provisionedFormatted: `${provisionedDiskGb} GB`,
       provisionedBytes: provisionedDiskGb * 1024 * 1024 * 1024,
       largeObjects,
